@@ -116,3 +116,49 @@ This commit is local. No GitHub remote setup or upload has been completed in our
 With the user's permission, we filled this file with the completed steps above. This edit comes after commit `6f8bd4b` and is not part of that snapshot. No new commit was made while writing the log.
 
 The next coding step is to open the sample photo with Pillow and inspect its size and color mode before implementing conversion.
+
+## 6. Saving the initial development log
+
+The user staged and committed the log:
+
+```bash
+git add docs/development-log.md
+git commit -m "Document initial setup and learning progress"
+```
+
+The successful commit was `3dbd655`. We clarified that `git add` stages changes, while `git commit` saves the staged snapshot.
+
+## 7. First Python function: inspect an image — 22 October 2026
+
+With the user's approval, we added `inspect_image(path)` to `src/ascart/image_art.py`:
+
+```python
+from PIL import Image
+
+
+def inspect_image(path):
+    with Image.open(path) as image:
+        print("Size:", image.size)
+        print("Color mode:", image.mode)
+```
+
+We explained imports, function definitions, the `path` parameter, indentation, and the `with` block that closes the image file automatically. We also learned that `image.size` gives a width-and-height tuple and `image.mode` describes how colors are stored.
+
+The function was run successfully on the sample. The user also ran this command from the project folder with the virtual environment activated:
+
+```bash
+PYTHONPATH=src python -c "from ascart.image_art import inspect_image; inspect_image('examples/image1.png')"
+```
+
+`PYTHONPATH=src` tells Python where to find our package for this command, since the project has not been installed yet. The import loads the function, and the function call runs it on the sample image.
+
+The output was:
+
+```text
+Size: (1254, 1254)
+Color mode: RGB
+```
+
+The user confirmed that it worked. This verifies image opening and inspection; ASCII conversion is not implemented yet. The next coding step is grayscale conversion to obtain pixel brightness values.
+
+This log entry and the function are ready to stage and commit. No commit was made while writing this entry.
