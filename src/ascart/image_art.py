@@ -3,7 +3,7 @@ from PIL import Image
 from ascart.converter import DEFAULT_PALETTE, brightness_to_character
 
 
-def inspect_image(path, width=80, palette=DEFAULT_PALETTE, background="dark"):
+def inspect_image(path, width=80, palette=DEFAULT_PALETTE, background="dark", max_height=None):
     if background == "light":
         palette = palette[::-1]
 
@@ -12,6 +12,9 @@ def inspect_image(path, width=80, palette=DEFAULT_PALETTE, background="dark"):
 
         aspect_ratio = image.height / image.width
         height = max(1, int(width * aspect_ratio * 0.5))
+        if max_height is not None and height > max_height:
+            height = max_height
+            width = max(1, min(width, int(height / (aspect_ratio * 0.5))))
         resized = grayscale.resize((width, height))
 
         rows = []

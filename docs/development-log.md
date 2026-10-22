@@ -507,3 +507,55 @@ Users can explicitly request `--background auto`, or override the result with `-
 We tested conventional light/dark hints, missing and unsupported values, and a three-field hint. We also verified through command-line runs that automatic mode selects the corresponding manual output and that manual overrides work independently of the hint. The user ran the feature and confirmed that it worked; this confirmation alone does not establish whether their terminal supplied a hint or used the fallback.
 
 No new dependency was needed. No commit was made while writing this entry. The CLI change and this log are ready to stage and commit together.
+
+## 22. Saving automatic background selection
+
+The user committed automatic background selection and its notes in commit `d4853f6`, with the message `Add automatic background selection with dark fallback`.
+
+## 23. Terminal fitting and a 60-column default — 22 October 2026
+
+With the user's approval, we added terminal fitting in `src/ascart/cli.py` and `src/ascart/image_art.py`.
+
+The CLI uses Python's built-in `shutil` module to read terminal dimensions:
+
+```python
+terminal_size = shutil.get_terminal_size(fallback=(80, 24))
+width = max(1, terminal_size.columns - 1)
+max_height = max(1, terminal_size.lines - 2)
+```
+
+The fallback is 80 columns by 24 rows when terminal dimensions are unavailable. We reserve one column to reduce line wrapping and two rows for prompts. `max(1, ...)` keeps each available dimension positive, even in a tiny terminal.
+
+The image function now accepts `max_height=None`. After calculating height using the existing character-proportion correction, it limits an oversized result and recalculates width:
+
+```python
+if max_height is not None and height > max_height:
+    height = max_height
+    width = max(1, min(width, int(height / (aspect_ratio * 0.5))))
+```
+
+This keeps output within both available dimensions while approximately preserving proportions, subject to rounding to whole character cells. It does not stretch an image to fill both dimensions. Terminal size is read when the command runs; resizing the terminal afterward does not update existing output.
+
+We initially made fitting the default and kept explicit `--width` as an override. We tested square, tall, and wide images against simulated terminal sizes, including tiny terminals, and checked that explicit width bypassed the height limit. The user confirmed that fitting worked, then requested a smaller default rather than filling the available terminal space.
+
+With approval, we changed the final interface to:
+
+- No sizing option: use 60 character columns.
+- `--width NUMBER`: use the requested positive width.
+- `--fit`: calculate width and height from the terminal.
+
+In the CLI, `parser.add_mutually_exclusive_group()` groups `--width` and `--fit`, so supplying both produces an argument error. The width argument uses `default=60`. The fit argument uses `action="store_true"`, making `args.fit` true only when that flag is supplied. Terminal sizing now runs only when `args.fit` is true.
+
+The commands are:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png
+PYTHONPATH=src python -m ascart examples/image1.png --fit
+PYTHONPATH=src python -m ascart examples/image1.png --width 100
+```
+
+For our square sample, the default produces 60 columns by 30 rows. These sizing choices also apply when saving with `--output`.
+
+We verified the final behavior: default 60-by-30 output, explicit width 100 producing 100-by-50 output, fitting within a simulated 40-column by 12-row terminal (producing 20-by-10 artwork), and rejection of combined `--fit` and `--width`. The user welcomed the changed default.
+
+No new dependency was needed. No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together. Color output is the next planned feature.

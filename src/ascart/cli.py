@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 from pathlib import Path
 
 from ascart.converter import DEFAULT_PALETTE
@@ -20,8 +21,12 @@ def detect_background():
 def main():
     parser = argparse.ArgumentParser(description="Convert a photo to ASCII art.")
     parser.add_argument("path", help="Path to the image file")
-    parser.add_argument(
-        "--width", type=int, default=80, help="Output width in characters (default: 80)"
+    sizing = parser.add_mutually_exclusive_group()
+    sizing.add_argument(
+        "--width", type=int, default=60, help="Output width in characters (default: 60)"
+    )
+    sizing.add_argument(
+        "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
     parser.add_argument("--output", help="Save ASCII art to a text file")
     parser.add_argument(
@@ -36,7 +41,7 @@ def main():
         help="Background: auto uses COLORFGBG when available, otherwise dark (default: auto)",
     )
     args = parser.parse_args()
-    if args.width <= 0:
+    if args.width is not None and args.width <= 0:
         parser.error("--width must be greater than 0")
     if not args.chars:
         parser.error("--chars must contain at least one character")
@@ -45,8 +50,18 @@ def main():
     background = args.background
     if background == "auto":
         background = detect_background()
+    width = args.width
+    max_height = None
+    if args.fit:
+        terminal_size = shutil.get_terminal_size(fallback=(80, 24))
+        width = max(1, terminal_size.columns - 1)
+        max_height = max(1, terminal_size.lines - 2)
     art = inspect_image(
-        args.path, width=args.width, palette=args.chars, background=background
+        args.path,
+        width=width,
+        palette=args.chars,
+        background=background,
+        max_height=max_height,
     )
     if args.output:
         output_path = Path(args.output)
