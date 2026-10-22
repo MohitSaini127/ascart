@@ -677,3 +677,26 @@ Checks passed: frame count, per-frame timing, missing timing, and non-GIF reject
 ```
 
 No new dependency was needed. This inspection function and log form a small tested milestone to commit with the message `Add GIF frame and timing inspection`. The resulting commit ID can be read from Git history; it is not embedded here to avoid changing the log after the commit.
+
+## 30. Shared conversion and ASCII GIF frames — 22 October 2026
+
+With approval, we extracted `image_to_ascii(image, ...)` in `image_art.py`. It accepts an already-open Pillow image and performs the existing grayscale, sizing, palette, and optional RGB conversion. `inspect_image(path, ...)` still opens and closes a photo, then delegates to this shared function. Existing CLI behavior remains unchanged.
+
+We added `gif_to_ascii(path, ...)` in `gif_art.py`. It checks the GIF format, seeks through frames, reads each duration in milliseconds (zero when absent), converts the current frame to RGB, and calls the shared converter. It appends `(art, duration)` tuples to a list and returns the list after closing the file. Pillow handles GIF frame decoding/compositing during seeking. This first implementation holds all converted frames in memory; streaming can be considered for larger animations. No playback timing policy, playback, or CLI GIF dispatch has been added yet.
+
+We tested with temporary images using `.venv/bin/python -B` and an inline script. We compared the refactored photo converter against its version from `git show HEAD:src/ascart/image_art.py` for plain, colored, and fitted custom-palette output. All outputs matched. A temporary black/white two-frame GIF produced distinct ASCII frames with durations 100 and 200 ms. We also checked color sequences, equality with shared per-frame conversion, missing timing, and rejection of PNG input. Test files were automatically removed.
+
+Output:
+
+```text
+Photo regression checks passed: plain, color, and fitted custom palette output unchanged.
+Frame 1: 100 ms
+0000
+0000
+Frame 2: 200 ms
+1111
+1111
+GIF checks passed: distinct frames, timing, color, shared conversion, missing timing, and format validation.
+```
+
+No new dependencies were added. The milestone is prepared for a commit named `Convert GIF frames using shared ASCII image logic`. Its ID is available in Git history. The next step is animation playback and connecting GIF handling to the CLI.
