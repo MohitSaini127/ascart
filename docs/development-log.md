@@ -721,3 +721,28 @@ CLI checks passed: GIF dispatch, GIF save rejection, non-interactive rejection, 
 For a user-provided GIF, the command is `ascart path/to/animation.gif --fit`, optionally with `--color`. Playback clears the current screen and leaves the last frame visible after completion. Ctrl+C stops it early.
 
 No new dependency was needed. This log and the CLI/playback changes are prepared for the commit `Add one-pass ASCII GIF playback in the terminal`. Its ID is available in Git history.
+
+## 32. Optional GIF looping — 22 October 2026
+
+The user visually tested GIF playback and confirmed it worked. They requested one playback by default, `--loop` for continuous playback, and `--loop-4` for four total playbacks.
+
+We added mutually exclusive `--loop` and `--loop-count` arguments to the CLI. Before parsing, a regular-expression match translates the shorthand `--loop-N` into `--loop-count=N`; a `--` separator ends option translation. Counts must be positive. Explicit loop options are rejected for photos. The player receives 1 by default, 0 as the internal continuous-loop marker, or the requested count. GIF metadata does not override these choices.
+
+`play_gif(frames, loops=1)` now tracks completed passes with a while loop. It repeats while `loops == 0` or fewer than the requested passes have completed. An empty frame list returns immediately to avoid an infinite empty loop. Existing timing, frame replacement, and cleanup behavior remain in place. Four means four total playbacks, not four additional repetitions.
+
+Tests used mocked waits and a temporary GIF. Output:
+
+```text
+Playback checks passed: once by default, four total passes, continuous repetition, and Ctrl+C cleanup.
+CLI checks passed: --loop, --loop-4, positive counts, conflicting-option rejection, and photo-loop rejection.
+```
+
+Example commands (replace the path with a real GIF):
+
+```bash
+ascart examples/animation.gif --fit
+ascart examples/animation.gif --fit --loop
+ascart examples/animation.gif --fit --loop-4
+```
+
+The alternative `--loop-count 4` is also supported. Continuous playback ends with Ctrl+C. No new dependency was added. This milestone is prepared for the commit `Add continuous and counted GIF looping`.

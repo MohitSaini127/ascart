@@ -6,13 +6,18 @@ from ascart.converter import DEFAULT_PALETTE
 from ascart.image_art import image_to_ascii
 
 
-def play_gif(frames):
+def play_gif(frames, loops=1):
+    if not frames:
+        return
     try:
         print("\033[2J\033[H\033[?25l", end="", flush=True)
-        for art, duration in frames:
-            print("\033[H\033[J" + art, end="", flush=True)
-            delay = duration / 1000 if duration > 0 else 0.1
-            time.sleep(delay)
+        completed = 0
+        while loops == 0 or completed < loops:
+            for art, duration in frames:
+                print("\033[H\033[J" + art, end="", flush=True)
+                delay = duration / 1000 if duration > 0 else 0.1
+                time.sleep(delay)
+            completed += 1
     finally:
         print("\033[0m\033[?25h", flush=True)
 

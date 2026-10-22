@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -33,6 +34,11 @@ def main():
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
     parser.add_argument("--output", help="Save ASCII art to a text file")
+    looping = parser.add_mutually_exclusive_group()
+    looping.add_argument("--loop", action="store_true", help="Repeat GIF playback until Ctrl+C")
+    looping.add_argument(
+        "--loop-count", type=int, help="Total GIF playbacks; --loop-4 is shorthand for --loop-count 4"
+    )
     parser.add_argument(
         "--color", action="store_true", help="Use RGB terminal colors (saved text stays plain)"
     )
@@ -46,7 +52,16 @@ def main():
         default="auto",
         help="Background: auto uses COLORFGBG when available, otherwise dark (default: auto)",
     )
-    args = parser.parse_args()
+    arguments = []
+    for position, argument in enumerate(sys.argv[1:]):
+        if argument == "--":
+            arguments.extend(sys.argv[1:][position:])
+            break
+        match = re.fullmatch(r"--loop-(\d+)", argument)
+        arguments.append("--loop-count=" + match.group(1) if match else argument)
+    args = parser.parse_args(arguments)
+    if args.loop_count is not None and args.loop_count <= 0:
+        parser.error("Loop count must be greater than 0")
     color = args.color and not args.output
     if args.chars is None:
         args.chars = COLOR_PALETTE if color else DEFAULT_PALETTE
@@ -77,11 +92,14 @@ def main():
                 args.path, width=width, palette=args.chars, background=background,
                 max_height=max_height, color=color,
             )
-            play_gif(frames)
+            loops = 0 if args.loop else (args.loop_count or 1)
+            play_gif(frames, loops=loops)
         except KeyboardInterrupt:
             pass
         return
 
+    if args.loop or args.loop_count is not None:
+        parser.error("Loop options are only supported for GIF files")
     art = inspect_image(
         args.path,
         width=width,
