@@ -608,3 +608,32 @@ PYTHONPATH=src python -m ascart examples/image1.png --color
 We verified that this matches explicit `--chars "#%@"`, that monochrome output is unchanged, and that custom palettes override either default. We checked help output and saved-file palette selection as well. The user confirmed that the final result looked good.
 
 No new dependency was needed. No commit was made while writing this entry. The CLI, image conversion, palette constants, and this log are ready to stage and commit together.
+
+## 26. Saving color output
+
+The user committed color output and its notes in commit `90402c9`, with the message `Add RGB color output with a dense default palette`.
+
+## 27. Installing ascart in editable mode — 22 October 2026
+
+With approval, we filled the previously empty `pyproject.toml`:
+
+- `[build-system]` selects `setuptools>=68` and its `setuptools.build_meta` backend to prepare the project for installation.
+- `[project]` declares the name `ascart`, version `0.1.0`, description, README, Python requirement `>=3.10`, and dependency `Pillow>=13.0.0`.
+- `[project.scripts]` maps the command `ascart` to `ascart.cli:main`.
+- `[tool.setuptools.packages.find]` tells setuptools to find packages in `src`.
+
+We checked the local environment before choosing these settings: Python was 3.14.8 and Pillow was 13.0.0. The Python requirement is a declared minimum, not a claim that all supported versions have been tested. We verified that the TOML configuration parsed correctly.
+
+We clarified that a Python virtual environment is not a virtual machine: it uses the existing operating system and keeps project packages separate. The user used the existing `.venv` and ran:
+
+```bash
+source .venv/bin/activate
+python -m pip install -e .
+ascart examples/image1.png --color
+```
+
+The dot selects the current project folder. `-e` requests an editable installation, allowing source-code edits to take effect without reinstalling. Changes to dependencies or command definitions can still require reinstalling. Pip installs the declared dependencies and uses setuptools to generate installation metadata and the command entry point. The user confirmed that the installed command worked; `PYTHONPATH=src` is no longer needed while this environment is active.
+
+The installation generated `src/ascart.egg-info/`. We explained that setuptools creates this metadata, including information about the project, dependencies, and entry points. With approval, we inspected Git status and added `*.egg-info/` to `.gitignore`. This pattern excludes generated packaging metadata, which installation can recreate; it does not delete the folder.
+
+No additional installation, staging, or commit was performed while updating this log and the ignore rule. The configuration, ignore rule, and log are ready to stage and commit together.
