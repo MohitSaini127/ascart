@@ -108,6 +108,8 @@ Frame durations come from the GIF in milliseconds. Missing or zero timing uses a
 
 ## How conversion works
 
+Video inspection is available through `ascart.video_art.inspect_video(path)`, returning dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. It uses `opencv-python-headless>=4.12,<5` (imported as `cv2`), which pip installs with NumPy. Terminal video playback is under development.
+
 1. Pillow opens a photo or decodes a GIF frame.
 2. A grayscale copy supplies pixel brightness values from 0 to 255.
 3. The image is resized for the chosen character grid. A factor of 0.5 approximately compensates for terminal characters being taller than they are wide.
@@ -126,7 +128,7 @@ Photos and GIFs share the same image conversion function.
 - A fixed width can exceed a small terminal. Use `--fit` when needed.
 - Color strength depends on the chosen characters, terminal background, and font. Spaces have no visible foreground strokes.
 - Background detection is limited, and friendly handling of file errors is still future work.
-- Current verification uses targeted development checks; a maintained automated test suite is still to be built.
+- Video inspection checks can be run with `python -m unittest discover -s tests -v`; other features also have targeted development checks.
 
 ## Development history
 

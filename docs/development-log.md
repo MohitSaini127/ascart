@@ -865,3 +865,13 @@ Checks passed: remaining text styles, slant text saving, and rejection of remove
 ```
 
 No dependencies, sample files, or ignore rules changed. The correction is prepared for the commit `Remove separate text slant direction options`.
+
+## 40. Video inspection and OpenCV setup — 22 October 2026
+
+The user authorized implementing the video plan without repeated permission requests, explaining edits, maintaining documentation, and committing meaningful stages. We added `opencv-python-headless>=4.12,<5` to pyproject.toml. This package supplies video decoding through `cv2` without desktop window tools and installs NumPy for frame arrays. Official references: https://docs.opencv.org/doc/doxygen/html/db/dd1/tutorial_py_pip_install.html and https://opencv.org/reading-and-writing-videos-using-opencv/.
+
+The first `.venv/bin/python -m pip install --retries 0 -e .` attempt hit sandbox DNS restrictions in the build dependency subprocess. An escalated `.venv/bin/python -m pip install -e .` succeeded with: `Successfully installed ascart-0.1.0 numpy-2.5.4 opencv-python-headless-4.14.0.94`.
+
+We filled video_art.py with helpers to open local regular files, sanitize positive metadata properties, and inspect the first decoded frame. Dimensions come from actual frame pixels; FPS and frame count are reported metadata. Estimated duration is count/FPS only when both are known. Missing metadata is None. Capture resources close in a finally block, including on decoding errors.
+
+We added tests/test_video_art.py using standard-library unittest. Tests generate a temporary three-frame, 32x24 MJPG AVI at 10 FPS and verify metadata, invalid metadata, missing files, and release on failed decoding. `.venv/bin/python -B -m unittest discover -s tests -v` reported `Ran 4 tests in 0.138s` and `OK`. No video input was added to Git; temporary files clean themselves up. README documents the inspection function and test command. The first milestone is `Add OpenCV video inspection and metadata tests`.
