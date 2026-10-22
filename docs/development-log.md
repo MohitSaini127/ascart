@@ -341,3 +341,57 @@ PYTHONPATH=src python -m ascart examples/image1.png --width 60
 For this square image, the calculated dimensions are 60 columns by 30 rows. A larger width gives more character columns and detail; a smaller width produces a smaller image. The default remains 80, and automatic terminal fitting is still planned.
 
 No commit was made while writing this entry. The width changes and this log are ready to stage and commit together.
+
+## 14. Saving adjustable width
+
+The user committed the width feature and its notes in commit `f29057b`, with the message `Add adjustable ASCII output width`.
+
+## 15. Saving ASCII art to a text file — 22 October 2026
+
+With the user's approval, we added optional text-file output. An earlier proposed command failed with "unrecognized arguments" because `--output` had not yet been implemented; we clarified this before making the changes.
+
+In `src/ascart/image_art.py`, the conversion function now collects completed rows in a list instead of printing each row:
+
+```python
+rows = []
+# After building each row:
+rows.append(row)
+# After building all rows:
+return "\n".join(rows)
+```
+
+`append` adds a row to the list. `join` combines the rows into one string separated by newline characters, and `return` sends that string back to the caller. We removed the diagnostic size, mode, and pixel prints so output contains only artwork. The function is still named `inspect_image`, although it now returns converted art.
+
+In `src/ascart/cli.py`, we imported `Path` from Python's built-in `pathlib` module and added:
+
+```python
+parser.add_argument("--output", help="Save ASCII art to a text file")
+```
+
+After conversion, the command-line function chooses whether to save or print:
+
+```python
+art = inspect_image(args.path, width=args.width)
+if args.output:
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(art + "\n", encoding="utf-8")
+    print("Saved ASCII art to", output_path)
+else:
+    print(art)
+```
+
+We explained that `Path` represents a filesystem path, `.parent` refers to its containing folder, and `mkdir` creates missing folders. `parents=True` allows creating intermediate folders, while `exist_ok=True` accepts folders that already exist. `write_text` saves UTF-8 text with a final newline. If the target file already exists, its contents are replaced. Without `--output`, the artwork is printed in the terminal.
+
+We checked that terminal output and saved text match exactly for the sample at width 60: 30 rows of 60 characters, with no diagnostic messages. We also verified automatic creation of a missing output folder using a temporary test location.
+
+The user successfully ran:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --width 60 --output output/mug.txt
+cat output/mug.txt
+```
+
+The user confirmed that the saved artwork was visible. The generated `output/` folder is excluded by our existing `.gitignore` rule. No new dependency was needed.
+
+No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together.
