@@ -53,9 +53,9 @@ def main():
     )
     parser.add_argument("--output", help="Save ASCII art to a text file")
     looping = parser.add_mutually_exclusive_group()
-    looping.add_argument("--loop", action="store_true", help="Repeat GIF playback until Ctrl+C")
+    looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
-        "--loop-count", type=int, help="Total GIF playbacks; --loop-4 is shorthand for --loop-count 4"
+        "--loop-count", type=int, help="Total GIF or video playbacks; --loop-4 is shorthand for --loop-count 4"
     )
     parser.add_argument(
         "--color", action="store_true", help="Use RGB terminal colors (saved text stays plain)"
@@ -115,6 +115,7 @@ def main():
         return
     if args.loop_count is not None and args.loop_count <= 0:
         parser.error("Loop count must be greater than 0")
+    loops = 0 if args.loop else (args.loop_count or 1)
     color = args.color and not args.output
     if args.chars is None:
         args.chars = COLOR_PALETTE if color else DEFAULT_PALETTE
@@ -149,14 +150,12 @@ def main():
     if is_video:
         if args.output:
             parser.error("Saving video output with --output is not supported yet")
-        if args.loop or args.loop_count is not None:
-            parser.error("Video playback currently plays once; loop options are GIF-only")
         if not sys.stdout.isatty():
             parser.error("Video playback requires an interactive terminal")
         try:
             play_video(
                 args.path, width=width, palette=args.chars, background=background,
-                max_height=max_height, color=color,
+                max_height=max_height, color=color, loops=loops,
             )
         except KeyboardInterrupt:
             pass
@@ -173,14 +172,13 @@ def main():
                 args.path, width=width, palette=args.chars, background=background,
                 max_height=max_height, color=color,
             )
-            loops = 0 if args.loop else (args.loop_count or 1)
             play_gif(frames, loops=loops)
         except KeyboardInterrupt:
             pass
         return
 
     if args.loop or args.loop_count is not None:
-        parser.error("Loop options are only supported for GIF files")
+        parser.error("Loop options are only supported for GIF and video files")
     art = inspect_image(
         args.path,
         width=width,

@@ -57,18 +57,46 @@ class MediaCliTests(unittest.TestCase):
             play.assert_called_once()
 
     def test_actual_video_playback(self):
-        with patch("ascart.video_art.time.sleep"):
-            code, output, errors = self.run_cli(self.video, "--width", "20")
-        self.assertEqual(code, 0, errors)
-        self.assertIn("\033[H\033[J", output)
-        self.assertTrue(output.endswith("\033[0m\033[?25h\n"))
+        for options, expected_frames in (((), 1), (("--loop-4",), 4)):
+            with self.subTest(options=options), patch("ascart.video_art.time.sleep"):
+                code, output, errors = self.run_cli(self.video, "--width", "20", *options)
+            self.assertEqual(code, 0, errors)
+            self.assertEqual(output.count("\033[H\033[J"), expected_frames)
+            self.assertEqual(output.count("\033[?25l"), 1)
+            self.assertEqual(output.count("\033[?25h"), 1)
+            self.assertTrue(output.endswith("\033[0m\033[?25h\n"))
+
+    def test_video_loop_options(self):
+        cases = (
+            ((), 1),
+            (("--loop",), 0),
+            (("--loop-1",), 1),
+            (("--loop-4",), 4),
+            (("--loop-count", "4"), 4),
+            (("--loop-count=2",), 2),
+        )
+        for options, expected_loops in cases:
+            with self.subTest(options=options), patch("ascart.cli.play_video") as play:
+                self.assertEqual(self.run_cli(self.video, *options)[0], 0)
+                self.assertEqual(play.call_args.kwargs["loops"], expected_loops)
+        with patch("ascart.cli.play_video", side_effect=KeyboardInterrupt):
+            self.assertEqual(self.run_cli(self.video, "--loop")[0], 0)
 
     def test_rejected_video_options(self):
-        for options in (("--output", str(self.root / "art.txt")), ("--loop",), ("--loop-4",)):
-            with patch("ascart.cli.play_video") as play:
+        cases = (
+            ("--output", str(self.root / "art.txt")),
+            ("--loop-0",),
+            ("--loop-count", "-1"),
+            ("--loop-count", "invalid"),
+            ("--loop", "--loop-4"),
+            ("--loop", "--loop-count", "4"),
+        )
+        for options in cases:
+            with self.subTest(options=options), patch("ascart.cli.play_video") as play:
                 self.assertEqual(self.run_cli(self.video, *options)[0], 2)
                 play.assert_not_called()
         self.assertEqual(self.run_cli(self.video, terminal=False)[0], 2)
+        self.assertEqual(self.run_cli(self.video, "--loop", terminal=False)[0], 2)
         self.assertFalse((self.root / "art.txt").exists())
 
     def test_missing_and_unsupported_files(self):
@@ -88,9 +116,12 @@ class MediaCliTests(unittest.TestCase):
         target = self.root / "nested" / "banner.txt"
         self.assertEqual(self.run_cli("--text-slant", "Hi", "--output", target)[0], 0)
         self.assertEqual(target.read_text(), text_to_ascii("Hi", font="slant") + "\n")
-        with patch("ascart.cli.play_gif") as play:
-            self.assertEqual(self.run_cli(self.gif, "--loop-4")[0], 0)
-            self.assertEqual(play.call_args.kwargs["loops"], 4)
+        for options, expected_loops in (((), 1), (("--loop",), 0), (("--loop-4",), 4)):
+            with self.subTest(options=options), patch("ascart.cli.play_gif") as play:
+                self.assertEqual(self.run_cli(self.gif, *options)[0], 0)
+                self.assertEqual(play.call_args.kwargs["loops"], expected_loops)
+        self.assertEqual(self.run_cli(self.photo, "--loop")[0], 2)
+        self.assertEqual(self.run_cli("--text", "Hi", "--loop")[0], 2)
 
 
 if __name__ == "__main__":

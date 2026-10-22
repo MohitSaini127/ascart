@@ -954,3 +954,73 @@ git commit -m "Add streaming ASCII video playback with frame timing"
 ```
 
 `git add` stages the selected file contents; `git commit` records that staged snapshot. The generated video and the user's untracked GIF are not included.
+
+## 42. Continuous and counted video looping — 22 October 2026
+
+The user confirmed the video demo worked. The previous streaming playback milestone was committed as `e0a3159` (`Add streaming ASCII video playback with frame timing`). They then approved adding video looping with the existing GIF syntax: once by default, `--loop` continuously, and `--loop-4` for four total playbacks.
+
+### Implementation and learning notes
+
+In `src/ascart/video_art.py`, `play_video` now accepts `loops=1`. The default argument preserves one playback when no count is supplied. Inside Python, `0` is the marker for continuous playback, matching the GIF player. The function rejects negative counts before opening a reader. Command-line counted options still require a positive integer: `--loop-0` is invalid; `--loop` selects the internal zero marker.
+
+The main additions work as follows:
+
+- `completed = 0` starts a counter for finished playbacks.
+- `while loops == 0 or completed < loops:` is the new outer loop. Python continues if either condition is true: continuous mode is selected, or fewer than the requested number of playbacks have finished. For `loops=4`, the starting counter values are 0, 1, 2, and 3; after the fourth pass, `completed` becomes 4 and the condition becomes false.
+- `capture = open_video(path)` opens a fresh reader for each pass, starting from the beginning. No list of the video's frames is retained between passes.
+- `frames_in_pass = 0` resets the current pass's frame counter. The inner `while True` still reads, converts, displays, and times individual frames. If a new pass cannot decode even its first frame, it raises an error. Using a per-pass counter instead of the lifetime display count prevents endless retries of an empty restart.
+- `displayed += 1` counts every displayed frame across all repetitions, while `frames_in_pass += 1` counts only the current pass. The function still returns the total displayed count on normal completion.
+- An inner `finally` calls `capture.release()` at the end of each pass, including on failure or interruption. `completed += 1` then records a successfully finished pass. This happens before the next reader opens.
+- The outer `finally` restores terminal styling and cursor visibility when playback ends. It also runs if reopening the file fails or is interrupted. The cursor is hidden once at the beginning and shown once at the end, rather than toggling between repetitions.
+- Unknown FPS still uses the 30 FPS fallback. For a file with unknown FPS, the warning is printed on the first pass so continuous playback does not repeatedly print it.
+
+In `src/ascart/cli.py`, we moved the existing `loops = 0 if args.loop else (args.loop_count or 1)` calculation into the shared media path, after validating counts. This expression selects zero for `--loop`, the requested positive count otherwise, or one if no loop option was supplied. Both players now receive the same value. We removed the video-specific loop rejection and updated help text and the photo-loop error message. The existing shorthand parser already translates `--loop-4` into `--loop-count=4`; no new shorthand parser or dependency was needed. Photos and text banners still reject loop options.
+
+In `tests/test_video_art.py`, we added checks for exact repetition counts, releasing a reader before opening the next, continuous playback interrupted during a later pass, failed or interrupted reopening, empty later passes, and negative direct counts. The real three-frame AVI check now also verifies that four passes return 12 displayed frames. The missing-FPS test checks that repeated playback prints only one warning.
+
+In `tests/test_cli_media.py`, we added loop-option dispatch checks, four passes through an actual one-frame MP4, positive-count validation, conflicting-option rejection, and continuous-playback interruption. We extended GIF checks for default, continuous, and counted dispatch, and confirmed that photos/text still reject loops. `README.md` now documents the shared options and the possible short pause from reopening between video passes. Audio and video export remain unimplemented.
+
+### Commands and observed results
+
+We ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+Output included:
+
+```text
+Ran 20 tests in 0.512s
+
+OK
+```
+
+As before, `-B` prevents writing bytecode caches, `-m unittest` runs Python's test tool, and `discover -s tests -v` discovers the test files and lists their results. The tests use temporary generated media and controlled clocks/readers for failure cases.
+
+We also used an inline Python script to run these actual commands in a pseudo-terminal:
+
+```bash
+.venv/bin/ascart output/video-demo.mp4 --width 20 --color --loop-4
+.venv/bin/ascart output/video-demo.mp4 --width 20 --color --loop
+```
+
+The script counted frame-display sequences. For continuous playback, it sent the Ctrl+C interrupt signal after the first frame of the second pass. Output:
+
+```text
+--loop-4: 144 frames = 36 x 4; exit 0; cursor restored; 12.31s including startup.
+--loop: restarted into second pass; interrupted after 37 frames; exit 0; cursor restored; no traceback.
+```
+
+These checks verify actual command execution, counts, color output, and terminal cleanup. They do not assess visual smoothness in the user's terminal. The existing demo was read without modification. `.gitignore` already covers generated output, environments, bytecode, and package metadata. No new ignore rule or dependency installation was necessary, and `examples/scuba.gif` remains untracked and outside the commit.
+
+Final review: `git diff --check` produced no output, indicating no whitespace errors. `.venv/bin/ascart --help` described loops as applying to both GIFs and videos. `git check-ignore output/video-demo.mp4 .venv/bin/python src/ascart.egg-info/PKG-INFO` printed all three paths, confirming they remain ignored.
+
+Git commands for this milestone:
+
+```bash
+git add src/ascart/video_art.py src/ascart/cli.py tests/test_video_art.py tests/test_cli_media.py README.md docs/development-log.md
+git commit -m "Add continuous and counted ASCII video looping"
+```
+
+`git add` selects these six files for the staged snapshot; `git commit` records that snapshot. The final commit ID is available through `git log --oneline`.

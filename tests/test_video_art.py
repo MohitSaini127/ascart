@@ -29,6 +29,7 @@ class VideoInspectionTests(unittest.TestCase):
             self.assertAlmostEqual(info["duration_seconds"], 0.3)
             with contextlib.redirect_stdout(io.StringIO()), patch("ascart.video_art.time.sleep"):
                 self.assertEqual(play_video(path, width=8), 3)
+                self.assertEqual(play_video(path, width=8, loops=4), 12)
 
     def test_unknown_properties(self):
         for value in (0, -1, float("nan"), float("inf")):
@@ -77,15 +78,84 @@ class VideoPlaybackTests(unittest.TestCase):
         self.assertTrue(output.getvalue().endswith("\033[0m\033[?25h\n"))
 
     def test_unknown_fps_fallback(self):
-        capture = self.capture(fps=float("nan"))
-        with patch("ascart.video_art.open_video", return_value=capture), \
+        captures = [self.capture(fps=float("nan")) for _ in range(2)]
+        with patch("ascart.video_art.open_video", side_effect=captures), \
              patch("ascart.video_art.time.monotonic", return_value=0), \
              patch("ascart.video_art.time.sleep") as sleep, \
              contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as errors:
-            play_video("unused", width=4)
-        self.assertEqual(sleep.call_count, 2)
+            play_video("unused", width=4, loops=2)
+        self.assertEqual(sleep.call_count, 4)
         self.assertAlmostEqual(sleep.call_args.args[0], 1 / 30)
-        self.assertIn("using 30 FPS", errors.getvalue())
+        self.assertEqual(errors.getvalue().count("using 30 FPS"), 1)
+
+    def test_counted_playback_reopens_after_releasing_previous_reader(self):
+        captures = [self.capture() for _ in range(4)]
+        opened = []
+
+        def open_next(path):
+            if opened:
+                opened[-1].release.assert_called_once()
+            capture = captures[len(opened)]
+            opened.append(capture)
+            return capture
+
+        output = io.StringIO()
+        with patch("ascart.video_art.open_video", side_effect=open_next), \
+             patch("ascart.video_art.time.sleep"), contextlib.redirect_stdout(output):
+            self.assertEqual(play_video("unused", width=4, loops=4), 8)
+        self.assertEqual(len(opened), 4)
+        for capture in captures:
+            capture.release.assert_called_once()
+        self.assertEqual(output.getvalue().count("\033[H\033[J"), 8)
+        self.assertEqual(output.getvalue().count("\033[?25l"), 1)
+        self.assertEqual(output.getvalue().count("\033[?25h"), 1)
+
+    def test_continuous_playback_stops_on_interrupt(self):
+        captures = [self.capture() for _ in range(3)]
+        frame = np.zeros((8, 8, 3), dtype=np.uint8)
+        captures[-1].read.side_effect = [(True, frame), KeyboardInterrupt]
+        output = io.StringIO()
+        with patch("ascart.video_art.open_video", side_effect=captures) as open_mock, \
+             patch("ascart.video_art.time.sleep"), contextlib.redirect_stdout(output):
+            with self.assertRaises(KeyboardInterrupt):
+                play_video("unused", width=4, loops=0)
+        self.assertEqual(open_mock.call_count, 3)
+        self.assertEqual(output.getvalue().count("\033[H\033[J"), 5)
+        for capture in captures:
+            capture.release.assert_called_once()
+        self.assertTrue(output.getvalue().endswith("\033[0m\033[?25h\n"))
+
+    def test_cleanup_if_reopening_fails_or_is_interrupted(self):
+        for error in (ValueError("Cannot reopen video"), KeyboardInterrupt()):
+            with self.subTest(error=type(error).__name__):
+                capture = self.capture()
+                output = io.StringIO()
+                with patch("ascart.video_art.open_video", side_effect=[capture, error]) as open_mock, \
+                     patch("ascart.video_art.time.sleep"), contextlib.redirect_stdout(output):
+                    with self.assertRaises(type(error)):
+                        play_video("unused", width=4, loops=4)
+                self.assertEqual(open_mock.call_count, 2)
+                capture.release.assert_called_once()
+                self.assertTrue(output.getvalue().endswith("\033[0m\033[?25h\n"))
+
+    def test_empty_second_pass_stops_continuous_playback(self):
+        captures = [self.capture(), self.capture()]
+        captures[-1].read.side_effect = [(False, None)]
+        output = io.StringIO()
+        with patch("ascart.video_art.open_video", side_effect=captures) as open_mock, \
+             patch("ascart.video_art.time.sleep"), contextlib.redirect_stdout(output):
+            with self.assertRaisesRegex(ValueError, "no frame"):
+                play_video("unused", width=4, loops=0)
+        self.assertEqual(open_mock.call_count, 2)
+        for capture in captures:
+            capture.release.assert_called_once()
+        self.assertTrue(output.getvalue().endswith("\033[0m\033[?25h\n"))
+
+    def test_negative_loop_count_rejected_before_opening(self):
+        with patch("ascart.video_art.open_video") as open_mock:
+            with self.assertRaisesRegex(ValueError, "Loop count"):
+                play_video("unused", loops=-1)
+        open_mock.assert_not_called()
 
     def test_cleanup_after_interrupt_or_decode_error(self):
         for error in (KeyboardInterrupt, RuntimeError):

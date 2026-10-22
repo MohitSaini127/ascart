@@ -14,7 +14,7 @@ The main purpose is to understand Python, image processing, code organization, G
 - Light/dark background mapping, with basic automatic selection and manual overrides.
 - Saving photo conversions as plain text.
 - GIF playback once, continuously, or for a specified number of playbacks.
-- Video playback once, converting one frame at a time, with optional color and terminal fitting.
+- Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 
 ## Setup
 
@@ -109,7 +109,7 @@ ascart path/to/animation.gif --fit --loop-4
 - Without a loop option, playback stops after one pass.
 - `--loop` repeats continuously until Ctrl+C.
 - `--loop-4` plays four times in total. Other positive counts work the same way; `--loop-count 4` is also supported.
-- Continuous and counted loop options cannot be combined. Loop options are only supported for GIFs.
+- Continuous and counted loop options cannot be combined. Loop options work with GIFs and videos.
 
 Playback requires an interactive terminal supporting ANSI screen and cursor controls. It clears the current screen, replaces each frame, and leaves the final frame visible. Ctrl+C stops playback and restores cursor visibility.
 
@@ -124,13 +124,23 @@ ascart path/to/video.mp4
 ascart path/to/video.mp4 --width 60
 ascart path/to/video.mp4 --fit --color
 ascart path/to/video.mp4 --fit --chars " .:*#@" --background dark
+ascart path/to/video.mp4 --color --loop
+ascart path/to/video.mp4 --color --loop-4
 ```
 
 The CLI detects the media type; no extra video switch is required. The default width is 60, and the same width, fitting, color, palette, and background controls used for photos apply to videos. Decoding depends on the formats and codecs supported by the installed OpenCV package. A file extension alone does not guarantee support; MP4 and MJPG AVI decoding have been checked in development.
 
-Video plays once, without audio. It requires an interactive terminal supporting ANSI controls, clears the screen, replaces frames, and leaves the last frame visible. Ctrl+C stops playback, closes the video reader, and restores cursor visibility. Video `--output` and loop options are not supported yet; looping remains GIF-only.
+Video plays once by default, without audio. It uses the same loop options as GIFs:
+
+- `--loop` repeats continuously until Ctrl+C.
+- `--loop-4` plays four times in total; `--loop-count 4` means the same thing. Other positive counts are supported.
+- Continuous and counted loop options cannot be combined. Zero and negative counts are rejected; use `--loop` for continuous playback.
+
+Playback requires an interactive terminal supporting ANSI controls, clears the screen, replaces frames, and leaves the last frame visible. Ctrl+C stops playback, closes the video reader, and restores cursor visibility. Video `--output` is not supported yet.
 
 OpenCV reads one frame at a time. Each frame is converted and displayed before reading the next, so ascart does not collect the whole video's converted frames in memory. It uses the video's reported FPS (frames per second) to calculate the time between frames, subtracting the time already spent reading, converting, and printing. Unknown FPS triggers a warning and a 30 FPS fallback.
+
+For each repeat, the previous video reader is closed and a new one opens the file from the beginning. This keeps memory usage independent of the number of repetitions, though reopening can add a short pause between playbacks. If reopening fails or a pass has no decodable frames, playback stops with an error instead of retrying endlessly.
 
 For inspection from Python, `ascart.video_art.inspect_video(path)` returns dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. Duration is estimated from frame count divided by FPS.
 
@@ -147,7 +157,7 @@ Photos, GIFs, and videos share the same image conversion function.
 
 ## Current limitations and future work
 
-- Video playback has no audio, looping, or export yet. Codec availability depends on the OpenCV installation.
+- Video playback has no audio or export yet. Codec availability depends on the OpenCV installation.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
 - GIF frames are converted into memory before playback, so large animations can consume substantial memory.
 - GIF playback does not compensate for terminal rendering overhead.
@@ -165,7 +175,7 @@ python -B -m unittest discover -s tests -v
 python -m pip check
 ```
 
-The suite checks video inspection, MP4/AVI decoding, color conversion, timing, cleanup after interruption, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
+The suite checks video inspection, MP4/AVI decoding, color conversion, timing, counted and continuous playback, cleanup after interruption or failed restarts, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
 
 ## Development history
 

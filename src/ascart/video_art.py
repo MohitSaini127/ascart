@@ -55,36 +55,48 @@ def video_frame_to_ascii(
 
 
 def play_video(
-    path, width=60, palette=DEFAULT_PALETTE, background="dark", max_height=None, color=False
+    path, width=60, palette=DEFAULT_PALETTE, background="dark", max_height=None, color=False,
+    loops=1,
 ):
-    capture = open_video(path)
+    """Play a total number of passes; loops=0 repeats until interrupted."""
+    if loops < 0:
+        raise ValueError("Loop count must be 0 or greater")
     screen_started = False
     displayed = 0
+    completed = 0
     try:
-        fps = positive_property(capture, cv2.CAP_PROP_FPS)
-        if fps is None:
-            fps = 30.0
-            print("Video frame rate unavailable; using 30 FPS.", file=sys.stderr)
-        frame_interval = 1 / fps
-        while True:
-            started = time.monotonic()
-            success, frame = capture.read()
-            if not success:
-                if displayed == 0:
-                    raise ValueError("Video opened, but no frame could be decoded")
-                break
-            art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
-            if not screen_started:
-                screen_started = True
-                print("\033[2J\033[H\033[?25l", end="", flush=True)
-            print("\033[H\033[J" + art, end="", flush=True)
-            displayed += 1
-            elapsed = time.monotonic() - started
-            delay = frame_interval - elapsed
-            if delay > 0:
-                time.sleep(delay)
+        while loops == 0 or completed < loops:
+            capture = open_video(path)
+            try:
+                fps = positive_property(capture, cv2.CAP_PROP_FPS)
+                if fps is None:
+                    fps = 30.0
+                    if completed == 0:
+                        print("Video frame rate unavailable; using 30 FPS.", file=sys.stderr)
+                frame_interval = 1 / fps
+                frames_in_pass = 0
+                while True:
+                    started = time.monotonic()
+                    success, frame = capture.read()
+                    if not success:
+                        if frames_in_pass == 0:
+                            raise ValueError("Video opened, but no frame could be decoded")
+                        break
+                    art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
+                    if not screen_started:
+                        screen_started = True
+                        print("\033[2J\033[H\033[?25l", end="", flush=True)
+                    print("\033[H\033[J" + art, end="", flush=True)
+                    displayed += 1
+                    frames_in_pass += 1
+                    elapsed = time.monotonic() - started
+                    delay = frame_interval - elapsed
+                    if delay > 0:
+                        time.sleep(delay)
+            finally:
+                capture.release()
+            completed += 1
         return displayed
     finally:
-        capture.release()
         if screen_started:
             print("\033[0m\033[?25h", flush=True)
