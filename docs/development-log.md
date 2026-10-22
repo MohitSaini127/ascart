@@ -746,3 +746,20 @@ ascart examples/animation.gif --fit --loop-4
 ```
 
 The alternative `--loop-count 4` is also supported. Continuous playback ends with Ctrl+C. No new dependency was added. This milestone is prepared for the commit `Add continuous and counted GIF looping`.
+
+## 33. Documenting the working photo and GIF features — 22 October 2026
+
+The user requested updating both documentation files, staging them, and committing. We rewrote the README to describe implemented behavior rather than label the working features as future plans.
+
+The README now covers virtual environment setup, editable installation, the 60-column default, explicit sizing, optional terminal fitting, color and custom palettes, background selection and fallback, and plain-text photo saving. It documents GIF playback once, continuously with `--loop`, or a total count with `--loop-4` / `--loop-count 4`, plus Ctrl+C cleanup and the interactive-terminal requirement.
+
+We added the shared conversion workflow and practical limitations: text banners and video remain future work, GIF saving is unsupported, frames are stored in memory, timing does not compensate for rendering overhead, terminal size is read once, and background hints can be absent or inaccurate. The setup version claims distinguish declared requirements from the versions actually checked during development.
+
+We ran `.venv/bin/ascart --help` and an inline verification script through `.venv/bin/python -B`. The script executed the documented photo options, saved artwork to a temporary directory, and checked help output. It did not reinstall the project or run another live animation. Output:
+
+```text
+README command checks passed: default photo, width, fit, color, custom palette, light background, text saving, and help.
+GIF options match the tested implementation; no additional live playback was run for this documentation update.
+```
+
+Only README.md and this development log are included in this documentation milestone. The user's untracked `examples/scuba.gif` is left outside the commit. Earlier looping changes are in commit `4741a85`. The documentation commit is named `Document setup and working photo and GIF features`; its ID is available in Git history.

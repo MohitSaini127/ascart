@@ -1,62 +1,118 @@
 # ascart
 
-ascart is a Python learning project for creating ASCII art from text, photos, GIFs, and videos. ASCII art uses characters such as `@`, `#`, `*`, and `.` to form pictures or stylized text.
+ascart is a Python command-line learning project that converts photos and GIF frames into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image.
 
-The main purpose of this project is to understand how things work while building something practical. It will grow step by step, with an emphasis on learning Python, processing images, organizing code, and using Git and GitHub.
+The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time. Text banners and video conversion are future goals.
 
-## Planned features
+## Working features
 
-- Convert photos into ASCII art.
-- Turn text into character-based banners.
-- Convert GIF frames into animated ASCII art.
-- Convert video frames into ASCII art.
-- Run conversions from the terminal.
-- Automatically fit image output to the terminal's available width and height, with an optional manual width setting.
-- Automatically choose brightness-to-character mapping for light or dark terminal backgrounds when detection is available, with a manual background override and a documented fallback.
-- Save ASCII art to a plain text file without terminal color codes.
-- Accept a custom character palette, ordered from least visually dense to most dense.
-- Optionally display characters in colors taken from the original image.
+- Photo-to-ASCII conversion, with a default width of 60 characters.
+- Custom output width or optional fitting to terminal width and height.
+- Custom printable ASCII character palettes.
+- RGB foreground color output with a denser default palette.
+- Light/dark background mapping, with basic automatic selection and manual overrides.
+- Saving photo conversions as plain text.
+- GIF playback once, continuously, or for a specified number of playbacks.
 
-These features are planned and have not been implemented yet.
+## Setup
 
-## Simple usage, optional controls
+The project declares Python 3.10 or newer and Pillow 13.0.0 or newer. Development so far has been checked with Python 3.14.8 and Pillow 13.0.0; other versions have not yet been verified.
 
-The aim is to make the basic conversion work with one command, while keeping extra controls optional:
+From the project folder, on Linux/macOS with bash or zsh:
 
 ```bash
-ascart photo.jpg
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
 ```
 
-Proposed options include:
+`venv` creates an isolated environment for project packages. Pip installs Pillow and an editable copy of ascart, making the `ascart` command available in that environment. Source-code edits take effect without reinstalling; changes to dependencies or command definitions may require rerunning the installation command.
+
+Create the environment once. In a new terminal, enter the project folder and activate it again:
 
 ```bash
-ascart photo.jpg --color
-ascart photo.jpg --output art.txt
-ascart photo.jpg --width 100
-ascart photo.jpg --chars " .:*#@"
-ascart photo.jpg --background light
+source .venv/bin/activate
 ```
 
-These examples describe the intended interface; the commands do not work yet.
+Use `deactivate` to leave the environment. The `.venv/` folder stays on your computer and is ignored by Git.
 
-Automatic inversion means reversing which characters represent each brightness level. For example, on a dark background, bright image regions can use dense characters such as `@`, while dark regions use spaces or dots. On a light background, the mapping is reversed. Terminal background detection is not always reliable, so users will be able to choose the background manually. Color mode will need separate checks to ensure that characters provide enough coverage to show the image colors.
+## Photo conversion
 
-## First milestone
+Run these commands from the project folder using the included sample:
 
-Our first goal is to convert a single photo into ASCII art and print it in the terminal. The conversion will follow these steps:
+```bash
+ascart examples/image1.png
+ascart examples/image1.png --width 100
+ascart examples/image1.png --fit
+ascart examples/image1.png --color
+ascart examples/image1.png --chars " .:*#@"
+ascart examples/image1.png --background light
+ascart examples/image1.png --output output/mug.txt
+```
 
-1. Open the photo.
-2. Resize it to a suitable width and adjust its proportions for terminal characters.
-3. Convert it to grayscale so each pixel has a brightness value.
-4. Map each brightness value to an ASCII character.
-5. Arrange the characters into rows and print the result.
+| Option | Behavior |
+| --- | --- |
+| No sizing option | Use 60 character columns and calculate height from the image proportions. |
+| `--width NUMBER` | Choose a positive width in character columns. |
+| `--fit` | Fit both terminal dimensions, reserving one column and two rows. Cannot be combined with `--width`. |
+| `--color` | Use RGB foreground colors. Requires a compatible terminal. |
+| `--chars "CHARACTERS"` | Choose a non-empty palette of printable ASCII characters, ordered from least to most visually dense. Quote spaces. |
+| `--background auto` | Default: use a limited terminal background hint, with a dark fallback. |
+| `--background light` or `--background dark` | Manually choose brightness mapping. |
+| `--output PATH` | Save photo artwork as UTF-8 plain text, creating parent folders as needed. Existing file contents are replaced. |
 
-Once this works, we will build on the same conversion logic to support GIFs and videos. Text banners will use a separate approach.
+Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `--output`, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
-We will add the image features gradually: terminal fitting and text saving, then custom palettes, color output, and automatic background detection.
+Automatic background selection reads the last field of the `COLORFGBG` environment variable. Conventional color indexes 7 and 15 select light mode; other, missing, or unsupported values fall back to dark. This does not measure the actual screen, and themes can redefine those colors. Use a manual override when needed. Light mode reverses the character palette; it does not invert the image's RGB colors.
 
-## Development notes
+## GIF playback
 
-The project currently contains the basic file structure. Setup and usage instructions will be added as the program develops.
+Supply your own GIF and replace `path/to/animation.gif` below with its location:
 
-We will record development steps, explanations, and Git commit milestones in [the development log](docs/development-log.md).
+```bash
+ascart path/to/animation.gif --fit
+ascart path/to/animation.gif --fit --color
+ascart path/to/animation.gif --fit --loop
+ascart path/to/animation.gif --fit --loop-4
+```
+
+- Without a loop option, playback stops after one pass.
+- `--loop` repeats continuously until Ctrl+C.
+- `--loop-4` plays four times in total. Other positive counts work the same way; `--loop-count 4` is also supported.
+- Continuous and counted loop options cannot be combined. Loop options are only supported for GIFs.
+
+Playback requires an interactive terminal supporting ANSI screen and cursor controls. It clears the current screen, replaces each frame, and leaves the final frame visible. Ctrl+C stops playback and restores cursor visibility.
+
+Frame durations come from the GIF in milliseconds. Missing or zero timing uses a 100 ms fallback. The program follows the command-line loop choice rather than the GIF's loop metadata. `--output` is not supported for GIFs yet.
+
+## How conversion works
+
+1. Pillow opens a photo or decodes a GIF frame.
+2. A grayscale copy supplies pixel brightness values from 0 to 255.
+3. The image is resized for the chosen character grid. A factor of 0.5 approximately compensates for terminal characters being taller than they are wide.
+4. Each brightness value selects a character from the palette.
+5. For color output, a resized RGB copy supplies each character's foreground color.
+6. Rows are joined into text, then printed, saved, or displayed as animation frames.
+
+Photos and GIFs share the same image conversion function.
+
+## Current limitations and future work
+
+- Text banners and video conversion are not implemented.
+- GIF frames are converted into memory before playback, so large animations can consume substantial memory.
+- Animation timing includes conversion-independent rendering overhead; playback does not compensate for that overhead.
+- Terminal fitting reads dimensions once per command. Resize the terminal and rerun to recalculate. If size detection is unavailable, fitting uses an 80-column by 24-row fallback before margins.
+- A fixed width can exceed a small terminal. Use `--fit` when needed.
+- Color strength depends on the chosen characters, terminal background, and font. Spaces have no visible foreground strokes.
+- Background detection is limited, and friendly handling of file errors is still future work.
+- Current verification uses targeted development checks; a maintained automated test suite is still to be built.
+
+## Development history
+
+See the [development log](docs/development-log.md) for explanations, setup steps, checks, and commit milestones. Git history records the committed changes.
+
+For all command-line options:
+
+```bash
+ascart --help
+```
