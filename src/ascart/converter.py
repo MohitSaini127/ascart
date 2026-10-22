@@ -1,4 +1,5 @@
 DEFAULT_PALETTE = " .:-=+*#%@"
+COLOR_PALETTE = "#%@"
 
 
 def brightness_to_character(brightness, palette=DEFAULT_PALETTE):

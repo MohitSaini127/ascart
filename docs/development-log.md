@@ -559,3 +559,52 @@ For our square sample, the default produces 60 columns by 30 rows. These sizing 
 We verified the final behavior: default 60-by-30 output, explicit width 100 producing 100-by-50 output, fitting within a simulated 40-column by 12-row terminal (producing 20-by-10 artwork), and rejection of combined `--fit` and `--width`. The user welcomed the changed default.
 
 No new dependency was needed. No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together. Color output is the next planned feature.
+
+## 24. Saving terminal fitting and default sizing
+
+The user committed terminal fitting and the 60-column default in commit `3bdbfce`, with the message `Add optional terminal fitting with default width of 60`.
+
+## 25. Color output and a denser color palette — 22 October 2026
+
+With the user's approval, we added `--color` in `src/ascart/cli.py` using `action="store_true"`. The flag enables RGB foreground colors for terminal output. When `--output` is supplied, color formatting is disabled so saved text remains plain.
+
+In `src/ascart/image_art.py`, the conversion function now accepts `color=False`. When enabled, it creates an RGB copy resized to the same dimensions as the grayscale image:
+
+```python
+resized_color = image.convert("RGB").resize((width, height))
+```
+
+Brightness still chooses each ASCII character. The corresponding RGB pixel supplies its foreground color:
+
+```python
+red, green, blue = resized_color.getpixel((x, y))
+row += f"\033[38;2;{red};{green};{blue}m{character}"
+```
+
+We explained unpacking the three channel values, f-strings, and terminal escape sequences. The sequence sets the character's RGB foreground color; it does not color the whole character cell. At the end of each colored row, `\033[0m` resets formatting to prevent color from carrying into later terminal text. Display requires a terminal that supports RGB foreground colors.
+
+We checked a known red pixel's color sequence, row resets, and command-line color output. With the same palette, removing formatting codes reproduced the monochrome artwork in both background modes. We also verified that `--color` combined with `--output` saved plain text.
+
+The user initially saw only faint color. We explained that thin character strokes and spaces leave much of the terminal background visible, and suggested:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --color --chars "#%@"
+```
+
+The user preferred the stronger color coverage. With approval, we added `COLOR_PALETTE = "#%@"` in `src/ascart/converter.py` and changed CLI palette selection:
+
+- Colored terminal output defaults to `#%@`.
+- Monochrome output and saved text keep the original default palette.
+- An explicit `--chars` always takes priority.
+
+The CLI leaves an omitted `--chars` as `None`, then selects the appropriate default after determining whether color output is enabled. Empty explicit palettes are still rejected. We escaped the percent sign as `%%` in argparse's help string, which displays as a single `%`, after a check caught its special formatting meaning there.
+
+The shorter command now provides the user's preferred color result:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --color
+```
+
+We verified that this matches explicit `--chars "#%@"`, that monochrome output is unchanged, and that custom palettes override either default. We checked help output and saved-file palette selection as well. The user confirmed that the final result looked good.
+
+No new dependency was needed. No commit was made while writing this entry. The CLI, image conversion, palette constants, and this log are ready to stage and commit together.

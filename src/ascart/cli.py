@@ -3,7 +3,7 @@ import os
 import shutil
 from pathlib import Path
 
-from ascart.converter import DEFAULT_PALETTE
+from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.image_art import inspect_image
 
 
@@ -30,9 +30,11 @@ def main():
     )
     parser.add_argument("--output", help="Save ASCII art to a text file")
     parser.add_argument(
+        "--color", action="store_true", help="Use RGB terminal colors (saved text stays plain)"
+    )
+    parser.add_argument(
         "--chars",
-        default=DEFAULT_PALETTE,
-        help="Character palette, ordered from least to most visually dense",
+        help="Character palette, least to most dense (default: #%%@ for color, grayscale palette otherwise)",
     )
     parser.add_argument(
         "--background",
@@ -41,6 +43,9 @@ def main():
         help="Background: auto uses COLORFGBG when available, otherwise dark (default: auto)",
     )
     args = parser.parse_args()
+    color = args.color and not args.output
+    if args.chars is None:
+        args.chars = COLOR_PALETTE if color else DEFAULT_PALETTE
     if args.width is not None and args.width <= 0:
         parser.error("--width must be greater than 0")
     if not args.chars:
@@ -62,6 +67,7 @@ def main():
         palette=args.chars,
         background=background,
         max_height=max_height,
+        color=color,
     )
     if args.output:
         output_path = Path(args.output)
