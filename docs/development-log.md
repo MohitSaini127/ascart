@@ -793,3 +793,24 @@ Verified: all three Python files match the committed version; photo output is 60
 ```
 
 Only this learning log remains changed by the experiment and its removal. No staging or commit was performed during removal. The original sample files were not modified.
+
+## 36. Text-to-ASCII banners — 22 October 2026
+
+The user approved implementing, explaining, testing, documenting, staging, and committing text banners. We added pyfiglet as a declared dependency (`>=1.0.2,<2`) and refreshed the editable installation with `.venv/bin/python -m pip install -e .`. The initial sandboxed installation failed because package-server DNS access was blocked; an escalated retry succeeded. Final installation output was `Successfully installed ascart-0.1.0 pyfiglet-1.0.4`.
+
+`text_art.py` now imports `figlet_format` and `CharNotPrinted`. `text_to_ascii(text, width=60)` renders the standard font and removes trailing newline characters so the shared output routine adds exactly one final newline. A too-narrow font rendering error is converted into a readable ValueError; the CLI displays it as an argument error.
+
+The CLI makes the positional image path optional using `nargs="?"` and adds `--text`. It requires exactly one input type. Text must be non-empty printable ASCII. Banners support positive `--width` and `--output`; image/GIF-specific switches are rejected in this initial implementation. Width controls wrapping rather than resizing font glyphs. The text branch runs before opening image files and returns when finished.
+
+We extracted existing print/save behavior into `display_art(art, output)` so photos and text share directory creation, UTF-8 saving, overwrite behavior, and terminal printing. Loop shorthand preprocessing now preserves values following named options rather than interpreting a text or palette value as a loop switch.
+
+Tests ran using an inline script through `.venv/bin/python -B`. We checked banner rendering, wrapping, exact saved-text equality, no-input and conflicting-input errors, empty/non-ASCII input, unsupported text options, and narrow widths. Photo output and counted GIF dispatch were also checked. Output:
+
+```text
+Checks passed: banner rendering, width wrapping, text saving, invalid inputs, and narrow-width errors.
+Regression checks passed: photo output and counted GIF dispatch; --text values stay intact during loop shorthand parsing.
+```
+
+We ran `.venv/bin/ascart --text Hello` and saw a large ASCII Hello banner. A narrow-width check initially exposed pyfiglet's CharNotPrinted exception, which we handled before completing verification. The README now documents setup, text usage, limits, and the implemented feature status. The user's untracked `examples/scuba.gif` remains excluded.
+
+The milestone is prepared for the commit `Add text banners with pyfiglet and plain text saving`; its ID is recorded in Git history. No GitHub upload is part of this step.

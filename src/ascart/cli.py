@@ -10,6 +10,17 @@ from PIL import Image
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
+from ascart.text_art import text_to_ascii
+
+
+def display_art(art, output):
+    if output:
+        output_path = Path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(art + "\n", encoding="utf-8")
+        print("Saved ASCII art to", output_path)
+    else:
+        print(art)
 
 
 def detect_background():
@@ -24,8 +35,9 @@ def detect_background():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert a photo or play a GIF as ASCII art.")
-    parser.add_argument("path", help="Path to the image or GIF file")
+    parser = argparse.ArgumentParser(description="Create text banners, convert photos, or play GIFs as ASCII art.")
+    parser.add_argument("path", nargs="?", help="Path to the image or GIF file")
+    parser.add_argument("--text", help="Text to turn into a banner (instead of an image path)")
     sizing = parser.add_mutually_exclusive_group()
     sizing.add_argument(
         "--width", type=int, default=60, help="Output width in characters (default: 60)"
@@ -53,13 +65,36 @@ def main():
         help="Background: auto uses COLORFGBG when available, otherwise dark (default: auto)",
     )
     arguments = []
+    value_expected = False
     for position, argument in enumerate(sys.argv[1:]):
+        if value_expected:
+            arguments.append(argument)
+            value_expected = False
+            continue
         if argument == "--":
             arguments.extend(sys.argv[1:][position:])
             break
         match = re.fullmatch(r"--loop-(\d+)", argument)
         arguments.append("--loop-count=" + match.group(1) if match else argument)
+        value_expected = argument in ("--text", "--chars", "--output", "--width", "--background", "--loop-count")
     args = parser.parse_args(arguments)
+    if (args.path is None) == (args.text is None):
+        parser.error("Provide either an image/GIF path or --text, but not both")
+    if args.text is not None:
+        if not args.text.strip():
+            parser.error("--text must not be empty or whitespace only")
+        if not args.text.isascii() or any(not char.isprintable() for char in args.text):
+            parser.error("--text currently supports printable ASCII text only")
+        if args.width <= 0:
+            parser.error("--width must be greater than 0")
+        if args.fit or args.color or args.chars is not None or args.background != "auto" or args.loop or args.loop_count is not None:
+            parser.error("Text banners support --width and --output; image/GIF options do not apply")
+        try:
+            art = text_to_ascii(args.text, width=args.width)
+        except ValueError as error:
+            parser.error(str(error))
+        display_art(art, args.output)
+        return
     if args.loop_count is not None and args.loop_count <= 0:
         parser.error("Loop count must be greater than 0")
     color = args.color and not args.output
@@ -108,10 +143,4 @@ def main():
         max_height=max_height,
         color=color,
     )
-    if args.output:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(art + "\n", encoding="utf-8")
-        print("Saved ASCII art to", output_path)
-    else:
-        print(art)
+    display_art(art, args.output)

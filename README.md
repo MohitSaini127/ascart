@@ -1,11 +1,12 @@
 # ascart
 
-ascart is a Python command-line learning project that converts photos and GIF frames into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image.
+ascart is a Python command-line learning project that creates text banners and converts photos and GIF frames into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image.
 
-The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time. Text banners and video conversion are future goals.
+The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time. Video conversion is a future goal.
 
 ## Working features
 
+- Text banners using pyfiglet's standard font, with width wrapping and text-file saving.
 - Photo-to-ASCII conversion, with a default width of 60 characters.
 - Custom output width or optional fitting to terminal width and height.
 - Custom printable ASCII character palettes.
@@ -16,7 +17,7 @@ The main purpose is to understand Python, image processing, code organization, G
 
 ## Setup
 
-The project declares Python 3.10 or newer and Pillow 13.0.0 or newer. Development so far has been checked with Python 3.14.8 and Pillow 13.0.0; other versions have not yet been verified.
+The project declares Python 3.10 or newer, Pillow 13.0.0 or newer, and pyfiglet version 1.0.2 or newer below version 2. Development so far has been checked with Python 3.14.8, Pillow 13.0.0, and pyfiglet 1.0.4; other versions have not yet been verified.
 
 From the project folder, on Linux/macOS with bash or zsh:
 
@@ -26,7 +27,7 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-`venv` creates an isolated environment for project packages. Pip installs Pillow and an editable copy of ascart, making the `ascart` command available in that environment. Source-code edits take effect without reinstalling; changes to dependencies or command definitions may require rerunning the installation command.
+`venv` creates an isolated environment for project packages. Pip installs Pillow, pyfiglet, and an editable copy of ascart, making the `ascart` command available in that environment. Source-code edits take effect without reinstalling; changes to dependencies or command definitions may require rerunning the installation command.
 
 Create the environment once. In a new terminal, enter the project folder and activate it again:
 
@@ -35,6 +36,18 @@ source .venv/bin/activate
 ```
 
 Use `deactivate` to leave the environment. The `.venv/` folder stays on your computer and is ignored by Git.
+
+## Text banners
+
+```bash
+ascart --text "Hello"
+ascart --text "Hello world" --width 40
+ascart --text "Hello" --output output/hello.txt
+```
+
+Choose either `--text` or an image/GIF path, not both. Text mode accepts non-empty printable ASCII text and uses pyfiglet's `standard` font. The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected.
+
+Text mode supports `--width` and `--output`. Image/GIF options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, and existing files are replaced. No additional font selection or banner color option is implemented yet.
 
 ## Photo conversion
 
@@ -98,7 +111,7 @@ Photos and GIFs share the same image conversion function.
 
 ## Current limitations and future work
 
-- Text banners and video conversion are not implemented.
+- Video conversion is not implemented.
 - GIF frames are converted into memory before playback, so large animations can consume substantial memory.
 - Animation timing includes conversion-independent rendering overhead; playback does not compensate for that overhead.
 - Terminal fitting reads dimensions once per command. Resize the terminal and rerun to recalculate. If size detection is unavailable, fitting uses an 80-column by 24-row fallback before margins.
