@@ -700,3 +700,24 @@ GIF checks passed: distinct frames, timing, color, shared conversion, missing ti
 ```
 
 No new dependencies were added. The milestone is prepared for a commit named `Convert GIF frames using shared ASCII image logic`. Its ID is available in Git history. The next step is animation playback and connecting GIF handling to the CLI.
+
+## 31. GIF terminal playback — 22 October 2026
+
+With approval, we added `play_gif(frames)` to `gif_art.py` and connected GIF handling to the CLI. Playback clears the terminal screen, homes the cursor, and hides it. For each `(art, duration)` tuple, it returns to the top and clears the old frame before printing the next one with `flush=True`. `time.sleep` takes seconds, so positive millisecond durations are divided by 1000. Missing or zero durations use a 0.1-second fallback. The animation plays once, regardless of GIF loop metadata.
+
+A `try/finally` block resets formatting and shows the cursor even if playback is interrupted. The CLI catches `KeyboardInterrupt` around GIF conversion and playback to stop without a traceback. This implementation uses ANSI terminal sequences and assumes the chosen artwork size fits the terminal; `--fit` is recommended for playback. Frames are still prepared in memory before playback, and conversion/rendering overhead is not compensated in timing.
+
+The CLI opens the input briefly to inspect its actual format, dispatching GIF files to `gif_to_ascii` and `play_gif`. Other images keep the existing photo workflow. GIFs with `--output` are rejected with a parser error until a frame-saving format is defined. GIF playback also rejects non-interactive stdout so redirection does not receive terminal control codes. Help text now mentions photos and GIFs.
+
+We ran an inline verification script with `.venv/bin/python -B`. Mocked waits checked exact requested delays without real-time sleeping; captured output checked frame replacement and cleanup, including simulated Ctrl+C. A temporary two-frame GIF tested CLI dispatch. We checked GIF save rejection, non-interactive rejection, and unchanged photo dimensions. This was a simulated playback test, not visual verification in the user's terminal. No sample GIF was added.
+
+Output:
+
+```text
+Playback checks passed: frame replacement, millisecond delays, 100 ms fallback, and cursor cleanup after Ctrl+C.
+CLI checks passed: GIF dispatch, GIF save rejection, non-interactive rejection, and unchanged photo dimensions.
+```
+
+For a user-provided GIF, the command is `ascart path/to/animation.gif --fit`, optionally with `--color`. Playback clears the current screen and leaves the last frame visible after completion. Ctrl+C stops it early.
+
+No new dependency was needed. This log and the CLI/playback changes are prepared for the commit `Add one-pass ASCII GIF playback in the terminal`. Its ID is available in Git history.

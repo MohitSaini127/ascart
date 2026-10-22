@@ -1,9 +1,13 @@
 import argparse
 import os
 import shutil
+import sys
 from pathlib import Path
 
+from PIL import Image
+
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
+from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
 
 
@@ -19,8 +23,8 @@ def detect_background():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert a photo to ASCII art.")
-    parser.add_argument("path", help="Path to the image file")
+    parser = argparse.ArgumentParser(description="Convert a photo or play a GIF as ASCII art.")
+    parser.add_argument("path", help="Path to the image or GIF file")
     sizing = parser.add_mutually_exclusive_group()
     sizing.add_argument(
         "--width", type=int, default=60, help="Output width in characters (default: 60)"
@@ -61,6 +65,23 @@ def main():
         terminal_size = shutil.get_terminal_size(fallback=(80, 24))
         width = max(1, terminal_size.columns - 1)
         max_height = max(1, terminal_size.lines - 2)
+    with Image.open(args.path) as image:
+        is_gif = image.format == "GIF"
+    if is_gif:
+        if args.output:
+            parser.error("Saving GIF frames with --output is not supported yet")
+        if not sys.stdout.isatty():
+            parser.error("GIF playback requires an interactive terminal")
+        try:
+            frames = gif_to_ascii(
+                args.path, width=width, palette=args.chars, background=background,
+                max_height=max_height, color=color,
+            )
+            play_gif(frames)
+        except KeyboardInterrupt:
+            pass
+        return
+
     art = inspect_image(
         args.path,
         width=width,
