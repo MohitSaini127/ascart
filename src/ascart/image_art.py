@@ -1,9 +1,9 @@
 from PIL import Image
 
-from ascart.converter import brightness_to_character
+from ascart.converter import DEFAULT_PALETTE, brightness_to_character
 
 
-def inspect_image(path, width=80):
+def inspect_image(path, width=80, palette=DEFAULT_PALETTE):
     with Image.open(path) as image:
         grayscale = image.convert("L")
 
@@ -17,7 +17,7 @@ def inspect_image(path, width=80):
 
             for x in range(width):
                 brightness = resized.getpixel((x, y))
-                row += brightness_to_character(brightness)
+                row += brightness_to_character(brightness, palette=palette)
 
             rows.append(row)
 

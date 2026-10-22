@@ -395,3 +395,39 @@ cat output/mug.txt
 The user confirmed that the saved artwork was visible. The generated `output/` folder is excluded by our existing `.gitignore` rule. No new dependency was needed.
 
 No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together.
+
+## 16. Saving plain text output
+
+The user committed text-file output and its notes in commit `bfb191e`, with the message `Add plain text output for ASCII art`.
+
+## 17. Custom character palettes — 22 October 2026
+
+With the user's approval, we added the optional `--chars` argument. The original palette remains the default when this option is omitted.
+
+In `src/ascart/converter.py`, we introduced a shared value:
+
+```python
+DEFAULT_PALETTE = " .:-=+*#%@"
+```
+
+Uppercase names conventionally identify constants: values intended to stay unchanged. Python does not enforce that convention. `brightness_to_character` now accepts `palette=DEFAULT_PALETTE` as a parameter instead of assigning a fixed palette inside the function. Its existing brightness formula works with different palette lengths.
+
+In `src/ascart/image_art.py`, we imported the default palette, added the same optional parameter to `inspect_image`, and passed it to `brightness_to_character` for each pixel.
+
+In `src/ascart/cli.py`, we added `--chars` with the shared default. The parser rejects empty palettes and characters that are non-ASCII or non-printable, including newlines and tabs. We pass the accepted value using:
+
+```python
+art = inspect_image(args.path, width=args.width, palette=args.chars)
+```
+
+We explained how the palette travels from the command-line argument to the image function and then to the pixel converter. Users should order characters from least to most visually dense; that order is supplied by the user rather than automatically measured. Quoting the palette preserves spaces as part of the argument.
+
+The example command was:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --width 60 --chars " .:*#@"
+```
+
+We checked that the default endpoints still map 0 to a space and 255 to `@`. With the custom palette `01`, we verified the endpoint mapping and confirmed that the sample output contained only those two characters in 30 rows of 60 columns. We also verified rejection of empty, newline, and non-ASCII palettes.
+
+The user ran the feature and reported completion. No new dependency was needed. No commit was made while writing this entry; the three changed Python files and this log are ready to stage and commit together.
