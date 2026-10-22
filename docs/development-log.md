@@ -162,3 +162,107 @@ Color mode: RGB
 The user confirmed that it worked. This verifies image opening and inspection; ASCII conversion is not implemented yet. The next coding step is grayscale conversion to obtain pixel brightness values.
 
 This log entry and the function are ready to stage and commit. No commit was made while writing this entry.
+
+## 8. Saving image inspection
+
+The user committed the image-inspection function and its learning notes in commit `d21ca92`, with the message `Add image inspection with Pillow`.
+
+## 9. First photo-to-ASCII conversion — 22 October 2026
+
+We added the following steps gradually, with the user's approval before each code change.
+
+### Grayscale conversion
+
+Inside the image-opening `with` block in `src/ascart/image_art.py`, we added:
+
+```python
+grayscale = image.convert("L")
+print("Grayscale mode:", grayscale.mode)
+print("First pixel brightness:", grayscale.getpixel((0, 0)))
+```
+
+`grayscale` is a variable holding a new image in Pillow's 8-bit grayscale mode, `L`. Each pixel has a brightness from 0 (black) to 255 (white). The original color image remains available for future color output; the source file is not overwritten.
+
+The sample's top-left pixel, at coordinates `(0, 0)`, had brightness 245, which is close to white.
+
+### Resizing
+
+We added:
+
+```python
+width = 80
+aspect_ratio = image.height / image.width
+height = max(1, int(width * aspect_ratio * 0.5))
+resized = grayscale.resize((width, height))
+
+print("Resized size:", resized.size)
+```
+
+The width is temporarily fixed at 80 pixels, representing 80 character columns. The aspect ratio preserves the relationship between image height and width. The factor `0.5` approximately compensates for terminal characters being taller than they are wide. `int` produces a whole-number height, and `max(1, ...)` prevents a height of zero.
+
+The square sample became an 80-by-40 grayscale image. Automatic terminal fitting and adjustable width are still planned.
+
+### Brightness-to-character mapping
+
+We added our first function to `src/ascart/converter.py`:
+
+```python
+def brightness_to_character(brightness):
+    palette = " .:-=+*#%@"
+    index = brightness * (len(palette) - 1) // 255
+    character = palette[index]
+    return character
+```
+
+The palette is ordered from least to most visually dense. The formula maps integer brightness values from 0–255 to palette positions from 0–9. Python indexes start at zero, and `//` performs whole-number division. `return` sends the selected character back to the caller.
+
+We checked that 0 maps to a space, 128 maps to `=`, and 255 maps to `@`. An earlier approximate explanation suggested `+` for 128; the actual formula gives `=`.
+
+This mapping currently suits a dark terminal background. Automatic inversion and custom palettes have not been implemented.
+
+### Connecting the converter to the image
+
+In `image_art.py`, we imported the function:
+
+```python
+from ascart.converter import brightness_to_character
+```
+
+After resizing, we added:
+
+```python
+for y in range(height):
+    row = ""
+
+    for x in range(width):
+        brightness = resized.getpixel((x, y))
+        row += brightness_to_character(brightness)
+
+    print(row)
+```
+
+The outer loop visits each row. The inner loop visits each pixel across that row, reads its brightness, and appends the corresponding character to a string. The completed row is then printed.
+
+### Verification and current limits
+
+We ran the conversion, and the user independently ran the same function from the project folder with the virtual environment activated:
+
+```bash
+PYTHONPATH=src python -c "from ascart.image_art import inspect_image; inspect_image('examples/image1.png')"
+```
+
+The output showed:
+
+```text
+Size: (1254, 1254)
+Color mode: RGB
+Grayscale mode: L
+First pixel brightness: 245
+Resized size: (80, 40)
+```
+
+This was followed by 40 rows of 80 ASCII characters. The user confirmed the result and shared the output, with the mug's outline and handle visible. The bright background mostly became `%` because its brightness values fell below the final `@` threshold.
+
+The working pipeline is now: open image, convert to grayscale, resize, map brightness to characters, and print rows. It still uses the learning function name `inspect_image` and prints diagnostic information. The command-line interface, dependency declaration, saving, color, custom palettes, background detection, GIFs, and videos remain unimplemented.
+
+No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit as the first photo-to-ASCII milestone.
