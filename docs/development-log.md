@@ -266,3 +266,40 @@ This was followed by 40 rows of 80 ASCII characters. The user confirmed the resu
 The working pipeline is now: open image, convert to grayscale, resize, map brightness to characters, and print rows. It still uses the learning function name `inspect_image` and prints diagnostic information. The command-line interface, dependency declaration, saving, color, custom palettes, background detection, GIFs, and videos remain unimplemented.
 
 No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit as the first photo-to-ASCII milestone.
+
+## 10. Saving the first ASCII conversion
+
+The user committed the photo conversion and its learning notes in commit `7be9b94`, with the message `Convert sample photo to grayscale ASCII art`.
+
+## 11. Command-line entry point — 22 October 2026
+
+With the user's approval, we added code to two previously empty files:
+
+- `src/ascart/cli.py` imports Python's built-in `argparse` module and defines `main()`. It creates an argument parser, requires an image `path`, reads the command-line arguments, and calls `inspect_image(args.path)`.
+- `src/ascart/__main__.py` imports `main` and calls it under the `if __name__ == "__main__":` guard. Python uses this file as the package entry point when running `python -m ascart`.
+
+We explained each line and left the existing conversion behavior unchanged. The user no longer needs to type Python import statements to start a conversion.
+
+From the project folder, with the virtual environment activated, the new command is:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png
+```
+
+`PYTHONPATH=src` makes our source package discoverable for this command because the project has not been installed yet. `-m ascart` runs the package's entry point, and the remaining argument supplies the image path.
+
+We tested this command successfully. The user also ran it and confirmed that ASCII art was generated.
+
+We checked the automatically generated help:
+
+```bash
+PYTHONPATH=src python -m ascart --help
+```
+
+It shows the required `path` argument, the program description, and the built-in help option. No additional dependency was needed because `argparse` is included with Python.
+
+We also explained how to check environment activation using the usual `(.venv)` prompt marker and `which python`. For this environment, the Python path should point to the project's `.venv/bin/python`.
+
+The program still prints diagnostic image information and uses a fixed width of 80. The next planned feature is a `--width` option for controlling the output's character columns and detail.
+
+No commit was made while writing this entry. The command-line files and this log are ready to stage and commit together.
