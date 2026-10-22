@@ -837,3 +837,17 @@ We also ran direct slant/bold demonstrations, selecting `banner3` after comparin
 We reviewed `.gitignore`: `.venv/`, `__pycache__/`, `*.pyc`, `output/`, and `*.egg-info/` already cover current generated files. No new rules were required. Source code, configuration, and documentation are intentionally tracked. The user's `examples/scuba.gif` remains untracked and outside this milestone.
 
 This milestone is prepared for the commit `Add persistent text styles and named banner fonts`. Its ID is available in Git history.
+
+## 38. Optional text slant directions — 22 October 2026
+
+The user approved adding explicit left/right directions while preserving the existing `--text-slant` default. We added mutually exclusive `--text-slant-left` and `--text-slant-right` text inputs. Right is an alias for the existing pyfiglet `slant` font. Inspection of installed font names and sample renderings did not reveal a matching left font, so left uses a row-shift approximation of the standard font instead. Letters are not mirrored or reversed.
+
+`left_slanted_text` determines the standard font's row count from a single-character rendering. It reserves padding within the requested width, renders using the remaining width, then offsets successive rows by one extra space every two rows. Modulo resets offsets for each wrapped block. The font strokes themselves remain unchanged; left and right are different designs, not a matched pair. Too-small widths are rejected. Saved output retains the spaces that form the lean.
+
+We tested default/right equality, unchanged left character order, line width bounds including wrapping, saved-text equality, narrow widths, conflicting direction options, and photo conversion. Output:
+
+```text
+Checks passed: default/right equality, left row shifts without reversed letters, width limits, saved-text equality, conflicts, and photo conversion.
+```
+
+We also ran `.venv/bin/ascart --text-slant-left Hi` to inspect the rendered text. The README describes both direction options and the left approximation. Existing output size defaults were not changed. No dependencies or ignore rules needed changes. The user's sample GIF remains untracked. This milestone is prepared for the commit `Add optional left and right text slant directions`.
