@@ -431,3 +431,44 @@ PYTHONPATH=src python -m ascart examples/image1.png --width 60 --chars " .:*#@"
 We checked that the default endpoints still map 0 to a space and 255 to `@`. With the custom palette `01`, we verified the endpoint mapping and confirmed that the sample output contained only those two characters in 30 rows of 60 columns. We also verified rejection of empty, newline, and non-ASCII palettes.
 
 The user ran the feature and reported completion. No new dependency was needed. No commit was made while writing this entry; the three changed Python files and this log are ready to stage and commit together.
+
+## 18. Saving custom character palettes
+
+The user committed the custom palette feature and its notes in commit `fd08cb3`, with the message `Add custom ASCII character palettes`.
+
+## 19. Manual background selection — 22 October 2026
+
+With the user's approval, we implemented manual light/dark background selection as the first step toward automatic brightness mapping. Automatic detection remains planned; this change does not detect the terminal background.
+
+In `src/ascart/cli.py`, we added:
+
+```python
+parser.add_argument(
+    "--background",
+    choices=["dark", "light"],
+    default="dark",
+    help="Terminal background (default: dark; automatic detection not yet available)",
+)
+```
+
+`choices` restricts the option to the two supported values. The default remains `dark` to preserve existing output. The parsed value is passed to `inspect_image` using `background=args.background`.
+
+In `src/ascart/image_art.py`, we added a `background="dark"` parameter and reversed the palette for a light background:
+
+```python
+if background == "light":
+    palette = palette[::-1]
+```
+
+We explained that the slice `[::-1]` reverses a sequence. Dark-background mode uses dense characters for bright pixels; light-background mode uses dense characters for dark pixels. This changes character selection, not the source image or its colors. Custom palettes are reversed in the same way.
+
+The user compared the modes using:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --width 60 --background light
+PYTHONPATH=src python -m ascart examples/image1.png --width 60 --background dark
+```
+
+We verified that light mode matches conversion with a reversed palette, the default matches explicit dark mode, and custom palettes work with reversal. We checked that output remains 60 columns by 30 rows and invalid background choices are rejected. The user confirmed that the feature worked.
+
+No new dependency was needed. No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together before implementing automatic detection.

@@ -17,6 +17,12 @@ def main():
         default=DEFAULT_PALETTE,
         help="Character palette, ordered from least to most visually dense",
     )
+    parser.add_argument(
+        "--background",
+        choices=["dark", "light"],
+        default="dark",
+        help="Terminal background (default: dark; automatic detection not yet available)",
+    )
     args = parser.parse_args()
     if args.width <= 0:
         parser.error("--width must be greater than 0")
@@ -24,7 +30,9 @@ def main():
         parser.error("--chars must contain at least one character")
     if any(not character.isascii() or not character.isprintable() for character in args.chars):
         parser.error("--chars must contain only printable ASCII characters")
-    art = inspect_image(args.path, width=args.width, palette=args.chars)
+    art = inspect_image(
+        args.path, width=args.width, palette=args.chars, background=args.background
+    )
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)

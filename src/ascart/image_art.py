@@ -3,7 +3,10 @@ from PIL import Image
 from ascart.converter import DEFAULT_PALETTE, brightness_to_character
 
 
-def inspect_image(path, width=80, palette=DEFAULT_PALETTE):
+def inspect_image(path, width=80, palette=DEFAULT_PALETTE, background="dark"):
+    if background == "light":
+        palette = palette[::-1]
+
     with Image.open(path) as image:
         grayscale = image.convert("L")
 
