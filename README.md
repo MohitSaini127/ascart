@@ -6,7 +6,7 @@ The main purpose is to understand Python, image processing, code organization, G
 
 ## Working features
 
-- Text banners using pyfiglet's standard font, with width wrapping and text-file saving.
+- Standard, slanted, bold-looking, and named-font text banners, with width wrapping and text-file saving.
 - Photo-to-ASCII conversion, with a default width of 60 characters.
 - Custom output width or optional fitting to terminal width and height.
 - Custom printable ASCII character palettes.
@@ -41,13 +41,19 @@ Use `deactivate` to leave the environment. The `.venv/` folder stays on your com
 
 ```bash
 ascart --text "Hello"
+ascart --text-slant "Hello"
+ascart --text-bold "Hello"
+ascart --text-font-small "Hello"
 ascart --text "Hello world" --width 40
 ascart --text "Hello" --output output/hello.txt
+ascart --text-bold "Hello" --output output/bold.txt
 ```
 
-Choose either `--text` or an image/GIF path, not both. Text mode accepts non-empty printable ASCII text and uses pyfiglet's `standard` font. The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected.
+Choose exactly one text-input option or an image/GIF path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
 
-Text mode supports `--width` and `--output`. Image/GIF options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, and existing files are replaced. No additional font selection or banner color option is implemented yet.
+The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected. Text-input options cannot be combined with each other.
+
+Text mode supports `--width` and `--output`. Image/GIF options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, and existing files are replaced. Banner color is not implemented.
 
 ## Photo conversion
 

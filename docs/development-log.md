@@ -814,3 +814,26 @@ Regression checks passed: photo output and counted GIF dispatch; --text values s
 We ran `.venv/bin/ascart --text Hello` and saw a large ASCII Hello banner. A narrow-width check initially exposed pyfiglet's CharNotPrinted exception, which we handled before completing verification. The README now documents setup, text usage, limits, and the implemented feature status. The user's untracked `examples/scuba.gif` remains excluded.
 
 The milestone is prepared for the commit `Add text banners with pyfiglet and plain text saving`; its ID is recorded in Git history. No GitHub upload is part of this step.
+
+## 37. Persistent text styles and named fonts — 22 October 2026
+
+The user approved implementation, explanations, documentation, testing, staging, and committing. They requested each text style to accept its own text directly, without repeating `--text`, and required bold's appearance to survive plain-text saving.
+
+We added mutually exclusive text input options: `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thick-stroke `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font. These are character-based designs, not terminal bold or italic escape sequences, so saved text preserves the appearance.
+
+The CLI uses each option's `type` callable to return a `(text, font)` tuple in the shared `text` destination. Small lambda functions perform that pairing. Named font switches are recognized with a regular expression and registered before parsing, with a set preventing duplicate registration. The lambda's default `font` parameter captures each registered font name. Existing option-value preservation prevents rewriting text values as loop shorthand. After parsing, tuple unpacking separates the text and selected font before calling the renderer.
+
+`text_to_ascii` now accepts `font="standard"`, checks the font against `FigletFont.getFonts()`, and passes it to `figlet_format`. Unknown fonts and too-narrow widths receive readable errors. Existing ASCII validation, width wrapping, and shared saving remain in place. No new dependency or installation was needed.
+
+We ran inline checks with `.venv/bin/python -B`, including all four input forms, equals syntax, exact saved-text equality with terminal characters, conflicts, unknown fonts, narrow widths, value handling, and photo regression. Output:
+
+```text
+Checks passed: standard, slant, bold, and named fonts; saved files exactly match terminal characters.
+Checks passed: conflicting inputs, unknown fonts, narrow widths, option values, and photo regression.
+```
+
+We also ran direct slant/bold demonstrations, selecting `banner3` after comparing its visibly thicker strokes with the simpler `banner` design. The README now explains the final syntax and persistent character-based styling.
+
+We reviewed `.gitignore`: `.venv/`, `__pycache__/`, `*.pyc`, `output/`, and `*.egg-info/` already cover current generated files. No new rules were required. Source code, configuration, and documentation are intentionally tracked. The user's `examples/scuba.gif` remains untracked and outside this milestone.
+
+This milestone is prepared for the commit `Add persistent text styles and named banner fonts`. Its ID is available in Git history.
