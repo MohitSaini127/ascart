@@ -5,12 +5,14 @@ import shutil
 import sys
 from pathlib import Path
 
-from PIL import Image
+import cv2
+from PIL import Image, UnidentifiedImageError
 
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
 from ascart.text_art import text_to_ascii
+from ascart.video_art import play_video
 
 
 def display_art(art, output):
@@ -35,8 +37,8 @@ def detect_background():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create text banners, convert photos, or play GIFs as ASCII art.")
-    parser.add_argument("path", nargs="?", help="Path to the image or GIF file")
+    parser = argparse.ArgumentParser(description="Create text banners, convert photos, or play GIFs and videos as ASCII art.")
+    parser.add_argument("path", nargs="?", help="Path to a local image, GIF, or video file")
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("--text", type=lambda value: (value, "standard"), help="Standard text banner")
     text_inputs.add_argument("--text-slant", dest="text", type=lambda value: (value, "slant"), help="Slanted text banner")
@@ -94,7 +96,7 @@ def main():
         value_expected = argument in ("--text", "--text-slant", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count") or (font_match is not None and "=" not in argument)
     args = parser.parse_args(arguments)
     if (args.path is None) == (args.text is None):
-        parser.error("Provide either an image/GIF path or --text, but not both")
+        parser.error("Provide either a media path or --text, but not both")
     if args.text is not None:
         args.text, text_font = args.text
         if not args.text.strip():
@@ -104,7 +106,7 @@ def main():
         if args.width <= 0:
             parser.error("--width must be greater than 0")
         if args.fit or args.color or args.chars is not None or args.background != "auto" or args.loop or args.loop_count is not None:
-            parser.error("Text banners support --width and --output; image/GIF options do not apply")
+            parser.error("Text banners support --width and --output; photo/GIF/video options do not apply")
         try:
             art = text_to_ascii(args.text, width=args.width, font=text_font)
         except ValueError as error:
@@ -131,8 +133,36 @@ def main():
         terminal_size = shutil.get_terminal_size(fallback=(80, 24))
         width = max(1, terminal_size.columns - 1)
         max_height = max(1, terminal_size.lines - 2)
-    with Image.open(args.path) as image:
-        is_gif = image.format == "GIF"
+    if not Path(args.path).is_file():
+        parser.error(f"Input file does not exist or is not a regular file: {args.path}")
+    is_video = False
+    try:
+        with Image.open(args.path) as image:
+            is_gif = image.format == "GIF"
+            # Pillow recognizes MPEG headers but cannot decode their video frames.
+            is_video = image.format == "MPEG"
+    except UnidentifiedImageError:
+        is_video = True
+        is_gif = False
+    except OSError as error:
+        parser.error(f"Cannot read input: {error}")
+    if is_video:
+        if args.output:
+            parser.error("Saving video output with --output is not supported yet")
+        if args.loop or args.loop_count is not None:
+            parser.error("Video playback currently plays once; loop options are GIF-only")
+        if not sys.stdout.isatty():
+            parser.error("Video playback requires an interactive terminal")
+        try:
+            play_video(
+                args.path, width=width, palette=args.chars, background=background,
+                max_height=max_height, color=color,
+            )
+        except KeyboardInterrupt:
+            pass
+        except (ValueError, OSError, cv2.error) as error:
+            parser.error(f"Cannot play video: {error}")
+        return
     if is_gif:
         if args.output:
             parser.error("Saving GIF frames with --output is not supported yet")

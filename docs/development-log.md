@@ -875,3 +875,82 @@ The first `.venv/bin/python -m pip install --retries 0 -e .` attempt hit sandbox
 We filled video_art.py with helpers to open local regular files, sanitize positive metadata properties, and inspect the first decoded frame. Dimensions come from actual frame pixels; FPS and frame count are reported metadata. Estimated duration is count/FPS only when both are known. Missing metadata is None. Capture resources close in a finally block, including on decoding errors.
 
 We added tests/test_video_art.py using standard-library unittest. Tests generate a temporary three-frame, 32x24 MJPG AVI at 10 FPS and verify metadata, invalid metadata, missing files, and release on failed decoding. `.venv/bin/python -B -m unittest discover -s tests -v` reported `Ran 4 tests in 0.138s` and `OK`. No video input was added to Git; temporary files clean themselves up. README documents the inspection function and test command. The first milestone is `Add OpenCV video inspection and metadata tests`.
+
+## 41. Streaming ASCII video playback — 22 October 2026
+
+The inspection and dependency milestone above was committed as `a4881c0` (`Add OpenCV video inspection and metadata tests`). We continued with terminal video playback under the user's authorization to implement, explain edits, maintain documentation, stage, and commit without repeated confirmation.
+
+### Files changed and the reasoning
+
+In `src/ascart/video_art.py`, we added `video_frame_to_ascii` and `play_video`. OpenCV supplies frames as NumPy arrays with channels ordered blue, green, red (BGR). `cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)` changes that order to the red, green, blue expected by Pillow; skipping this would swap red and blue. `Image.fromarray(rgb)` makes a Pillow image, and a `with` block closes that temporary image after the existing `image_to_ascii` function finishes. Reusing that converter gives videos the existing width, fitting, palette, background, and color behavior.
+
+The playback loop works as follows:
+
+1. `open_video(path)` obtains the video reader. `screen_started = False` tracks whether terminal cleanup is needed, and `displayed = 0` counts completed frame displays.
+2. `positive_property(..., cv2.CAP_PROP_FPS)` reads the reported frame rate. Missing or invalid FPS uses 30 FPS and prints a warning. `frame_interval = 1 / fps` gives seconds per frame: 10 FPS means 0.1 seconds.
+3. `time.monotonic()` records a timer value that is suitable for measuring elapsed time. `capture.read()` returns a success flag and the next frame. Failure before any frame produces a readable error; after displayed frames, it ends playback. OpenCV's false return does not reliably distinguish end-of-file from all decoding failures.
+4. `video_frame_to_ascii(...)` converts that frame. The program retains the current frame's data instead of building a list of converted frames for the whole video.
+5. On the first frame, ANSI control sequences clear the screen and hide the cursor. Each display moves to the top, clears the previous frame, and prints the new artwork. `flush=True` sends the output immediately rather than waiting in Python's output buffer.
+6. The elapsed reading, conversion, and printing time is subtracted from `frame_interval`. `time.sleep(delay)` waits only when time remains. At 10 FPS, if processing takes 0.04 seconds, the wait is 0.06 seconds. If processing takes longer than a frame interval, there is no extra wait; this version does not skip frames to catch up.
+7. The `finally` block releases the reader and, if screen output started, resets terminal styling and shows the cursor. This also runs when Ctrl+C interrupts playback or an exception occurs. The function returns the number of displayed frames on normal completion.
+
+In `src/ascart/cli.py`, we added video dispatch and updated help text. The CLI first checks that the path is a regular local file, then lets Pillow identify photos/GIFs. Unrecognized image content is offered to OpenCV as a potential video. Pillow also recognizes MPEG headers without decoding their frames, so that format is explicitly routed to OpenCV. No `--video` switch is needed. The CLI forwards existing conversion options and catches Ctrl+C and expected decoding errors. Video output requires an interactive terminal. Video `--output`, `--loop`, and counted loops are rejected with explanations; GIF loop behavior remains available.
+
+In `tests/test_video_art.py`, we extended inspection tests with BGR/RGB color verification, frame timing, missing-FPS fallback, cleanup on interruption/errors, and real AVI playback. We corrected import placement so imports precede the test classes and the direct test entry point. In the new `tests/test_cli_media.py`, we added real MP4 playback, option dispatch and rejection, MPEG routing, readable errors, and selected photo/GIF/text regression checks. Controlled clocks and fake readers test timing and failure cases without relying on a real-time delay.
+
+`README.md` now describes video as implemented, lists dependencies and their roles, gives video commands, explains streaming and timing, and documents tests and practical limits. Video plays once without audio. Export and video looping remain future work. Timing uses one reported FPS, so variable-frame-rate sources are approximate; slow conversion/output can slow playback. Format support depends on available codecs.
+
+### Commands and observed results
+
+We ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+After the final source changes, output included:
+
+```text
+Ran 14 tests in 0.437s
+
+OK
+```
+
+`-B` prevents writing Python bytecode cache files. `-m unittest` runs Python's built-in test tool; `discover -s tests` finds tests in the tests folder, and `-v` lists individual results.
+
+We also ran:
+
+```bash
+.venv/bin/python -m pip check
+```
+
+The result was `No broken requirements found.` Pip also warned that its normal cache directory was not writable in the sandbox, so it disabled caching for that command. The dependency check itself succeeded.
+
+An inline Python command created `output/video-demo.mp4` for a local demonstration: a moving colored circle and two rectangles. This is a generated test clip, not a downloaded video. The command refuses to overwrite an existing file. Inspection output:
+
+```text
+Created: output/video-demo.mp4
+{'width': 160, 'height': 96, 'fps': 12.0, 'frame_count': 36, 'duration_seconds': 3.0}
+```
+
+A second inline Python check launched the actual installed CLI in a pseudo-terminal, which supplies the interactive terminal interface required for playback. It captured screen-control output rather than assessing visual appearance. The full run used `.venv/bin/ascart output/video-demo.mp4 --width 20 --color`. The interruption run used `.venv/bin/ascart output/video-demo.mp4 --fit` and sent the interrupt signal after a frame appeared. Results:
+
+```text
+Terminal playback: 36 color frames; exit 0; cursor restored; 3.57s including startup.
+Ctrl+C terminal check: exit 0; cursor restored; no traceback.
+```
+
+To view the demo with the environment active, run `ascart output/video-demo.mp4 --fit --color`. The file exists only in this development folder; it is not included in the repository. `.gitignore` already excludes `output/`, `.venv/`, bytecode, and package metadata, so no new ignore rule is necessary. The user's untracked `examples/scuba.gif` is left unchanged and outside this commit.
+
+This playback milestone is prepared for the commit `Add streaming ASCII video playback with frame timing`. Only the two source files, two test files, README, and this log belong in that commit. Git history supplies its final ID.
+
+Final review: `git diff --check` produced no output, indicating no whitespace errors. `.venv/bin/ascart --help` listed video support and retained GIF-only loop descriptions. `git check-ignore output/video-demo.mp4 .venv/bin/python src/ascart.egg-info/PKG-INFO` printed all three paths, confirming those generated files are ignored.
+
+Git commands for this milestone:
+
+```bash
+git add src/ascart/cli.py src/ascart/video_art.py tests/test_video_art.py tests/test_cli_media.py README.md docs/development-log.md
+git commit -m "Add streaming ASCII video playback with frame timing"
+```
+
+`git add` stages the selected file contents; `git commit` records that staged snapshot. The generated video and the user's untracked GIF are not included.
