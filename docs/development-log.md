@@ -1024,3 +1024,80 @@ git commit -m "Add continuous and counted ASCII video looping"
 ```
 
 `git add` selects these six files for the staged snapshot; `git commit` records that snapshot. The final commit ID is available through `git log --oneline`.
+
+## 43. Readable input, decoding, and saving errors — 22 October 2026
+
+The previous video-looping milestone was committed as `801ff9f` (`Add continuous and counted ASCII video looping`), including its code, tests, README, and log updates. The user approved the next step: handling common file errors with clear messages, explaining the edits, testing them, updating documentation, and committing.
+
+### Investigation and code changes
+
+We inspected the CLI and the installed Pillow source to identify errors that can occur while opening and decoding images. A small in-memory experiment created PNG/GIF data and removed bytes. Both headers were still recognized by Pillow, but converting their pixels raised `OSError`: `image file is truncated` for PNG and `image file is truncated (24 bytes not processed)` for GIF. This showed why checking only `Image.open` was insufficient: decoding can fail later.
+
+All application-code edits for this milestone are in `src/ascart/cli.py`:
+
+1. `IMAGE_READ_ERRORS` is a tuple naming the expected file/decoder exception classes: `OSError`, `ValueError`, `EOFError`, `SyntaxError`, and Pillow's `Image.DecompressionBombError`. `PermissionError`, `FileNotFoundError`, and `UnidentifiedImageError` are covered through their relationship to `OSError`. These handlers surround image opening or conversion rather than the entire program. Unexpected exceptions such as `TypeError` still propagate so programming bugs remain visible.
+2. `report_file_error(parser, action, path, error)` centralizes the message format. `isinstance(error, OSError)` checks the exception's type. When available, `error.strerror` supplies the operating system's reason without repeating the error number and path; otherwise, `str(error)` uses the exception's description. The f-string includes the action, path, and reason. `!r` shows the path as a quoted representation, which also makes embedded whitespace clearer. An empty reason receives the fallback `invalid or incomplete file data`.
+3. `parser.error(...)` prints usage and the error to standard error, then raises `SystemExit` with status 2. It does not return normally, so processing stops at that point. This preserves the CLI's existing error-exit convention.
+4. `display_art` now also receives `parser`. A `try` block surrounds parent-folder creation and UTF-8 writing. `except OSError as error` means that, if a filesystem operation fails, Python stores the exception in the local variable `error` and runs the handler. The helper reports `Cannot save artwork to 'path': reason`. The success message is printed only after writing finishes. Both text and photo call sites pass the parser, so they share this behavior.
+5. Input validation now uses `Path.stat().st_mode` and `S_ISREG`. `stat` obtains filesystem information and can report access or missing-file failures; `S_ISREG` checks whether the entry is a regular file. Directories and other non-regular input paths are rejected before decoding. This preserves the actual failure reason instead of treating every failed check as a missing file.
+6. We handle expected Pillow errors both during initial identification and later photo/GIF conversion. `UnidentifiedImageError` is handled before the broader image-error tuple so ordinary video files can still reach the video decoder. Existing `with` blocks in the converters continue closing input resources when decoding raises an exception.
+7. Before treating unrecognized image content (or Pillow-recognized MPEG content) as video, the CLI calls the existing `inspect_video` function to check that a frame can be decoded. If neither decoder recognizes usable media, the message is `Cannot decode input 'path': unsupported or damaged media`. This avoids telling someone with an unrelated file that video playback requires a terminal or cannot use `--output`. The check decodes only the first frame and closes its reader; playback opens its own reader afterward. It adds an initial open/decode step, not a full-video scan. Ctrl+C during this check returns cleanly.
+8. GIF decoding and playback now have separate `try` blocks. A decoding failure is reported before the screen is cleared. Ctrl+C during either phase still stops the command. Expected video-playback errors now also include the input path through the shared reporting helper.
+
+We did not add a new dependency or change the image-conversion algorithm. Saving still creates parent folders and replaces existing text files. It is a direct write, not an atomic save: an error after writing begins can leave partial output. Tests that inject a write error before bytes are written do not establish preservation during every possible write failure. The README records this limitation.
+
+### Tests and observed results
+
+We added `tests/test_cli_errors.py`. It creates temporary PNG/GIF fixtures and checks real truncated media, unsupported content, missing files, directory inputs, directory output paths, and a normal file blocking an output folder. It simulates denied access, a file disappearing between identification and conversion, decoder failures, and disk-space errors. Tests check the status code, operation/path in the message, absence of a traceback, and absence of false success output. A photo conversion failure is checked before any existing output is overwritten. Successful photo/text saving, overwriting, GIF playback, and unexpected programming errors are also covered.
+
+We ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+Output included:
+
+```text
+Ran 33 tests in 1.280s
+
+OK
+```
+
+This includes all previous video timing, looping, color, and cleanup tests. `-B` prevents writing bytecode caches; `-m unittest discover -s tests -v` runs Python's test discovery in the tests folder and prints each result.
+
+An inline Python script then launched the installed command in a temporary working folder, using generated files only. It created real read/write permission failures by changing permissions on temporary files and restored those permissions afterward. It also checked missing, truncated, unsupported, and directory-path cases. The actual commands and final error lines were:
+
+```text
+$ ascart missing.png
+ascart: error: Cannot read input 'missing.png': No such file or directory
+Exit code: 2
+$ ascart broken.png
+ascart: error: Cannot convert photo 'broken.png': image file is truncated
+Exit code: 2
+$ ascart notes.txt
+ascart: error: Cannot decode input 'notes.txt': unsupported or damaged media
+Exit code: 2
+$ ascart --text Hi --output folder
+ascart: error: Cannot save artwork to 'folder': Is a directory
+Exit code: 2
+$ ascart locked.png
+ascart: error: Cannot read input 'locked.png': Permission denied
+Exit code: 2
+$ ascart --text Hi --output readonly.txt
+ascart: error: Cannot save artwork to 'readonly.txt': Permission denied
+Exit code: 2
+```
+
+The CLI also printed its usage before each error; the script displayed only the final error line and exit status above. All six commands produced empty standard output and no Python traceback. The temporary folder and fixtures were removed automatically. No sample media or existing user output was modified.
+
+`README.md` now documents the error behavior, exit status, troubleshooting examples, first-frame video identification check, direct-write limitation, and expanded test coverage. `.gitignore` already covers generated output, environments, bytecode, and package metadata; temporary test fixtures do not need a new rule. The user's `examples/scuba.gif` remains untracked and outside this milestone.
+
+Git commands for this milestone:
+
+```bash
+git add src/ascart/cli.py tests/test_cli_errors.py README.md docs/development-log.md
+git commit -m "Handle common media and output file errors clearly"
+```
+
+Staging selects these four files; committing records that snapshot. The final commit ID is available in Git history.

@@ -4,6 +4,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
+from stat import S_ISREG
 
 import cv2
 from PIL import Image, UnidentifiedImageError
@@ -12,14 +13,25 @@ from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
 from ascart.text_art import text_to_ascii
-from ascart.video_art import play_video
+from ascart.video_art import inspect_video, play_video
 
 
-def display_art(art, output):
+IMAGE_READ_ERRORS = (OSError, ValueError, EOFError, SyntaxError, Image.DecompressionBombError)
+
+
+def report_file_error(parser, action, path, error):
+    reason = error.strerror if isinstance(error, OSError) and error.strerror else str(error)
+    parser.error(f"{action} {str(path)!r}: {reason or 'invalid or incomplete file data'}")
+
+
+def display_art(art, output, parser):
     if output:
         output_path = Path(output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(art + "\n", encoding="utf-8")
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(art + "\n", encoding="utf-8")
+        except OSError as error:
+            report_file_error(parser, "Cannot save artwork to", output_path, error)
         print("Saved ASCII art to", output_path)
     else:
         print(art)
@@ -111,7 +123,7 @@ def main():
             art = text_to_ascii(args.text, width=args.width, font=text_font)
         except ValueError as error:
             parser.error(str(error))
-        display_art(art, args.output)
+        display_art(art, args.output, parser)
         return
     if args.loop_count is not None and args.loop_count <= 0:
         parser.error("Loop count must be greater than 0")
@@ -134,8 +146,12 @@ def main():
         terminal_size = shutil.get_terminal_size(fallback=(80, 24))
         width = max(1, terminal_size.columns - 1)
         max_height = max(1, terminal_size.lines - 2)
-    if not Path(args.path).is_file():
-        parser.error(f"Input file does not exist or is not a regular file: {args.path}")
+    try:
+        mode = Path(args.path).stat().st_mode
+    except OSError as error:
+        report_file_error(parser, "Cannot read input", args.path, error)
+    if not S_ISREG(mode):
+        parser.error(f"Cannot read input {args.path!r}: expected a regular file")
     is_video = False
     try:
         with Image.open(args.path) as image:
@@ -145,9 +161,18 @@ def main():
     except UnidentifiedImageError:
         is_video = True
         is_gif = False
-    except OSError as error:
-        parser.error(f"Cannot read input: {error}")
+    except IMAGE_READ_ERRORS as error:
+        report_file_error(parser, "Cannot read input", args.path, error)
     if is_video:
+        # Confirm that unrecognized image content really contains a video frame.
+        try:
+            inspect_video(args.path)
+        except OSError as error:
+            report_file_error(parser, "Cannot read input", args.path, error)
+        except (ValueError, cv2.error):
+            parser.error(f"Cannot decode input {args.path!r}: unsupported or damaged media")
+        except KeyboardInterrupt:
+            return
         if args.output:
             parser.error("Saving video output with --output is not supported yet")
         if not sys.stdout.isatty():
@@ -160,7 +185,7 @@ def main():
         except KeyboardInterrupt:
             pass
         except (ValueError, OSError, cv2.error) as error:
-            parser.error(f"Cannot play video: {error}")
+            report_file_error(parser, "Cannot play video", args.path, error)
         return
     if is_gif:
         if args.output:
@@ -172,6 +197,11 @@ def main():
                 args.path, width=width, palette=args.chars, background=background,
                 max_height=max_height, color=color,
             )
+        except IMAGE_READ_ERRORS as error:
+            report_file_error(parser, "Cannot decode GIF", args.path, error)
+        except KeyboardInterrupt:
+            return
+        try:
             play_gif(frames, loops=loops)
         except KeyboardInterrupt:
             pass
@@ -179,12 +209,15 @@ def main():
 
     if args.loop or args.loop_count is not None:
         parser.error("Loop options are only supported for GIF and video files")
-    art = inspect_image(
-        args.path,
-        width=width,
-        palette=args.chars,
-        background=background,
-        max_height=max_height,
-        color=color,
-    )
-    display_art(art, args.output)
+    try:
+        art = inspect_image(
+            args.path,
+            width=width,
+            palette=args.chars,
+            background=background,
+            max_height=max_height,
+            color=color,
+        )
+    except IMAGE_READ_ERRORS as error:
+        report_file_error(parser, "Cannot convert photo", args.path, error)
+    display_art(art, args.output, parser)

@@ -15,6 +15,7 @@ The main purpose is to understand Python, image processing, code organization, G
 - Saving photo conversions as plain text.
 - GIF playback once, continuously, or for a specified number of playbacks.
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
+- Readable messages for common input, decoding, and text-file saving errors.
 
 ## Setup
 
@@ -144,6 +145,31 @@ For each repeat, the previous video reader is closed and a new one opens the fil
 
 For inspection from Python, `ascart.video_art.inspect_video(path)` returns dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. Duration is estimated from frame count divided by FPS.
 
+## File errors
+
+Common file and decoding failures produce a message containing the operation, file path, and reason. For example:
+
+```text
+ascart: error: Cannot convert photo 'broken.png': image file is truncated
+ascart: error: Cannot save artwork to 'readonly.txt': Permission denied
+```
+
+The CLI prints usage and the error to standard error, then exits with status 2. It does not print a Python traceback for these handled failures or a success message when saving fails. Successful commands exit with status 0. Exact operating-system and decoder wording can vary.
+
+| Message | What to do |
+| --- | --- |
+| No such file or directory | Check the input path and your current folder. |
+| Permission denied | Choose an input you can read or an output location you can write to. |
+| Expected a regular file / Is a directory | Provide a file path, including a filename for output. |
+| Image file is truncated | Use a complete, undamaged copy of the source. |
+| Unsupported or damaged media | Check the file and whether its format/codec is supported. |
+| File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
+| No space left on device | Free storage space or choose another output location. |
+
+If Pillow cannot identify a photo/GIF, ascart checks whether OpenCV can decode a video frame before treating the input as a video. This avoids reporting video-only option errors for an unrelated or unreadable media file. This check does not verify every frame in a video.
+
+Photo and text saving share the same error handling. Parent folders are created when possible, and existing output files are replaced. Writes go directly to the destination: a failure partway through writing can leave partial output; preserving the previous file through an atomic save is future work. Input media is opened for reading.
+
 ## How conversion works
 
 1. Pillow opens a photo or decodes a GIF frame. For video, OpenCV decodes a frame, its BGR color order is changed to RGB, and Pillow receives the resulting image.
@@ -164,7 +190,7 @@ Photos, GIFs, and videos share the same image conversion function.
 - Terminal fitting reads dimensions once per command. Resize the terminal and rerun to recalculate. If size detection is unavailable, fitting uses an 80-column by 24-row fallback before margins.
 - A fixed width can exceed a small terminal. Use `--fit` when needed.
 - Color strength depends on the chosen characters, terminal background, and font. Spaces have no visible foreground strokes.
-- Background detection is limited. Missing input files and video decoding failures have readable errors; broader image/GIF/save error handling still needs work.
+- Automatic background detection still relies on a limited terminal hint.
 
 ## Running tests
 
@@ -176,6 +202,8 @@ python -m pip check
 ```
 
 The suite checks video inspection, MP4/AVI decoding, color conversion, timing, counted and continuous playback, cleanup after interruption or failed restarts, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
+
+File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They also verify successful saving and ensure unexpected programming errors are not hidden by a catch-all exception handler.
 
 ## Development history
 
