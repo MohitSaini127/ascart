@@ -303,3 +303,41 @@ We also explained how to check environment activation using the usual `(.venv)` 
 The program still prints diagnostic image information and uses a fixed width of 80. The next planned feature is a `--width` option for controlling the output's character columns and detail.
 
 No commit was made while writing this entry. The command-line files and this log are ready to stage and commit together.
+
+## 12. Saving the command-line entry point
+
+The user committed the entry point and its learning notes in commit `4312b81`, with the message `Add command-line entry point for image conversion`.
+
+## 13. Adjustable output width — 22 October 2026
+
+With the user's approval, we added an optional `--width` argument in `src/ascart/cli.py`:
+
+```python
+parser.add_argument(
+    "--width", type=int, default=80, help="Output width in characters (default: 80)"
+)
+```
+
+`type=int` converts the argument to an integer and rejects non-integer input. `default=80` keeps the existing width when the option is omitted. The help text explains the option in `--help`.
+
+After parsing, we reject zero and negative widths and pass the chosen width to the image function:
+
+```python
+if args.width <= 0:
+    parser.error("--width must be greater than 0")
+inspect_image(args.path, width=args.width)
+```
+
+In `src/ascart/image_art.py`, we changed the function definition to `inspect_image(path, width=80)` and removed the internal `width = 80` assignment. The existing height calculation and resizing now use the supplied width. We explained default parameters and passing a value using the keyword argument `width=`.
+
+We verified that `--width 100` produces 50 rows of 100 characters for the square sample. We also checked that `--width 0` exits with an argument error rather than attempting conversion.
+
+The user tried the larger output and found it too big. After discussing smaller widths, the user reported that 60 looked good. The sample command is:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --width 60
+```
+
+For this square image, the calculated dimensions are 60 columns by 30 rows. A larger width gives more character columns and detail; a smaller width produces a smaller image. The default remains 80, and automatic terminal fitting is still planned.
+
+No commit was made while writing this entry. The width changes and this log are ready to stage and commit together.
