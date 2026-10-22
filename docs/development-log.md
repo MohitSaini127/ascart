@@ -763,3 +763,33 @@ GIF options match the tested implementation; no additional live playback was run
 ```
 
 Only README.md and this development log are included in this documentation milestone. The user's untracked `examples/scuba.gif` is left outside the commit. Earlier looping changes are in commit `4741a85`. The documentation commit is named `Document setup and working photo and GIF features`; its ID is available in Git history.
+
+## 34. Optional clarity enhancement experiment — 22 October 2026
+
+The user clarified that their desired density control means visual clarity at the same output size. We distinguished character-grid width from contrast, edge definition, and palette shading. With approval, we added an optional `--enhance` flag; normal conversion remains unchanged.
+
+The CLI passes `enhance` through photo and GIF functions to the shared image converter. After grayscale resizing, enhancement applies Pillow's `ImageEnhance.Contrast(...).enhance(1.2)` and `ImageFilter.UnsharpMask(radius=1, percent=80, threshold=3)`. These adjust brightness separation and edge definition on an in-memory grayscale copy. Original RGB values remain the source of foreground colors. No new dependency was needed.
+
+We ran an inline verification script using `.venv/bin/python -B`. It compared normal output with the previous committed converter, checked source-file hashes and original pixel bytes, dimensions, enhanced color character mapping, GIF timing, and CLI text saving. Output:
+
+```text
+Checks passed: original file and pixels unchanged; normal output matches previous version.
+Checks passed: enhanced output stays 60 x 30; color, GIF timing, and text saving work.
+Comparison: 961 of 1800 character cells changed. Visual improvement still needs your judgment.
+```
+
+A changed output is not proof of better clarity. The user should compare `ascart examples/image1.png --width 60` with the same command plus `--enhance`. Enhancement can increase noise or clip tones on some images. It remains opt-in, and these experimental changes have not yet been staged or committed, pending the user's visual assessment. The existing committed converter remains available in Git.
+
+## 35. Removing the enhancement experiment — 22 October 2026
+
+The user saw a small difference on the photo but reported no noticeable difference on the GIF. They requested removal of enhancement. We removed the CLI flag, enhancement parameters, and contrast/sharpening processing. The experiment was never committed, so no Git history was rewritten. Its learning record remains above.
+
+We verified that `cli.py`, `image_art.py`, and `gif_art.py` match their previously committed versions byte for byte, that normal photo output is still 60 columns by 30 rows, and that help no longer advertises `--enhance`.
+
+Verification output:
+
+```text
+Verified: all three Python files match the committed version; photo output is 60 x 30; --enhance is removed.
+```
+
+Only this learning log remains changed by the experiment and its removal. No staging or commit was performed during removal. The original sample files were not modified.
