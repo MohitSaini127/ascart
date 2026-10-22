@@ -472,3 +472,38 @@ PYTHONPATH=src python -m ascart examples/image1.png --width 60 --background dark
 We verified that light mode matches conversion with a reversed palette, the default matches explicit dark mode, and custom palettes work with reversal. We checked that output remains 60 columns by 30 rows and invalid background choices are rejected. The user confirmed that the feature worked.
 
 No new dependency was needed. No commit was made while writing this entry. The two changed Python files and this log are ready to stage and commit together before implementing automatic detection.
+
+## 20. Saving manual background selection
+
+The user committed the manual background modes and their notes in commit `2db4e66`, with the message `Add light and dark background modes`.
+
+## 21. Basic automatic background selection — 22 October 2026
+
+With the user's approval, we added `detect_background()` to `src/ascart/cli.py`, using Python's built-in `os` module:
+
+```python
+def detect_background():
+    color_hint = os.environ.get("COLORFGBG", "")
+    background_color = color_hint.split(";")[-1].strip()
+    if background_color in ("7", "15"):
+        return "light"
+    return "dark"
+```
+
+Some terminals provide `COLORFGBG` as an environment variable describing color indexes. `os.environ.get` reads it, using an empty string when absent. `split(";")[-1]` selects its last field as the background hint, and `strip()` removes surrounding whitespace.
+
+Indexes 7 and 15 conventionally represent light gray and white, so we choose light mode for those values. Other values, including missing, malformed, and unsupported hints, fall back to dark. This is a limited heuristic, not a direct measurement of the terminal background: not all terminals provide the variable, and themes can redefine palette colors. Our research reference was the [ncurses FAQ](https://invisible-island.net/ncurses/ncurses.faq.html), which discusses `COLORFGBG` and its limitations.
+
+We added `auto` to the `--background` choices and made it the default. After argument parsing, the CLI resolves `auto` through `detect_background()` and passes the resulting `light` or `dark` value to the existing conversion function. Explicit manual choices skip detection.
+
+The default command is now:
+
+```bash
+PYTHONPATH=src python -m ascart examples/image1.png --width 60
+```
+
+Users can explicitly request `--background auto`, or override the result with `--background light` or `--background dark`. No terminal configuration was modified.
+
+We tested conventional light/dark hints, missing and unsupported values, and a three-field hint. We also verified through command-line runs that automatic mode selects the corresponding manual output and that manual overrides work independently of the hint. The user ran the feature and confirmed that it worked; this confirmation alone does not establish whether their terminal supplied a hint or used the fallback.
+
+No new dependency was needed. No commit was made while writing this entry. The CLI change and this log are ready to stage and commit together.
