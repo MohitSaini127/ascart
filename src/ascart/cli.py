@@ -40,8 +40,6 @@ def main():
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("--text", type=lambda value: (value, "standard"), help="Standard text banner")
     text_inputs.add_argument("--text-slant", dest="text", type=lambda value: (value, "slant"), help="Slanted text banner")
-    text_inputs.add_argument("--text-slant-left", dest="text", type=lambda value: (value, "ascart-left"), help="Left-leaning text banner")
-    text_inputs.add_argument("--text-slant-right", dest="text", type=lambda value: (value, "slant"), help="Right-leaning text banner (same as --text-slant)")
     text_inputs.add_argument("--text-bold", dest="text", type=lambda value: (value, "banner3"), help="Thick text banner that also saves as plain text")
     parser.epilog = "Named font: --text-font-FONTNAME TEXT (for example, --text-font-small Hello)."
     sizing = parser.add_mutually_exclusive_group()
@@ -93,7 +91,7 @@ def main():
             registered_fonts.add(font_option)
         match = re.fullmatch(r"--loop-(\d+)", argument)
         arguments.append("--loop-count=" + match.group(1) if match else argument)
-        value_expected = argument in ("--text", "--text-slant", "--text-slant-left", "--text-slant-right", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count") or (font_match is not None and "=" not in argument)
+        value_expected = argument in ("--text", "--text-slant", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count") or (font_match is not None and "=" not in argument)
     args = parser.parse_args(arguments)
     if (args.path is None) == (args.text is None):
         parser.error("Provide either an image/GIF path or --text, but not both")

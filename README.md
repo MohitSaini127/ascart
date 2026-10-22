@@ -42,8 +42,6 @@ Use `deactivate` to leave the environment. The `.venv/` folder stays on your com
 ```bash
 ascart --text "Hello"
 ascart --text-slant "Hello"
-ascart --text-slant-left "Hello"
-ascart --text-slant-right "Hello"
 ascart --text-bold "Hello"
 ascart --text-font-small "Hello"
 ascart --text "Hello world" --width 40
@@ -55,7 +53,7 @@ Choose exactly one text-input option or an image/GIF path. Each text option take
 
 The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected. Text-input options cannot be combined with each other.
 
-`--text-slant` keeps its original right-leaning design, and `--text-slant-right` is an explicit alias. `--text-slant-left` shifts successive rows of the standard font to the right to create a left lean, reserving room within the requested width. It preserves letter order rather than mirroring characters. The two directions therefore use different designs, not perfectly matched italic fonts. Both persist in saved text.
+`--text-slant` uses the original right-leaning font design. Separate direction options are not supported.
 
 Text mode supports `--width` and `--output`. Image/GIF options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, and existing files are replaced. Banner color is not implemented.
 

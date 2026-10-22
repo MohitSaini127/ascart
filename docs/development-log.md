@@ -851,3 +851,17 @@ Checks passed: default/right equality, left row shifts without reversed letters,
 ```
 
 We also ran `.venv/bin/ascart --text-slant-left Hi` to inspect the rendered text. The README describes both direction options and the left approximation. Existing output size defaults were not changed. No dependencies or ignore rules needed changes. The user's sample GIF remains untracked. This milestone is prepared for the commit `Add optional left and right text slant directions`.
+
+## 39. Removing separate slant directions — 22 October 2026
+
+The user visually tested the left-slant approximation and found it distorted. The earlier automated checks verified row ordering and width constraints, but did not establish visual quality. The user requested removing both explicit direction options because the original `--text-slant` already provides the desired slanted design.
+
+We removed `--text-slant-left`, `--text-slant-right`, and the row-shifting helper, retaining the original `--text-slant` font. We updated the README to describe only supported options. The prior experiment remains in this historical log and in commit `08174d2`; no Git history was rewritten.
+
+We ran an inline check using `.venv/bin/python -B` to verify standard, slant, bold, and named-font output; equality of saved and printed slanted text; and rejection of removed options. Output:
+
+```text
+Checks passed: remaining text styles, slant text saving, and rejection of removed direction options.
+```
+
+No dependencies, sample files, or ignore rules changed. The correction is prepared for the commit `Remove separate text slant direction options`.
