@@ -637,3 +637,43 @@ The dot selects the current project folder. `-e` requests an editable installati
 The installation generated `src/ascart.egg-info/`. We explained that setuptools creates this metadata, including information about the project, dependencies, and entry points. With approval, we inspected Git status and added `*.egg-info/` to `.gitignore`. This pattern excludes generated packaging metadata, which installation can recreate; it does not delete the folder.
 
 No additional installation, staging, or commit was performed while updating this log and the ignore rule. The configuration, ignore rule, and log are ready to stage and commit together.
+
+## 28. Saving editable installation
+
+The project configuration, packaging ignore rule, and learning notes were committed as `ae681e9`, with the message `Configure editable installation and ascart command`. At the user's request, the assistant ran staging, commit, and status commands and explained their output. Git metadata writes required sandbox escalation; the retry succeeded and status was clean.
+
+## 29. Inspecting GIF frames — 22 October 2026
+
+The user authorized adding code, maintaining this log, testing, and staging/committing meaningful milestones. We added `inspect_gif(path)` to `src/ascart/gif_art.py` as the first GIF step, before animation conversion or playback.
+
+```python
+from PIL import Image
+
+
+def inspect_gif(path):
+    with Image.open(path) as gif:
+        if gif.format != "GIF":
+            raise ValueError("Expected a GIF file")
+
+        print("Frame count:", gif.n_frames)
+
+        for frame_index in range(gif.n_frames):
+            gif.seek(frame_index)
+            duration = gif.info.get("duration", 0)
+            print(f"Frame {frame_index + 1}: {duration} ms")
+```
+
+Pillow opens the image and identifies its format. The function rejects non-GIF images, prints the number of frames, then visits each frame with `seek`. Frame indexes start at zero, while printed frame numbers start at one. Pillow's frame duration metadata is in milliseconds. `get("duration", 0)` reports zero if timing is absent; it is not a playback timing policy. Actual GIF playback and CLI integration have not been implemented.
+
+We ran an inline Python check using `.venv/bin/python -B` and the editable installation. The check generated a temporary two-frame GIF with known durations, captured the function's output, and asserted that it matched the expected count and timing. It also checked a single-frame GIF without duration metadata and rejection of our PNG sample. Temporary test images were removed automatically, and no example GIF was added to the repository.
+
+The command output was:
+
+```text
+Frame count: 2
+Frame 1: 100 ms
+Frame 2: 200 ms
+Checks passed: frame count, per-frame timing, missing timing, and non-GIF rejection.
+```
+
+No new dependency was needed. This inspection function and log form a small tested milestone to commit with the message `Add GIF frame and timing inspection`. The resulting commit ID can be read from Git history; it is not embedded here to avoid changing the log after the commit.
