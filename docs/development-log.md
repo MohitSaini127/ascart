@@ -1532,3 +1532,95 @@ OK
 ```
 
 The PNG feature from section 50 was still unstaged when this change began. The assistant did not stage, commit, or push either change. The user can review and commit both together using the commands in section 50; those commands include all affected files.
+
+## 52. Save one complete ASCII GIF animation — 23 October 2026
+
+The user committed PNG saving and terminal display as `cade66c` (`Add PNG export and display artwork when saving`). They then approved saving GIF input as an ASCII GIF. We agreed that the saved file contains one pass of the animation and requests one playback; terminal loop options remain independent. This milestone does not implement MP4/video export or a saved-loop option. No staging, commit, or push was performed by the assistant.
+
+### Implementation explained
+
+In src/ascart/gif_art.py, added `save_ascii_gif(frames, path, background="dark")`:
+
+1. Reject an empty frame list before creating a destination.
+2. Use the existing `art_to_png` renderer to draw each ASCII frame with the same fixed character cells, padding, colors, and background as PNG saving.
+3. Convert each picture to Pillow's `P` mode with an adaptive palette of up to 256 colors. GIF frames use palettes rather than unrestricted RGB pixels. Disable dithering to avoid speckled character strokes.
+4. Collect the original frame durations, using the existing 100 ms fallback for non-positive timings. No frames are added for terminal repeats.
+5. Check that rendered frames have matching dimensions, then create the parent folder and open the destination with `"xb"`. This means exclusive creation in binary mode: an existing destination is never opened for replacement.
+6. Call Pillow's `save` with `format="GIF"`, `save_all=True`, the remaining pictures as `append_images`, the timing list, and `disposal=2`. Disposal clears the previous frame before displaying the next. `optimize=False` avoids palette optimization; Pillow can still merge consecutive identical frames and combine their durations.
+7. Deliberately omit the `loop` save option. New rendered pictures do not inherit the source's loop metadata, so the exported GIF requests one playback even if the input loops forever. Viewers may override playback behavior.
+8. Close the rendered pictures in `finally`, including when saving fails. Individual temporary RGB images are also closed after their palette conversion.
+
+In src/ascart/cli.py, allowed `.gif` through shared destination validation, then checked compatibility with the detected input. GIF input accepts only `.gif` output. Photos/banners still accept only `.txt`/`.png`, and videos still reject saving. Unsupported combinations fail before destination folder creation. Existing input-alias, directory, symbolic-link, and existing-file checks remain in place.
+
+Color rendering remains enabled for `.gif`, while `.txt` stays plain. The existing width, fitting, custom palette, background, and border options affect both terminal playback and saved GIF frames. The GIF branch converts and decorates its frames once, saves them once, and then plays the terminal preview if stdout is interactive. With non-interactive stdout, saving succeeds without attempting playback. Without output, GIF playback still requires an interactive terminal.
+
+Saving completes before playback starts. File validation, decoding, rendering, and write failures prevent playback and produce readable errors. The saved-file location is printed after playback, including after Ctrl+C interrupts continuous playback. Ctrl+C during playback leaves the already-completed GIF intact and restores the cursor through the existing playback cleanup. Interruption or write failure while saving may leave a partial newly created file; no existing file is deleted or replaced.
+
+The help text and README.md now explain the input/output combinations, one-playback default, independent terminal loops, non-interactive saving, colors, memory use, and remaining video-export limitation. No dependencies, ignore rules, bundled examples, or generated project media were added. The renderer's 20-million-pixel per-picture limit also applies to GIF frames. Frames and rendered images are held in memory, so this does not promise constant-memory export for large animations.
+
+### Tests and actual results
+
+Added tests/test_gif_output.py with 14 tests. They create temporary GIF sources, including a source with infinite-loop metadata, and reopen the actual exported files. Coverage includes timing, absent repeat metadata, one-pass export independent of counted/continuous terminal loops, colors, light/dark canvases, borders, custom palettes, fitting, uppercase extensions and spaces, single-frame untimed GIFs, merged identical frames, non-interactive saving, Ctrl+C after saving, invalid format combinations, source/link/existing-file protection, competing file creation, truncated input, rendering/permission/disk errors, and unexpected programming-error propagation.
+
+Ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Final output:
+
+```text
+Ran 84 tests in 1.703s
+
+OK
+```
+
+Ran `.venv/bin/python -B -m ascart --help`; it listed GIF saving and clarified that terminal loop counts do not change saved playback. Ran `git diff --quiet -- examples/image1.png`; exit status 0 confirmed the bundled image was unchanged. `git diff --check` passed with no output.
+
+A temporary inline Python script used Pillow to create a three-frame moving colored dot, with 80/120/160 ms timings and infinite-loop source metadata, outside the project. It ran the real module entry point:
+
+```bash
+.venv/bin/python -B -m ascart /tmp/ascart-gif-review-nyno_rxd/moving-dot.gif --width 24 --color --border --background dark --output /tmp/ascart-gif-review-nyno_rxd/ascii.gif
+```
+
+Output and readback inspection:
+
+```text
+Saved ASCII GIF to /tmp/ascart-gif-review-nyno_rxd/ascii.gif
+Format: GIF Size: (336, 222) Frames: 3
+Loop metadata: absent (one playback)
+Frame durations: [80, 120, 160]
+Output size: 17526 bytes
+Input unchanged: True
+```
+
+The script compared SHA-256 before and after conversion. The first and last exported frames were opened as temporary PNGs for visual inspection: the colored dot changes position and the border remains aligned. These are temporary verification fixtures, not bundled media.
+
+User command example (replace the input path with a GIF on your computer):
+
+```bash
+ascart path/to/animation.gif --color --border --output output/ascii.gif
+```
+
+To preview four times while still saving one complete animation:
+
+```bash
+ascart path/to/animation.gif --color --border --loop-4 --output output/ascii-preview-four.gif
+```
+
+Commands for the user to review, stage, and commit (not run by the assistant):
+
+```bash
+git diff --check
+git add src/ascart/gif_art.py src/ascart/cli.py tests/test_gif_output.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Add one-pass animated ASCII GIF export"
+git status
+```
+
+### Appearance review and commit authorization
+
+The user noticed that the saved artwork looked bold. We explained that the existing two-times enlargement of the bitmap font and the dense `#%@` color palette can produce thicker-looking strokes; no extra bold effect was added. The user liked both appearances and chose to keep them. README.md now explains this appearance and the existing custom-palette option.
+
+The user then explicitly asked the assistant to update the README and development log, stage, and commit the GIF feature. This authorizes assistant staging and committing for this milestone, superseding the earlier instruction to leave those steps to the user. The five intended files are README.md, docs/development-log.md, src/ascart/cli.py, src/ascart/gif_art.py, and tests/test_gif_output.py. The suite already passed all 84 tests as recorded above; the follow-up edits only document the accepted appearance and commit authorization. No push was requested.

@@ -15,6 +15,7 @@ The main purpose is to understand Python, image processing, code organization, G
 - Light/dark background mapping, with basic automatic selection and manual overrides.
 - Saving photo conversions as plain text or PNG pictures, including optional colors and borders.
 - GIF playback once, continuously, or for a specified number of playbacks.
+- Saving GIF input as an animated ASCII GIF containing one complete animation, set to play once.
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 - Readable messages for common input, decoding, and file-saving errors.
 
@@ -24,7 +25,7 @@ The project declares Python 3.10 or newer and these dependencies:
 
 | Package | Purpose | Declared version |
 | --- | --- | --- |
-| Pillow | Read photos/GIFs, resize frames, get brightness and RGB colors, and draw PNG artwork. | `>=13.0.0` |
+| Pillow | Read photos/GIFs, resize frames, get brightness and RGB colors, and save PNG/GIF artwork. | `>=13.0.0` |
 | pyfiglet | Render text using character-based banner fonts. | `>=1.0.2,<2` |
 | opencv-python-headless | Decode video frames through the `cv2` module, without desktop display windows. | `>=4.12,<5` |
 
@@ -100,7 +101,7 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 | `--background light` or `--background dark` | Manually choose brightness mapping. |
 | `--output PATH` | Show the artwork in the terminal and save it as UTF-8 plain text (`.txt`) or a PNG picture (`.png`), creating parent folders as needed. Existing destinations and input-file aliases are rejected. |
 
-Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal and PNG output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `.txt` output, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
+Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal, PNG, and GIF output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `.txt` output, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
 Brightness values from 0 through 255 are divided into near-equal bands across the palette. For the three-character color palette, `#` covers 0–85, `%` covers 86–170, and `@` covers 171–255 before any light-background reversal. Similar brightness values still produce repeated characters; adding more characters does not automatically improve clarity, and apparent character density depends on the terminal font.
 
@@ -121,7 +122,7 @@ Pillow draws the characters in its built-in fixed-width bitmap font, preserving 
 
 Photo PNGs use black backgrounds with white characters in dark mode, or white backgrounds with black characters in light mode. Automatic background selection uses the existing terminal hint. Use `--background dark` or `--background light` for a predictable photo canvas. With `--color`, the character strokes retain the source RGB colors and the border stays neutral. PNGs are opaque RGB pictures. They contain the converted ASCII artwork, not a copy of the source photo.
 
-PNG pictures larger than 20 million pixels are rejected before allocation; reduce `--width` or shorten the banner text. GIF and video input still reject `--output`, including `.png`, even with loop options. Animated GIF and MP4 export are not implemented.
+PNG pictures larger than 20 million pixels are rejected before allocation; reduce `--width` or shorten the banner text. GIF input saves only as `.gif`, not `.png` or `.txt`. Video saving, including MP4 export, is not implemented.
 
 ## Optional border
 
@@ -134,13 +135,13 @@ Add `--border` to a photo, text, GIF, or video command to frame the artwork with
 +-----+
 ```
 
-Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt` and `.png` output include the border. GIF/video saving remains unsupported.
+Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt`/`.png` output and saved GIF frames include the border. Video saving remains unsupported.
 
 `--width` describes the artwork inside the frame; a 60-column image becomes 62 columns wide with the border. Banner width still controls wrapping, and its frame surrounds the longest rendered row. The border adds two rows as well. For photos/GIFs/videos, `--fit --border` reserves those extra dimensions within the existing terminal margins. A terminal smaller than four columns by five rows is rejected in this mode. Text banners still do not support `--fit`.
 
 For animation, the same frame decoration is applied on every playback pass. Sources with constant frame dimensions keep a consistent frame size. Without `--border`, output follows the existing rendering path.
 
-## GIF playback
+## GIF playback and saving
 
 Supply your own GIF and replace `path/to/animation.gif` with its location:
 
@@ -150,6 +151,8 @@ ascart path/to/animation.gif --fit --color
 ascart path/to/animation.gif --fit --loop
 ascart path/to/animation.gif --fit --loop-4
 ascart path/to/animation.gif --fit --border --color
+ascart path/to/animation.gif --color --border --output output/ascii.gif
+ascart path/to/animation.gif --loop-4 --output output/ascii-four-preview.gif
 ```
 
 - Without a loop option, playback stops after one pass.
@@ -157,9 +160,19 @@ ascart path/to/animation.gif --fit --border --color
 - `--loop-4` plays four times in total. Other positive counts work the same way; `--loop-count 4` is also supported.
 - Continuous and counted loop options cannot be combined. Loop options work with GIFs and videos.
 
-Playback requires an interactive terminal supporting ANSI screen and cursor controls. It clears the current screen, replaces each frame, and leaves the final frame visible. Ctrl+C stops playback and restores cursor visibility.
+Playback requires an interactive terminal supporting ANSI screen and cursor controls. It clears the current screen, replaces each frame, and leaves the final frame visible. Ctrl+C stops playback and restores cursor visibility. Saving with `--output` also works without an interactive terminal; it skips playback in that case.
 
-Frame durations come from the GIF in milliseconds. Missing or zero timing uses a 100 ms fallback. The program follows the command-line loop choice rather than the GIF's loop metadata. `--output` is not supported for GIFs yet.
+Frame durations come from the GIF in milliseconds. Missing or zero timing uses a 100 ms fallback. Terminal playback follows the command-line loop choice rather than the GIF's loop metadata.
+
+Use a new `.gif` output filename to save the complete converted animation. Existing files, input-file aliases, and symbolic links are rejected. Parent folders are created as needed. `.GIF` also works. GIF input does not currently save as `.txt` or `.png`; photo/banner input does not save as `.gif`.
+
+The output stores one pass of the source frames with their timings. It omits GIF repeat metadata, requesting one playback even if the source repeats forever. `--loop`, `--loop-4`, and `--loop-count` control only the terminal preview; they never duplicate saved frames or change the saved GIF's repeat behavior. No saved-loop setting is offered yet. External viewers can override a GIF's playback behavior.
+
+Saving finishes before terminal playback starts. The saved-file location is printed after playback finishes, including when Ctrl+C stops continuous playback. If saving fails, no terminal preview begins. Interrupting playback leaves the completed file intact. Without an interactive terminal, only the saved-file location is printed and loop options have no playback to repeat.
+
+Saved frames use the same fixed-width font and padding as PNG output. Color, custom palettes, backgrounds, width, terminal fitting, and borders apply to the saved artwork. Each frame is converted to at most 256 colors because that is a GIF limit; this may approximate source RGB colors. Consecutive frames that become visually identical may be combined by Pillow, preserving their combined duration. The per-picture 20-million-pixel limit also applies to rendered GIF frames. ASCII and picture frames are held in memory during export, so use smaller widths for large animations. This is one complete-animation export, not an unlimited terminal recording.
+
+The enlarged bitmap font and dense default color characters (`#%@`) can make saved artwork look thicker than terminal text. No additional bold styling is applied. Use a custom `--chars` palette if you prefer lighter characters.
 
 ## Video playback
 
@@ -212,7 +225,8 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 | File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
 | Destination already exists | Choose a new output filename; ascart does not overwrite or automatically number files. |
 | Output must not point to the input file | Use a different destination, not the source or a link to it. |
-| Output currently supports only .txt and .png files | Use `.txt` or `.png` for photos and banners; animated export is not implemented. |
+| Output currently supports only .txt and .png for photos/banners, or .gif for GIF input | Match the output format to the input; MP4 export is not implemented. |
+| GIF output supports only .gif files | Use a new `.gif` filename for GIF input. |
 | PNG would exceed 20 million pixels | Reduce `--width` or shorten the banner text. |
 | No space left on device | Free storage space or choose another output location. |
 
@@ -220,7 +234,7 @@ If Pillow cannot identify a photo/GIF, ascart checks whether OpenCV can decode a
 
 Photo and text saving share the same rules. Without `--output`, artwork is displayed in the terminal. With `--output`, artwork is saved and then displayed in the terminal, followed by the saved-file location. A non-empty path ending in `.txt` or `.png` is required (uppercase extensions also work). The terminal preview uses the same artwork: `.txt` saves and previews remain plain, while colored PNG saves also show colored characters in the terminal. If saving fails, ascart reports the error without printing a preview or success message. Quote paths containing spaces. Empty or whitespace-only arguments and unsupported extensions are rejected before conversion or folder creation. Repeating a save command with the same destination produces an error; choose a new filename.
 
-Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. Automatic numbering, overwriting, and animated export are not implemented.
+Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. These protections also apply to GIF saving. Automatic numbering, overwriting, and video export are not implemented.
 
 ## How conversion works
 
@@ -237,7 +251,7 @@ Photos, GIFs, and videos share the same image conversion function.
 
 - Video playback has no audio or export yet. Codec availability depends on the OpenCV installation.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
-- GIF frames are converted into memory before playback, so large animations can consume substantial memory.
+- GIF frames are converted into memory before playback, and GIF export also holds rendered picture frames in memory. Large animations can consume substantial memory.
 - GIF playback does not compensate for terminal rendering overhead.
 - Terminal fitting reads dimensions once per command. Resize the terminal and rerun to recalculate. If size detection is unavailable, fitting uses an 80-column by 24-row fallback before margins.
 - A fixed width can exceed a small terminal. Use `--fit` when needed.
@@ -260,6 +274,8 @@ Converter tests cover palette endpoints and boundaries, balanced band sizes, mon
 Border tests cover visible widths with ANSI colors, row padding, saved text, terminal margins, tiny-terminal errors, counted animation playback, and interruption cleanup.
 
 PNG tests check fixed character cells, blank rows/spaces, RGB strokes, light/dark canvases, neutral borders, all banner styles, uppercase extensions, the size limit, no-overwrite protection including links and competing creation, and readable save failures. GIF/video PNG export is rejected before creating output folders, including with loop options.
+
+GIF export tests read back actual saved animations to check frame timing, source-loop removal, colors, borders, fitting, missing-timing fallback, merged identical frames, and independence from terminal loop counts. They also cover saving without an interactive terminal, completed-file preservation on playback interruption, wrong input/output combinations, existing-file/link protection, competing creation, truncated input, rendering failures, permission errors, and partial writes. Fixtures and outputs stay in temporary directories.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 

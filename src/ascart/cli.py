@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from ascart.border import add_border
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
-from ascart.gif_art import gif_to_ascii, play_gif
+from ascart.gif_art import gif_to_ascii, play_gif, save_ascii_gif
 from ascart.image_art import inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
@@ -40,13 +40,13 @@ def validate_output(output, input_path, parser):
             ):
                 parser.error(f"Cannot save artwork to {output!r}: output must not point to the input file")
         if output_path.is_dir():
-            parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new .txt or .png filename")
+            parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new filename with a supported extension")
         if output_path.exists() or output_path.is_symlink():
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
     except OSError as error:
         report_file_error(parser, "Cannot validate output", output, error)
-    if output_path.suffix.lower() not in (".txt", ".png"):
-        parser.error("--output currently supports only .txt and .png files; GIF and MP4 export is not implemented")
+    if output_path.suffix.lower() not in (".txt", ".png", ".gif"):
+        parser.error("--output currently supports only .txt and .png for photos/banners, or .gif for GIF input; MP4 export is not implemented")
 
 
 def display_art(art, output, parser, background="dark"):
@@ -102,15 +102,15 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Show photo or banner artwork and save it to a new .txt or .png file; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png for photos or banners, .gif for GIF input; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
-        "--loop-count", type=int, help="Total GIF or video playbacks; --loop-4 is shorthand for --loop-count 4"
+        "--loop-count", type=int, help="Total terminal GIF or video playbacks; --loop-4 means --loop-count 4; saved GIFs play once"
     )
     parser.add_argument(
-        "--color", action="store_true", help="Use RGB colors in the terminal or PNG pictures (saved text stays plain)"
+        "--color", action="store_true", help="Use source colors in the terminal, PNG, or GIF output (saved text stays plain)"
     )
     parser.add_argument(
         "--chars",
@@ -150,7 +150,10 @@ def main():
     if (args.path is None) == (args.text is None):
         parser.error("Provide either a media path or --text, but not both")
     validate_output(args.output, args.path, parser)
+    output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
     if args.text is not None:
+        if output_suffix == ".gif":
+            parser.error("Photo and text output supports only .txt and .png files")
         args.text, text_font = args.text
         if not args.text.strip():
             parser.error("--text must not be empty or whitespace only")
@@ -171,7 +174,7 @@ def main():
     if args.loop_count is not None and args.loop_count <= 0:
         parser.error("Loop count must be greater than 0")
     loops = 0 if args.loop else (args.loop_count or 1)
-    color = args.color and (args.output is None or Path(args.output).suffix.lower() == ".png")
+    color = args.color and output_suffix != ".txt"
     if args.chars is None:
         args.chars = COLOR_PALETTE if color else DEFAULT_PALETTE
     if args.width is not None and args.width <= 0:
@@ -236,9 +239,10 @@ def main():
             report_file_error(parser, "Cannot play video", args.path, error)
         return
     if is_gif:
-        if args.output:
-            parser.error("Saving GIF frames with --output is not supported yet")
-        if not sys.stdout.isatty():
+        if args.output and output_suffix != ".gif":
+            parser.error("GIF output supports only .gif files; saving GIFs as .txt or .png is not supported yet")
+        interactive = sys.stdout.isatty()
+        if not interactive and not args.output:
             parser.error("GIF playback requires an interactive terminal")
         try:
             frames = gif_to_ascii(
@@ -251,12 +255,26 @@ def main():
             report_file_error(parser, "Cannot decode GIF", args.path, error)
         except KeyboardInterrupt:
             return
+        if args.output:
+            try:
+                save_ascii_gif(frames, args.output, background)
+            except FileExistsError:
+                parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
+            except (OSError, ValueError) as error:
+                report_file_error(parser, "Cannot save artwork to", args.output, error)
+            except KeyboardInterrupt:
+                return
         try:
-            play_gif(frames, loops=loops)
+            if interactive:
+                play_gif(frames, loops=loops)
         except KeyboardInterrupt:
             pass
+        if args.output:
+            print("Saved ASCII GIF to", args.output)
         return
 
+    if output_suffix == ".gif":
+        parser.error("Photo and text output supports only .txt and .png files")
     if args.loop or args.loop_count is not None:
         parser.error("Loop options are only supported for GIF and video files")
     try:
