@@ -1763,3 +1763,128 @@ The user committed MP4 saving as `f2d18c3` (`Add safe one-pass ASCII MP4 export`
 README.md now has navigation links near the top and a Command guide directly after setup. Four tables contain 30 examples: eight text commands, nine image commands, six GIF commands, and seven video commands. Each example has a short explanation. The guide includes built-in help, example-path replacement, quoted paths, new output filenames, supported formats, terminal-preview requirements, one-pass saved animations, terminal loop counts, and MP4's lack of audio. It notes that width and fit are alternatives and that text banners reject media-only options.
 
 The previous four plain example blocks were replaced by the shared guide; detailed feature sections and explanations remain, with links back to their command tables. No source code, dependencies, test files, or bundled media changed. No commands that create output were run for this documentation edit. Existing command support was checked against the CLI help, README details, and current implementation. Formatting and internal navigation links were checked locally; no runtime suite was rerun because this change only reorganizes documentation. No staging, commit, or push was performed.
+
+## 56. Remove deleted sample files from unpublished history — 24 October 2026
+
+The user asked the assistant to perform the history cleanup and explain the commands and their output. This explicitly authorized the required commits, maintenance-tool installation, backup, and local history rewrite. The scope was four deleted paths: examples/robot.gif, examples/robot.mp4, examples/README.md, and tools/build_sample_media.py. Existing published history and the current examples/image1.png were to remain intact. No push was performed.
+
+### Preserve the pending guide and check GitHub
+
+The README guide and section 55 were still uncommitted. Ran:
+
+```bash
+git add README.md docs/development-log.md
+git commit -m "Add README command guide"
+```
+
+Output:
+
+```text
+[main 0e15c2d] Add README command guide
+ 2 files changed, 78 insertions(+), 50 deletions(-)
+```
+
+`git ls-remote origin refs/heads/main` reported `9b7223ec815640291d65f1fed036f2d77a838fb3`, matching the stored origin/main reference. Therefore the 12 local commits, including the new guide commit, were not part of GitHub's main branch. No fetch or push was needed. Initial network requests in the restricted environment could not resolve hosts; installation and the read-only GitHub check succeeded with network-enabled execution.
+
+Installed the maintenance tool inside the existing ignored virtual environment:
+
+```bash
+.venv/bin/python -m pip install --disable-pip-version-check --no-cache-dir git-filter-repo
+```
+
+Output included `Successfully installed git-filter-repo-2.47.0`. This is a repository-maintenance tool, not an ascart runtime dependency, so pyproject.toml was not changed.
+
+### External backup and preview
+
+A temporary Python helper created a unique backup folder beside the project, recorded SHA-256 checksums for all 24 tracked files, and saved a manifest containing the original HEAD, tree, published base, remote URL, target paths, and local commit list. It then ran:
+
+```bash
+git bundle create ../ascart-backup/history.bundle --all
+git bundle verify ../ascart-backup/history.bundle
+```
+
+Verification reported that the bundle records a complete history and `history.bundle is okay`. Its size was 3,650,669 bytes. The backup and manifest are outside the project and are not included in project commits or a normal push. An initial checksum-helper attempt stopped before backup creation because the null-delimited file list had an empty final entry; the parser was corrected and the verified backup above was created before any rewrite.
+
+Ran the filter command shown below first with the additional `--dry-run` option. That option writes original/filtered export previews without importing rewritten commits. A parser checked file-change records in those previews, skipping blob/message data, and reported:
+
+```text
+Target paths found before filtering: 4
+Target paths remaining after preview: 0
+Dry run left main unchanged: 0e15c2d
+```
+
+### Apply the scoped rewrite
+
+With the backup verified and preview checked, ran:
+
+```bash
+.venv/bin/git-filter-repo --force --invert-paths \
+  --path examples/robot.gif \
+  --path examples/robot.mp4 \
+  --path examples/README.md \
+  --path tools/build_sample_media.py \
+  --refs origin/main..main
+```
+
+`--path` names each target. `--invert-paths` removes those paths instead of keeping them. `--refs origin/main..main` limits the rewrite to local main history beyond the published base. `--force` bypasses the fresh-clone check for this backed-up existing checkout; it does not upload anything or force-push GitHub. The partial rewrite retains the remote and does not automatically prune local recovery data.
+
+Output included:
+
+```text
+Parsed 12 commits
+HEAD is now at 93caa3e Add README command guide
+New history written in 0.20 seconds...
+Completely finished after 0.23 seconds.
+```
+
+### Verify files, history, and behavior
+
+Before adding this log entry, the post-cleanup checks compared the complete tracked-file set, each SHA-256 fingerprint, the Git tree ID, published base, remote URL, ancestry, and working-tree state against the backup manifest. Output:
+
+```text
+Tracked files unchanged: 24 of 24
+Current file tree unchanged: e89efb4a22b11b6e7e444b20750d2f5e079909c4
+Removed paths in main history: 0
+Published base unchanged: 9b7223ec815640291d65f1fed036f2d77a838fb3
+Normal push remains possible: origin/main is an ancestor of main
+GitHub remote URL unchanged
+Working tree clean
+Current HEAD: 93caa3e Add README command guide
+```
+
+A separate check found five historical blobs belonging to the four removed paths. None is reachable from the cleaned main branch. Ordinary `git push origin main` will not upload those old file versions through main. Old commit messages and log descriptions can still mention the removed files; mentioning a path does not retain its file contents.
+
+The 12 rewritten commits received new IDs. Historical IDs already recorded earlier in this document are intentionally retained as records of what happened at the time. The tool records a full mapping in `.git/filter-repo/commit-map`, also copied to the external backup folder. Short mappings:
+
+| Original | Rewritten | Milestone |
+| --- | --- | --- |
+| `1591d2a` | `613e19e` | Original sample-media milestone, with the four target paths removed. |
+| `3f224c0` | `3f0659a` | Sample-media notes. |
+| `cc9b3f8` | `70beb28` | Simplified examples. |
+| `cfadd24` | `d7b8443` | Current Tux sample. |
+| `f98cbaf` | `c0299b0` | File overwrite protection. |
+| `9f459df` | `783796e` | Brightness mapping. |
+| `1005d4d` | `47b532d` | Borders. |
+| `cade66c` | `8fcfa52` | PNG output. |
+| `5c4b23f` | `9a07b8a` | GIF output. |
+| `52389a1` | `3226ee1` | Feature-combination audit. |
+| `f2d18c3` | `47cd31c` | MP4 output. |
+| `0e15c2d` | `93caa3e` | README command guide. |
+
+Ran the full existing test suite after rewriting:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 113 tests in 32.083s
+
+OK
+```
+
+This cleanup preserved already-published history, so the older 1.8 MB image version previously identified in origin/main remains there. It was not one of the four target paths. The external backup, reflogs, and filter preview files can still contain original history for recovery; this operation removes the target files from main's history rather than securely erasing all local copies. Do not push backup refs or mirror the entire repository if the intention is to publish only the cleaned main branch.
+
+After successful verification, this log entry was added as a separate documentation change and committed with the message `Document unpublished history cleanup`. No source, test, image, or runtime-configuration files were changed by the cleanup or that documentation update. Nothing was pushed to GitHub.
