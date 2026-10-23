@@ -1320,3 +1320,50 @@ git diff --staged --stat
 git commit -m "Prevent overwriting existing files when saving ASCII art"
 git status
 ```
+
+## 48. Balanced brightness-to-character mapping — 23 October 2026
+
+The user committed the safe-saving milestone as `f98cbaf` (`Prevent overwriting existing files when saving ASCII art`) and approved correcting brightness mapping before considering a larger palette. The existing monochrome and color palettes remain unchanged. No staging, committing, or pushing was performed by the assistant.
+
+In src/ascart/converter.py, we replaced `brightness * (len(palette) - 1) // 255` with `brightness * len(palette) // 256`. The old expression reserved the final character for brightness exactly 255. The new expression spreads the 256 possible grayscale levels across near-equal palette bands. Multiplying by the palette length scales the brightness; integer division by 256 selects the character position. For the normal non-empty palettes with at most 256 entries, valid 0–255 brightness always produces a valid index and reaches both endpoints. Pillow supplies grayscale pixel values within that range. The helper's docstring states this input contract; no extra per-pixel validation or new CLI options were added.
+
+For the three-character color palette, the previous ranges were # at 0–127, % at 128–254, and @ only at 255. The new ranges are # at 0–85, % at 86–170, and @ at 171–255. The monochrome palette uses bands of 25 or 26 levels. Light mode still reverses the palette, and custom palettes still use the same mapping. Repeated characters in similarly bright areas remain expected; a longer palette is not automatically a visual improvement.
+
+We filled the previously empty tests/test_converter.py with seven focused tests. They cover black/white endpoints, explicit color and four-character boundaries, all 256 levels' band counts, nondecreasing palette positions as brightness rises, single-character palettes, and controlled image conversion with both background choices and color modes. The image test verifies original pixel bytes are unchanged and that RGB foreground values remain correct.
+
+We ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+Output included:
+
+```text
+Ran 47 tests in 1.576s
+
+OK
+```
+
+An inline .venv/bin/python -B comparison used the current Tux sample at width 60 with the real converter. It temporarily patched only the brightness helper to reproduce the old formula, then compared the new output at identical dimensions and palettes. ANSI color formatting was removed only for comparing character cells, while the RGB escape values were compared separately. Output:
+
+```text
+Monochrome: 663/2160 character cells changed; dimensions remain 60 x 36.
+Color: 670/2160 character cells changed; dimensions remain 60 x 36.
+RGB foreground values unchanged.
+Source image unchanged; no output files written.
+```
+
+The source PNG's SHA-256 was checked before and after conversion. The comparison establishes the output difference and unchanged dimensions/colors, not a guarantee of better visual clarity. The user can inspect `ascart examples/image1.png` and `ascart examples/image1.png --color` in their terminal. No comparison artifacts were written to the project.
+
+README.md now explains brightness bands, the color ranges, the shared formula, expected character repetition, and converter test coverage. No dependencies or ignore rules changed. The mapping is shared by photos and GIF/video frames through image_to_ascii.
+
+Commands for the user to review, stage, and commit (not run by the assistant):
+
+```bash
+git diff --check
+git add src/ascart/converter.py tests/test_converter.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Balance brightness ranges across ASCII character palettes"
+git status
+```

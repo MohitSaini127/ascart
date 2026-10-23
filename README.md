@@ -96,6 +96,8 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 
 Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `--output`, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
+Brightness values from 0 through 255 are divided into near-equal bands across the palette. For the three-character color palette, `#` covers 0–85, `%` covers 86–170, and `@` covers 171–255 before any light-background reversal. Similar brightness values still produce repeated characters; adding more characters does not automatically improve clarity, and apparent character density depends on the terminal font.
+
 Automatic background selection reads the last field of the `COLORFGBG` environment variable. Conventional color indexes 7 and 15 select light mode; other, missing, or unsupported values fall back to dark. This does not measure the actual screen, and themes can redefine those colors. Use a manual override when needed. Light mode reverses the character palette; it does not invert the image's RGB colors.
 
 ## GIF playback
@@ -182,7 +184,7 @@ Input/output aliases, existing files, directories, and existing symbolic links a
 1. Pillow opens a photo or decodes a GIF frame. For video, OpenCV decodes a frame, its BGR color order is changed to RGB, and Pillow receives the resulting image.
 2. A grayscale copy supplies pixel brightness values from 0 to 255.
 3. The image is resized for the chosen character grid. A factor of 0.5 approximately compensates for terminal characters being taller than they are wide.
-4. Each brightness value selects a character from the palette.
+4. Each brightness value selects a character using `brightness * len(palette) // 256`. Integer division gives the palette position, allocating near-equal brightness bands. Brightness must be an integer in the range 0–255, as supplied by Pillow's grayscale pixels.
 5. For color output, a resized RGB copy supplies each character's foreground color.
 6. Rows are joined into text, then printed, saved, or displayed as animation frames.
 
@@ -209,6 +211,8 @@ python -m pip check
 ```
 
 The suite checks video inspection, MP4/AVI decoding, color conversion, timing, counted and continuous playback, cleanup after interruption or failed restarts, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
+
+Converter tests cover palette endpoints and boundaries, balanced band sizes, monotonic brightness mapping, custom and single-character palettes, and color/light-background behavior on a controlled grayscale image.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 
