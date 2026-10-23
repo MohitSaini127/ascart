@@ -1755,3 +1755,11 @@ git diff --staged --stat
 git commit -m "Add safe one-pass ASCII MP4 export"
 git status
 ```
+
+## 55. Add a GitHub command guide — 24 October 2026
+
+The user committed MP4 saving as `f2d18c3` (`Add safe one-pass ASCII MP4 export`). Before uploading, they asked for an easy-to-find README guide listing commands under text, images, GIFs, and videos, with a brief description of each. They requested a preview first, then the edit. The assistant showed the proposed tables in chat before adding them.
+
+README.md now has navigation links near the top and a Command guide directly after setup. Four tables contain 30 examples: eight text commands, nine image commands, six GIF commands, and seven video commands. Each example has a short explanation. The guide includes built-in help, example-path replacement, quoted paths, new output filenames, supported formats, terminal-preview requirements, one-pass saved animations, terminal loop counts, and MP4's lack of audio. It notes that width and fit are alternatives and that text banners reject media-only options.
+
+The previous four plain example blocks were replaced by the shared guide; detailed feature sections and explanations remain, with links back to their command tables. No source code, dependencies, test files, or bundled media changed. No commands that create output were run for this documentation edit. Existing command support was checked against the CLI help, README details, and current implementation. Formatting and internal navigation links were checked locally; no runtime suite was rerun because this change only reorganizes documentation. No staging, commit, or push was performed.

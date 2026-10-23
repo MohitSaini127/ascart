@@ -4,6 +4,8 @@ ascart is a Python command-line learning project that creates text banners and c
 
 The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
 
+[Setup](#setup) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands)
+
 ## Working features
 
 - Standard, slanted, bold-looking, and named-font text banners, with width wrapping and text/PNG saving.
@@ -50,19 +52,72 @@ source .venv/bin/activate
 
 Use `deactivate` to leave the environment. The `.venv/` folder stays on your computer and is ignored by Git.
 
-## Text banners
+## Command guide
 
-```bash
-ascart --text "Hello"
-ascart --text-slant "Hello"
-ascart --text-bold "Hello"
-ascart --text-font-small "Hello"
-ascart --text "Hello world" --width 40
-ascart --text "Hello" --output output/hello.txt
-ascart --text-bold "Hello" --output output/bold.txt
-ascart --text "Hello" --border
-ascart --text-slant "Hello" --border --output output/hello.png
-```
+After [setup](#setup), activate your environment and run these commands from the project folder. Replace `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Image examples use the bundled `examples/image1.png`; replace that path to convert another image. Quote paths containing spaces.
+
+For built-in help, run `ascart --help`.
+
+[Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands)
+
+### Text commands
+
+| Command | What it does |
+| --- | --- |
+| `ascart --text "Hello"` | Creates a standard text banner. |
+| `ascart --text-slant "Hello"` | Creates a slanted banner. |
+| `ascart --text-bold "Hello"` | Creates a banner with thicker letters. |
+| `ascart --text-font-small "Hello"` | Uses the named `small` banner font. |
+| `ascart --text "Hello world" --width 40` | Sets the banner's wrapping width. |
+| `ascart --text "Hello" --border` | Adds an ASCII border. |
+| `ascart --text "Hello" --output output/hello.txt` | Saves the banner as text and displays it. |
+| `ascart --text-slant "Hello" --border --output output/hello.png` | Saves a bordered banner as a PNG and displays it. |
+
+### Image commands
+
+| Command | What it does |
+| --- | --- |
+| `ascart examples/image1.png` | Converts the sample image at the default width of 60 characters. |
+| `ascart examples/image1.png --width 40` | Uses 40 character columns. |
+| `ascart examples/image1.png --fit` | Fits the artwork inside the terminal. |
+| `ascart examples/image1.png --color` | Uses colors from the image. |
+| `ascart examples/image1.png --border` | Adds an ASCII border. |
+| `ascart examples/image1.png --chars " .:*#@"` | Uses your chosen character palette. |
+| `ascart examples/image1.png --background light` | Adjusts the character mapping for a light background. |
+| `ascart examples/image1.png --output output/image.txt` | Saves plain-text artwork and displays it. |
+| `ascart examples/image1.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
+
+### GIF commands
+
+| Command | What it does |
+| --- | --- |
+| `ascart animation.gif` | Plays the GIF as ASCII once. |
+| `ascart animation.gif --fit --color --border` | Plays colored, bordered artwork fitted to the terminal. |
+| `ascart animation.gif --loop` | Repeats terminal playback until Ctrl+C. |
+| `ascart animation.gif --loop-4` | Plays four times in the terminal. |
+| `ascart animation.gif --color --output output/ascii.gif` | Saves one colored ASCII animation, then previews it. |
+| `ascart animation.gif --loop-4 --output output/ascii-four.gif` | Saves one animation and previews it four times. |
+
+### Video commands
+
+| Command | What it does |
+| --- | --- |
+| `ascart video.mp4` | Plays the video as ASCII once, without audio. |
+| `ascart video.mp4 --fit --color --border` | Plays colored, bordered artwork fitted to the terminal. |
+| `ascart video.mp4 --loop` | Repeats terminal playback until Ctrl+C. |
+| `ascart video.mp4 --loop-4` | Plays four times in the terminal. |
+| `ascart video.mp4 --color --output output/ascii.mp4` | Saves one silent ASCII video, then previews it. |
+| `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
+| `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
+
+Keep these rules in mind:
+
+- Use a new output filename each time. Existing files are never overwritten, and output folders are created as needed. TXT output stays plain; PNG/GIF/MP4 output supports photo or frame colors.
+- GIF and MP4 files store one complete animation. `--loop`, `--loop-4`, and `--loop-count 4` affect only terminal playback. Saved GIFs request one playback; video players control their own repeat settings.
+- Terminal animation previews need an interactive terminal. Saving still works without one and skips playback. MP4 output has no audio.
+- Use either `--width` or `--fit`. GIFs and videos also accept the image options for width, fitting, custom characters, and backgrounds. Text banners support width, border, and output, but reject media-only options such as color and fit.
+
+## Text banners
 
 Choose exactly one text-input option or a photo/GIF/video path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
 
@@ -74,19 +129,7 @@ Text mode supports `--width`, `--output`, and `--border`. Photo/GIF/video option
 
 ## Photo conversion
 
-Run these commands from the project folder using the included sample:
-
-```bash
-ascart examples/image1.png
-ascart examples/image1.png --width 100
-ascart examples/image1.png --fit
-ascart examples/image1.png --color
-ascart examples/image1.png --chars " .:*#@"
-ascart examples/image1.png --background light
-ascart examples/image1.png --output output/penguin.txt
-ascart examples/image1.png --border
-ascart examples/image1.png --color --border --output output/penguin.png
-```
+The [image command guide](#image-commands) uses the included sample. Replace its path to convert your own photo.
 
 The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](https://github.com/garrett/Tux). Its embedded metadata and the [source README](https://github.com/garrett/Tux/blob/main/README.md) state [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Original illustration by Larry Ewing using GIMP; redrawn in Inkscape by Garrett LeSage, with refinement and cleanup credited upstream to IFo Hancroft. Only this PNG is bundled; supply your own files for GIF and video playback.
 
@@ -144,17 +187,7 @@ For animation, the same frame decoration is applied on every playback pass. Sour
 
 ## GIF playback and saving
 
-Supply your own GIF and replace `path/to/animation.gif` with its location:
-
-```bash
-ascart path/to/animation.gif --fit
-ascart path/to/animation.gif --fit --color
-ascart path/to/animation.gif --fit --loop
-ascart path/to/animation.gif --fit --loop-4
-ascart path/to/animation.gif --fit --border --color
-ascart path/to/animation.gif --color --border --output output/ascii.gif
-ascart path/to/animation.gif --loop-4 --output output/ascii-four-preview.gif
-```
+Supply your own GIF and replace `animation.gif` in the [GIF command guide](#gif-commands) with its location.
 
 - Without a loop option, playback stops after one pass.
 - `--loop` repeats continuously until Ctrl+C.
@@ -195,20 +228,7 @@ For palettes beginning with `-`, use the equals form, for example `--chars=-+@`,
 
 ## Video playback and MP4 saving
 
-Supply your own local video and replace `path/to/video.mp4` with its location:
-
-```bash
-ascart path/to/video.mp4
-ascart path/to/video.mp4 --width 60
-ascart path/to/video.mp4 --fit --color
-ascart path/to/video.mp4 --fit --chars " .:*#@" --background dark
-ascart path/to/video.mp4 --color --loop
-ascart path/to/video.mp4 --color --loop-4
-ascart path/to/video.mp4 --fit --border --color
-ascart path/to/video.mp4 --color --border --output output/ascii.mp4
-ascart path/to/video.avi --width 40 --output output/from-avi.mp4
-ascart path/to/video.mp4 --loop-4 --output output/ascii-preview-four.mp4
-```
+Supply your own local video and replace the filenames in the [video command guide](#video-commands) with its location.
 
 The CLI detects the media type; no extra video switch is required. The default width is 60, and the same width, fitting, color, palette, and background controls used for photos apply to videos. Decoding depends on the formats and codecs supported by the installed OpenCV package. A file extension alone does not guarantee support; MP4 and MJPG AVI decoding have been checked in development.
 
