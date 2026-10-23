@@ -1367,3 +1367,69 @@ git diff --staged --stat
 git commit -m "Balance brightness ranges across ASCII character palettes"
 git status
 ```
+
+## 49. Optional ASCII borders — 23 October 2026
+
+The user committed the brightness-mapping change as `9f459df` (`Balance brightness ranges across ASCII character palettes`) before starting borders. They approved an optional border, off by default, for images, text banners, GIFs, and videos. We implemented the shared helper and connected all four modes in this milestone. No staging, commit, or push was performed by the assistant.
+
+### Files and behavior
+
+We added src/ascart/border.py with `add_border(art)`. It splits the artwork into rows, measures their visible lengths, finds the longest row, builds matching top/bottom edges, pads shorter rows, and joins everything with newline characters. `+` forms corners, `-` forms horizontal edges, and `|` forms vertical edges. Existing spaces and blank rows are preserved.
+
+`COLOR_CODE` is a regular expression matching the ANSI color sequences produced by our converter. `COLOR_CODE.sub("", row)` is used only for measuring a row; the displayed row keeps its color codes. For a colored row, a reset is added before padding and the right edge so the border does not inherit the last character's color. Only the application's SGR color codes are considered here, not arbitrary terminal-control sequences. Artwork produced by this CLI uses printable ASCII plus those color codes.
+
+In src/ascart/cli.py, we added `--border` as a boolean flag using `action="store_true"`. The default is false. Text and photo output are decorated after conversion, before shared display/saving, so saved .txt artwork contains the same character-based frame. Banner input options all support it. GIF artwork is decorated after conversion while preserving each frame's duration; its existing playback/counting logic then reuses those decorated frames.
+
+For `--fit --border`, the CLI subtracts two more columns and two more rows from the content budget after reserving the existing terminal margins (one column and two rows). This keeps the outside of the border within the terminal. It reports an error if the terminal is smaller than four columns by five rows, leaving room for at least a one-character content area plus the border and margins. Text banners continue to reject --fit as before.
+
+An explicit --width continues to mean content width. A 60-column photo is 62 columns wide with a border. Banner width continues to control wrapping; its frame encloses the longest actual rendered row, which can be shorter than the wrapping limit. The border adds two rows to either mode.
+
+In src/ascart/video_art.py, `play_video` now accepts `border=False` and applies the same helper to each newly converted frame when requested. It still reads one frame at a time. Border formatting occurs inside the existing measured processing interval, so its cost is included when calculating the remaining frame delay. The existing loop and cleanup behavior remain in place. Sources with consistent frame dimensions retain a consistent bordered frame size; the border does not standardize unusual sources that change dimensions during playback.
+
+README.md now documents the flag, saved borders, sizing semantics, color handling, terminal limits, and examples for all four modes. No dependencies or ignore rules changed. GIF/video export is still unsupported, and safe new-file-only .txt saving remains in effect.
+
+### Tests and results
+
+The new tests/test_border.py contains six helper tests for rectangular artwork, unequal rows, trailing spaces and blank rows, empty artwork, ANSI-aware widths, and resetting color before the right border. tests/test_cli_media.py now checks image and slanted-banner output/saving, colored visible dimensions, fitted photo/GIF output and video option forwarding, tiny-terminal errors, real GIF/MP4 decoding with four bordered playbacks, and Ctrl+C cleanup during continuous bordered playback. Generated inputs and saved outputs are confined to temporary test directories.
+
+Command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+Output included:
+
+```text
+Ran 59 tests in 1.482s
+
+OK
+```
+
+We also ran the installed module entry point:
+
+```bash
+.venv/bin/python -B -m ascart --text Hi --border
+```
+
+It printed the framed banner and exited successfully. `.venv/bin/python -B -m ascart --help` listed --border as off by default. `git diff --quiet -- examples/image1.png` exited 0, confirming the sample image was unchanged. Existing saved artwork was not used as a test destination. Whitespace checks passed after the documentation updates.
+
+Examples for the user:
+
+```bash
+ascart examples/image1.png --border
+ascart examples/image1.png --fit --border --color
+ascart --text Hi --border
+ascart path/to/animation.gif --fit --border --color
+ascart path/to/video.mp4 --fit --border --color
+```
+
+Commands for the user to review, stage, and commit (not executed by the assistant):
+
+```bash
+git diff --check
+git add src/ascart/border.py src/ascart/cli.py src/ascart/video_art.py tests/test_border.py tests/test_cli_media.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Add optional ASCII borders for text images GIFs and videos"
+git status
+```

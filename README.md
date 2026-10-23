@@ -9,6 +9,7 @@ The main purpose is to understand Python, image processing, code organization, G
 - Standard, slanted, bold-looking, and named-font text banners, with width wrapping and text-file saving.
 - Photo-to-ASCII conversion, with a default width of 60 characters.
 - Custom output width or optional fitting to terminal width and height.
+- Optional ASCII borders for photos, text banners, GIFs, and videos.
 - Custom printable ASCII character palettes.
 - RGB foreground color output with a denser default palette.
 - Light/dark background mapping, with basic automatic selection and manual overrides.
@@ -57,6 +58,7 @@ ascart --text-font-small "Hello"
 ascart --text "Hello world" --width 40
 ascart --text "Hello" --output output/hello.txt
 ascart --text-bold "Hello" --output output/bold.txt
+ascart --text "Hello" --border
 ```
 
 Choose exactly one text-input option or a photo/GIF/video path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
@@ -65,7 +67,7 @@ The default width is 60; `--width` sets the wrapping limit, not the size of indi
 
 `--text-slant` uses the original right-leaning font design. Separate direction options are not supported.
 
-Text mode supports `--width` and `--output`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output. Saving requires a new `.txt` filename; existing files are never overwritten. Banner color is not implemented.
+Text mode supports `--width`, `--output`, and `--border`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, including the border when selected. Saving requires a new `.txt` filename; existing files are never overwritten. Banner color is not implemented.
 
 ## Photo conversion
 
@@ -79,6 +81,7 @@ ascart examples/image1.png --color
 ascart examples/image1.png --chars " .:*#@"
 ascart examples/image1.png --background light
 ascart examples/image1.png --output output/penguin.txt
+ascart examples/image1.png --border
 ```
 
 The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](https://github.com/garrett/Tux). Its embedded metadata and the [source README](https://github.com/garrett/Tux/blob/main/README.md) state [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Original illustration by Larry Ewing using GIMP; redrawn in Inkscape by Garrett LeSage, with refinement and cleanup credited upstream to IFo Hancroft. Only this PNG is bundled; supply your own files for GIF and video playback.
@@ -88,6 +91,7 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 | No sizing option | Use 60 character columns and calculate height from the image proportions. |
 | `--width NUMBER` | Choose a positive width in character columns. |
 | `--fit` | Fit both terminal dimensions, reserving one column and two rows. Cannot be combined with `--width`. |
+| `--border` | Add a plain ASCII frame around the artwork. Off by default; also works for text banners and animation frames. |
 | `--color` | Use RGB foreground colors. Requires a compatible terminal. |
 | `--chars "CHARACTERS"` | Choose a non-empty palette of printable ASCII characters, ordered from least to most visually dense. Quote spaces. |
 | `--background auto` | Default: use a limited terminal background hint, with a dark fallback. |
@@ -100,6 +104,23 @@ Brightness values from 0 through 255 are divided into near-equal bands across th
 
 Automatic background selection reads the last field of the `COLORFGBG` environment variable. Conventional color indexes 7 and 15 select light mode; other, missing, or unsupported values fall back to dark. This does not measure the actual screen, and themes can redefine those colors. Use a manual override when needed. Light mode reverses the character palette; it does not invert the image's RGB colors.
 
+## Optional border
+
+Add `--border` to a photo, text, GIF, or video command to frame the artwork with ordinary ASCII characters:
+
+```text
++-----+
+|ASCII|
+|ART  |
++-----+
+```
+
+Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt` output includes the border as plain text. GIF/video saving remains unsupported.
+
+`--width` describes the artwork inside the frame; a 60-column image becomes 62 columns wide with the border. Banner width still controls wrapping, and its frame surrounds the longest rendered row. The border adds two rows as well. For photos/GIFs/videos, `--fit --border` reserves those extra dimensions within the existing terminal margins. A terminal smaller than four columns by five rows is rejected in this mode. Text banners still do not support `--fit`.
+
+For animation, the same frame decoration is applied on every playback pass. Sources with constant frame dimensions keep a consistent frame size. Without `--border`, output follows the existing rendering path.
+
 ## GIF playback
 
 Supply your own GIF and replace `path/to/animation.gif` with its location:
@@ -109,6 +130,7 @@ ascart path/to/animation.gif --fit
 ascart path/to/animation.gif --fit --color
 ascart path/to/animation.gif --fit --loop
 ascart path/to/animation.gif --fit --loop-4
+ascart path/to/animation.gif --fit --border --color
 ```
 
 - Without a loop option, playback stops after one pass.
@@ -131,6 +153,7 @@ ascart path/to/video.mp4 --fit --color
 ascart path/to/video.mp4 --fit --chars " .:*#@" --background dark
 ascart path/to/video.mp4 --color --loop
 ascart path/to/video.mp4 --color --loop-4
+ascart path/to/video.mp4 --fit --border --color
 ```
 
 The CLI detects the media type; no extra video switch is required. The default width is 60, and the same width, fitting, color, palette, and background controls used for photos apply to videos. Decoding depends on the formats and codecs supported by the installed OpenCV package. A file extension alone does not guarantee support; MP4 and MJPG AVI decoding have been checked in development.
@@ -213,6 +236,8 @@ python -m pip check
 The suite checks video inspection, MP4/AVI decoding, color conversion, timing, counted and continuous playback, cleanup after interruption or failed restarts, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
 
 Converter tests cover palette endpoints and boundaries, balanced band sizes, monotonic brightness mapping, custom and single-character palettes, and color/light-background behavior on a controlled grayscale image.
+
+Border tests cover visible widths with ANSI colors, row padding, saved text, terminal margins, tiny-terminal errors, counted animation playback, and interruption cleanup.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 

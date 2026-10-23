@@ -1,5 +1,6 @@
 import contextlib
 import io
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from ascart.cli import main
+from ascart.border import COLOR_CODE, add_border
 from ascart.image_art import inspect_image
 from ascart.text_art import text_to_ascii
 
@@ -122,6 +124,80 @@ class MediaCliTests(unittest.TestCase):
                 self.assertEqual(play.call_args.kwargs["loops"], expected_loops)
         self.assertEqual(self.run_cli(self.photo, "--loop")[0], 2)
         self.assertEqual(self.run_cli("--text", "Hi", "--loop")[0], 2)
+
+    def test_photo_and_text_borders_save_as_plain_text(self):
+        cases = (
+            ((self.photo, "--width", "10", "--background", "dark"), inspect_image(self.photo, width=10)),
+            (("--text-slant", "Hi"), text_to_ascii("Hi", font="slant")),
+        )
+        for index, (inputs, expected) in enumerate(cases):
+            with self.subTest(inputs=inputs):
+                code, output, errors = self.run_cli(*inputs, "--border")
+                self.assertEqual(code, 0, errors)
+                self.assertEqual(output, add_border(expected) + "\n")
+                target = self.root / f"border-{index}.txt"
+                code, _, errors = self.run_cli(*inputs, "--border", "--output", target)
+                self.assertEqual(code, 0, errors)
+                self.assertEqual(target.read_text(), output)
+                self.assertNotIn("\033", target.read_text())
+
+    def test_colored_border_visible_dimensions(self):
+        code, output, errors = self.run_cli(self.photo, "--width", "10", "--color", "--border")
+        self.assertEqual(code, 0, errors)
+        rows = COLOR_CODE.sub("", output).splitlines()
+        self.assertEqual(len(rows), 5)
+        self.assertTrue(all(len(row) == 12 for row in rows))
+        self.assertIn("\033[38;2;", output)
+
+    def test_fit_includes_border_for_photos_and_gifs(self):
+        with patch("ascart.cli.shutil.get_terminal_size", return_value=os.terminal_size((20, 10))):
+            code, output, errors = self.run_cli(self.photo, "--fit", "--border")
+            self.assertEqual(code, 0, errors)
+            rows = output.splitlines()
+            self.assertLessEqual(len(rows), 8)
+            self.assertTrue(all(len(row) <= 19 for row in rows))
+            with patch("ascart.cli.play_gif") as play:
+                self.assertEqual(self.run_cli(self.gif, "--fit", "--border")[0], 0)
+                for art, duration in play.call_args.args[0]:
+                    self.assertLessEqual(len(art.splitlines()), 8)
+                    self.assertTrue(all(len(row) <= 19 for row in art.splitlines()))
+                    self.assertEqual(duration, 0)
+            with patch("ascart.cli.play_video") as play:
+                self.assertEqual(self.run_cli(self.video, "--fit", "--border")[0], 0)
+                self.assertEqual(play.call_args.kwargs["width"], 17)
+                self.assertEqual(play.call_args.kwargs["max_height"], 6)
+                self.assertTrue(play.call_args.kwargs["border"])
+
+    def test_tiny_terminal_border_fit_error(self):
+        for size in ((3, 5), (4, 4)):
+            with self.subTest(size=size), \
+                 patch("ascart.cli.shutil.get_terminal_size", return_value=os.terminal_size(size)):
+                code, output, errors = self.run_cli(self.photo, "--fit", "--border")
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertIn("too small", errors)
+        with patch("ascart.cli.shutil.get_terminal_size", return_value=os.terminal_size((4, 5))):
+            code, output, errors = self.run_cli(self.photo, "--fit", "--border")
+            self.assertEqual(code, 0, errors)
+            self.assertEqual(len(output.splitlines()), 3)
+            self.assertTrue(all(len(row) == 3 for row in output.splitlines()))
+
+    def test_actual_bordered_gif_and_video_counted_playback(self):
+        for source, sleep in ((self.gif, "ascart.gif_art.time.sleep"), (self.video, "ascart.video_art.time.sleep")):
+            with self.subTest(source=source), patch(sleep):
+                code, output, errors = self.run_cli(source, "--width", "10", "--color", "--border", "--loop-4")
+            self.assertEqual(code, 0, errors)
+            self.assertEqual(output.count("+----------+"), 8)
+            self.assertEqual(output.count("\033[H\033[J"), 4)
+            self.assertTrue(output.endswith("\033[0m\033[?25h\n"))
+
+    def test_bordered_animation_interrupt_cleanup(self):
+        for source, sleep in ((self.gif, "ascart.gif_art.time.sleep"), (self.video, "ascart.video_art.time.sleep")):
+            with self.subTest(source=source), patch(sleep, side_effect=KeyboardInterrupt):
+                code, output, errors = self.run_cli(source, "--width", "10", "--border", "--loop")
+            self.assertEqual(code, 0, errors)
+            self.assertEqual(output.count("+----------+"), 2)
+            self.assertTrue(output.endswith("\033[0m\033[?25h\n"))
 
 
 if __name__ == "__main__":

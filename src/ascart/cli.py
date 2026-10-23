@@ -9,6 +9,7 @@ from stat import S_ISREG
 import cv2
 from PIL import Image, UnidentifiedImageError
 
+from ascart.border import add_border
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
@@ -93,6 +94,7 @@ def main():
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
     parser.add_argument("--output", help="Save ASCII art to a new .txt file; existing files are never overwritten")
+    parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
@@ -148,11 +150,13 @@ def main():
         if args.width <= 0:
             parser.error("--width must be greater than 0")
         if args.fit or args.color or args.chars is not None or args.background != "auto" or args.loop or args.loop_count is not None:
-            parser.error("Text banners support --width and --output; photo/GIF/video options do not apply")
+            parser.error("Text banners support --width, --output, and --border; photo/GIF/video options do not apply")
         try:
             art = text_to_ascii(args.text, width=args.width, font=text_font)
         except ValueError as error:
             parser.error(str(error))
+        if args.border:
+            art = add_border(art)
         display_art(art, args.output, parser)
         return
     if args.loop_count is not None and args.loop_count <= 0:
@@ -176,6 +180,11 @@ def main():
         terminal_size = shutil.get_terminal_size(fallback=(80, 24))
         width = max(1, terminal_size.columns - 1)
         max_height = max(1, terminal_size.lines - 2)
+        if args.border:
+            if width < 3 or max_height < 3:
+                parser.error("Terminal is too small for --fit --border; need at least 4 columns and 5 rows")
+            width -= 2
+            max_height -= 2
     try:
         mode = Path(args.path).stat().st_mode
     except OSError as error:
@@ -210,7 +219,7 @@ def main():
         try:
             play_video(
                 args.path, width=width, palette=args.chars, background=background,
-                max_height=max_height, color=color, loops=loops,
+                max_height=max_height, color=color, loops=loops, border=args.border,
             )
         except KeyboardInterrupt:
             pass
@@ -227,6 +236,8 @@ def main():
                 args.path, width=width, palette=args.chars, background=background,
                 max_height=max_height, color=color,
             )
+            if args.border:
+                frames = [(add_border(art), duration) for art, duration in frames]
         except IMAGE_READ_ERRORS as error:
             report_file_error(parser, "Cannot decode GIF", args.path, error)
         except KeyboardInterrupt:
@@ -250,4 +261,6 @@ def main():
         )
     except IMAGE_READ_ERRORS as error:
         report_file_error(parser, "Cannot convert photo", args.path, error)
+    if args.border:
+        art = add_border(art)
     display_art(art, args.output, parser)

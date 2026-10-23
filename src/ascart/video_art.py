@@ -6,6 +6,7 @@ from pathlib import Path
 import cv2
 from PIL import Image
 
+from ascart.border import add_border
 from ascart.converter import DEFAULT_PALETTE
 from ascart.image_art import image_to_ascii
 
@@ -56,7 +57,7 @@ def video_frame_to_ascii(
 
 def play_video(
     path, width=60, palette=DEFAULT_PALETTE, background="dark", max_height=None, color=False,
-    loops=1,
+    loops=1, border=False,
 ):
     """Play a total number of passes; loops=0 repeats until interrupted."""
     if loops < 0:
@@ -83,6 +84,8 @@ def play_video(
                             raise ValueError("Video opened, but no frame could be decoded")
                         break
                     art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
+                    if border:
+                        art = add_border(art)
                     if not screen_started:
                         screen_started = True
                         print("\033[2J\033[H\033[?25l", end="", flush=True)
