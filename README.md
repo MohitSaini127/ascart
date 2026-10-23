@@ -78,10 +78,10 @@ ascart examples/image1.png --fit
 ascart examples/image1.png --color
 ascart examples/image1.png --chars " .:*#@"
 ascart examples/image1.png --background light
-ascart examples/image1.png --output output/robot.txt
+ascart examples/image1.png --output output/penguin.txt
 ```
 
-The included sample is an AI-generated robot-and-coffee meme: "ONE QUICK FIX / THREE NEW BUGS", created for ascart using the built-in image generation tool. Only this PNG is bundled; supply your own files for GIF and video playback.
+The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](https://github.com/garrett/Tux). Its embedded metadata and the [source README](https://github.com/garrett/Tux/blob/main/README.md) state [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Original illustration by Larry Ewing using GIMP; redrawn in Inkscape by Garrett LeSage, with refinement and cleanup credited upstream to IFo Hancroft. Only this PNG is bundled; supply your own files for GIF and video playback.
 
 | Option | Behavior |
 | --- | --- |

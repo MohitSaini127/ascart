@@ -1215,3 +1215,33 @@ git commit -m "Simplify examples to a single sample image"
 ```
 
 git add stages the documentation changes and the four tracked deletions. The retained PNG is unchanged, so it needs no new staging. Git history records the final commit ID.
+
+## 46. Creator-sourced Tux sample and manual Git workflow — 23 October 2026
+
+The user downloaded a replacement PNG from the creator-hosted garrett/Tux repository and placed it at examples/image1.png. They also instructed the assistant to stop staging or committing changes and instead provide commands for them to run. This instruction applies from this milestone onward; no staging, commit, or push was performed during this check.
+
+The new file is a valid RGBA PNG, 933x1139 pixels, 211,886 bytes (about 207 KiB). Its embedded metadata names Garrett LeSage, identifies the title as Tux and source as https://github.com/garrett/Tux, and states `CC0 Public Domain Dedication http://creativecommons.org/publicdomain/zero/1.0/`. We visually inspected the image, ran Pillow's verify immediately after opening, and tested the existing converter in both monochrome and color at width 60; each produced 36 rows.
+
+We checked https://github.com/garrett/Tux/blob/main/README.md. It states CC0 and credits the original illustration to Larry Ewing using GIMP, the redraw to Garrett LeSage using Inkscape, and refinement/cleanup to IFo Hancroft. README.md now records those credits and links to the source and license. The example save path is output/penguin.txt. No separate licensing-notes file or new sample media was added.
+
+An earlier, uncommitted replacement from Pixabay had also converted successfully (1605x1920 RGBA, 322,180 bytes), but was recognized as a Tux variant. The assistant corrected its earlier blanket CC0 reassurance: an upload date and a platform license statement do not by themselves establish all underlying derivative rights. That intermediate PNG was not committed. The user chose the creator-hosted version instead, whose own metadata and repository README provide a clearer source/license record. This records the source's stated license rather than asserting independent legal clearance for every possible use.
+
+The first diagnostic check on that intermediate PNG called verify after reading pixels, producing `RuntimeError: verify must be called directly after open`. This was a verification-script ordering error, not an invalid image; reopening and verifying immediately passed. The check on the final creator-sourced PNG used the correct order.
+
+We also ran the installed CLI through an inline verification script using .venv/bin/python -B. It invoked `.venv/bin/ascart examples/image1.png --width 60 --output` with a temporary destination, checked successful exit, checked 36 lines of 60 characters, and compared the source SHA-256 before and after. Output:
+
+```text
+Installed CLI: saved 60 x 36 plain-text artwork successfully.
+Source PNG unchanged; temporary output removed.
+```
+
+Only the sample PNG and two documentation files changed; no converter code or dependencies changed. The earlier local commits remain in history. The following commands are for the user to run, not commands executed by the assistant:
+
+```bash
+git add examples/image1.png README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Replace sample image with credited Tux artwork"
+git status
+```
+
+The commit ID should be recorded after the user performs the commit. No GitHub upload is included in this step.
