@@ -1101,3 +1101,77 @@ git commit -m "Handle common media and output file errors clearly"
 ```
 
 Staging selects these four files; committing records that snapshot. The final commit ID is available in Git history.
+
+## 44. Newly generated meme-style PNG, GIF, and video samples — 23 October 2026
+
+The user had replaced the original sample with a downloaded cat meme whose source and license could not be identified. We checked that replacement: PNG, 480x520, RGBA, 207,438 bytes, no author/license metadata. Monochrome and color conversion worked, but this did not establish redistribution rights. That cat replacement was never committed. The user then requested newly created meme-style samples in image, GIF, and video formats.
+
+We used the built-in image generation tool through the imagegen skill to create a new teal robot, an oversized orange coffee mug, and three red cartoon bugs, captioned `ONE QUICK FIX / THREE NEW BUGS`. A second generation call used only that generated image as reference and produced a 2-by-2 pose sheet: holding the mug, raising it, blinking/drinking, and looking surprised. No downloaded meme or third-party picture was supplied as a generation reference. Both generated source images were RGB, 1254x1254. This records provenance rather than guaranteeing exclusivity, public-domain status, or legal clearance. Full prompts are recorded in examples/README.md.
+
+Before replacing examples/image1.png, we copied the user's local cat image to the ignored `output/sample-sources/previous-image1.png`. We also preserved generated originals as `output/sample-sources/robot-original.png` and `robot-poses.png`. The original tool outputs remain in Codex's generated-images folder. The preservation command refuses to overwrite an existing backup. These local source/backup files are excluded from Git; examples/scuba.gif remains untracked.
+
+### Build script and sample files
+
+We added tools/build_sample_media.py, a separate asset-building utility using existing Pillow, OpenCV, and NumPy packages. No application conversion code or dependencies changed. It accepts the standalone image, the four-pose sheet, and an optional output directory. It writes image1.png, robot.gif, and robot.mp4. The script does not call an image service.
+
+The main operations are:
+
+1. `Image.open` reads the generated standalone image in a `with` block. RGB conversion and a 640x640 resize prepare a smaller PNG. The original input path must differ from the output path.
+2. The sheet must be square with an even edge length. `cell = sheet.width // 2` gives each cell's width and height. Nested row/column loops form crop coordinates for the four cells in reading order.
+3. Each extracted pose is resized to 384x384 using LANCZOS resampling. This is packaging of generated animation poses, not a modification of the project's converter.
+4. GIF frames are quantized to 128 colors. `save_all=True` and `append_images` encode all four poses. `duration=400` assigns 400 ms to each, giving 1.6 seconds per sequence. `loop=0` stores continuous-loop metadata in the GIF; ascart still follows its own command-line loop selection and defaults to one pass. `disposal=2` clears the preceding frame before the next display.
+5. OpenCV writes MPEG-4 Part 2 video inside an MP4 container, using `mp4v`, 384x384 pixels, and 10 FPS. RGB arrays are reordered to BGR for OpenCV. Four copies of each pose hold it for 0.4 seconds. Five repeats of four poses, with four video frames per pose, give 80 frames and 8 seconds. The reader is not involved in generation; the video writer closes in a `finally` block. The clip has no audio.
+6. The PNG is saved with optimization enabled. The tool prints the resulting paths and byte counts. It overwrites the named final samples, and `--output-dir` can select a separate destination.
+
+Initial full-resolution packaging was larger than needed. We reduced the still to 640 pixels and animated frames to 384 pixels to keep the final files small. The final build command was:
+
+```bash
+.venv/bin/python -B tools/build_sample_media.py output/sample-sources/robot-original.png output/sample-sources/robot-poses.png
+```
+
+Output:
+
+```text
+Created examples/image1.png: 435,580 bytes
+Created examples/robot.gif: 388,415 bytes
+Created examples/robot.mp4: 884,433 bytes
+```
+
+Together these final assets occupy 1,708,428 bytes, about 1.63 MiB. The source sheet and full-size original are not required to run ascart with the included final samples. They are needed only to rerun the optional build utility; they remain local rather than being bundled with a clone. Equivalent inputs can be generated with the documented prompts, though image generation is nondeterministic.
+
+### Checks and documentation
+
+An inline verification command using `.venv/bin/python -B` checked monochrome and color conversion at width 60 for the still and all four GIF poses. The still produced 30 rows. It verified that all GIF poses produce distinct artwork, that their durations are 400 ms, and that the MP4 reports 384x384, 10 FPS, 80 frames, and an estimated duration of 8 seconds. It read the entire video to confirm that all 80 frames decode. Output:
+
+```text
+PNG and GIF: monochrome/color conversion passed; GIF has 4 distinct poses, 400 ms each.
+MP4: {'width': 384, 'height': 384, 'fps': 10.0, 'frame_count': 80, 'duration_seconds': 8.0} ; all 80 frames decoded.
+Total sample size: 1708428 bytes
+```
+
+We visually inspected the generated artwork and the extracted blinking/drinking GIF pose. A second inline script launched the installed CLI in a pseudo-terminal with these commands and counted frame-display sequences:
+
+```bash
+.venv/bin/ascart examples/robot.gif --width 40 --color
+.venv/bin/ascart examples/robot.mp4 --width 40 --color
+```
+
+Results:
+
+```text
+robot.gif: 4 ASCII frames; color output; normal exit; cursor restored.
+robot.mp4: 80 ASCII frames; color output; normal exit; cursor restored.
+```
+
+These terminal checks establish decoding, command execution, display counts, color output, and cleanup. Visual readability of captions in ASCII depends on output width and terminal font. The four-pose animation holds each pose rather than interpolating motion.
+
+README.md now uses the included GIF and MP4 in runnable example commands, describes the new still, links to examples/README.md, and saves the photo example to output/robot.txt. examples/README.md records sizes, timing, provenance, exact generation prompts, commands, and optional rebuilding. The source/backup files are already covered by the output/ ignore rule. No new ignore pattern is needed.
+
+Git commands for this milestone:
+
+```bash
+git add README.md docs/development-log.md examples/image1.png examples/README.md examples/robot.gif examples/robot.mp4 tools/build_sample_media.py
+git commit -m "Add generated robot meme samples for images GIFs and videos"
+```
+
+Only these seven files belong to this milestone. The local cat backup, full-size generation sources, and the user's scuba.gif are not part of the commit. The final commit ID is available in Git history. Publishing this new local commit to GitHub is a separate push.
