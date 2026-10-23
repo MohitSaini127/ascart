@@ -1175,3 +1175,5 @@ git commit -m "Add generated robot meme samples for images GIFs and videos"
 ```
 
 Only these seven files belong to this milestone. The local cat backup, full-size generation sources, and the user's scuba.gif are not part of the commit. The final commit ID is available in Git history. Publishing this new local commit to GitHub is a separate push.
+
+The sample milestone was committed as `1591d2a`. The staged whitespace check reported an extra blank line at the end of examples/README.md; the commit had already been recorded before that result was addressed. We removed that blank line and recorded this note in a small follow-up documentation commit rather than rewriting the sample commit. No media bytes changed during this cleanup.
