@@ -1671,3 +1671,87 @@ OK
 ```
 
 `git diff --check` passed with no output. Tests and fixes cover the documented cases, not every possible image, codec, terminal, or operating system. Deliberate restrictions remain: width and fit are mutually exclusive; continuous and counted loops are mutually exclusive; TXT saving stays plain even with --color; text banners reject media-only options; GIF input saves only as GIF; video saving is not implemented.
+
+## 54. Save silent ASCII MP4 videos — 24 October 2026
+
+The user committed the feature-combination audit as `52389a1` (`Test feature combinations and handle GIF export limits`), then asked to start MP4 saving. We implemented one-pass video export, independent of terminal loops, with the existing no-overwrite requirement. The working tree was clean when this work began. No staging, commit, or push was performed during this milestone.
+
+### Implementation and file explanations
+
+In src/ascart/video_art.py, added `video_frame_to_picture`. It converts one decoded source frame into ASCII, optionally adds the existing border, renders it with the shared PNG drawing function, then changes the RGB pixels back to OpenCV's BGR order. NumPy's `asarray` exposes Pillow's picture pixels as an array; NumPy is already installed by OpenCV, so no new dependency is needed. The temporary Pillow picture closes immediately after conversion.
+
+Added `save_ascii_video`. It opens the source, reads its reported FPS, and uses the existing 30 FPS fallback with a warning if FPS is missing or invalid. It reads and renders the first frame before creating output folders, allowing empty-source or rendering errors to fail early. The picture dimensions determine the output size; the shared renderer produces even dimensions suitable for the codec.
+
+OpenCV's VideoWriter takes a filename rather than a Python file opened with exclusive creation. To preserve file safety, the saver creates a private `.ascart-...` temporary directory beside the final destination and encodes to its own `video.mp4`. It uses the `mp4v` encoder and reported FPS. Each frame is converted and written before reading/converting the next; the production code does not collect the source video in memory. Subsequent rendered frames must keep the same size. The writer closes in an inner `finally` before temporary-folder cleanup, including after exceptions. The source reader closes in the outer `finally`.
+
+Added `verify_video`. VideoWriter.write does not return a success status, so verification reopens the temporary MP4 and decodes every frame, checking the written-frame count and dimensions. This detects unavailable/failed encoders and missing output frames before final destination creation. It does not prove that a damaged source decoded completely: a failed OpenCV read can mean either end-of-file or a damaged tail.
+
+Once verification succeeds, the saver opens the temporary MP4 for reading and the final destination with `"xb"`, then copies bytes with `shutil.copyfileobj`. Existing destinations, including a file appearing after initial validation, cannot be replaced. The private temporary directory is cleaned up after success, handled failures, or Ctrl+C. A failure during the final copy can leave a partial newly created file, consistent with the other exporters. Encoding and copying need disk space for both the temporary and final video. A hard process kill or shutdown can leave temporary files behind; `.gitignore` now includes `.ascart-*/` to keep those folders out of commits.
+
+In src/ascart/cli.py, shared output validation now recognizes `.mp4` and the video branch accepts only that extension. Photos/banners still accept only TXT/PNG; GIF input still accepts only GIF. Video input cannot save GIF/TXT/PNG. Uppercase extensions work. File aliases, existing paths, and symbolic links retain their existing safety checks.
+
+The CLI saves before starting an interactive terminal preview. Without an interactive terminal, it saves and prints the output location without playback. `--loop`, `--loop-4`, and counted-loop syntax affect the preview only; the encoded MP4 always contains one pass. Ctrl+C during playback leaves the completed file intact. Color, width/fit, custom characters, light/dark background, and borders apply to the saved artwork. No audio is read or written. The result uses one reported FPS, so variable-frame-rate timestamps are approximate. Lossy MP4 encoding can slightly change colors and edges, and external viewers control their own repeat behavior.
+
+README.md and CLI help now describe MP4 saving, examples, compatibility rules, timing, memory/disk behavior, codec requirements, and errors. The README also explains the temporary-folder ignore rule. No additional media was bundled and no dependency declaration changed.
+
+### Tests and actual output
+
+Added tests/test_video_output.py with 18 test methods, including 32 combinations of saved-video color, border, background, custom palette, and width/fit. Tests create their sources and destinations only in temporary directories. They reopen real MP4s to inspect frame counts, FPS, dimensions, canvas colors, and foreground color order while allowing for lossy compression. They also cover AVI-to-MP4 conversion, counted/continuous terminal playback independent of saved frames, non-interactive saving, interruption after saving, source hashes, unsupported formats, existing files and links, competing final-file creation, unavailable and silently failing encoders, verification failure, FPS fallback, source/encoding errors, permission errors, empty input, partial-copy behavior, and encoder closure before temporary cleanup.
+
+Ran the new focused suite, then the full suite after the cleanup-order adjustment:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Final actual output:
+
+```text
+Ran 113 tests in 30.311s
+
+OK
+```
+
+The previous 1,344 feature-combination cases remain in this full run. Existing invalid-format checks still pass with MP4 now recognized globally and rejected where incompatible. `git diff --check` passed.
+
+A temporary inline Python script created a three-frame moving colored square at 10 FPS, then ran the real module command:
+
+```bash
+.venv/bin/python -B -m ascart /tmp/ascart-mp4-review-2jwxno8t/moving-square.mp4 --width 30 --color --border --background dark --output /tmp/ascart-mp4-review-2jwxno8t/ascii.mp4
+```
+
+Output and OpenCV readback:
+
+```text
+Saved ASCII video to /tmp/ascart-mp4-review-2jwxno8t/ascii.mp4
+Dimensions: 408 288
+FPS: 10.0
+Decoded frames: 3
+Output size: 52405 bytes
+Input unchanged: True
+Temporary encoding folders remaining: 0
+```
+
+The script compared source SHA-256 before and after. The first and last output frames were opened as temporary PNGs for visual inspection: the square moves, foreground colors remain recognizable, and borders align. Review media remains outside the project as temporary verification data.
+
+User example (replace the input path with a local video):
+
+```bash
+ascart path/to/video.mp4 --color --border --output output/ascii.mp4
+```
+
+To save one pass and preview four times:
+
+```bash
+ascart path/to/video.mp4 --color --loop-4 --output output/ascii-preview-four.mp4
+```
+
+Review/staging/commit commands for the user, not run by the assistant:
+
+```bash
+git diff --check
+git add .gitignore src/ascart/video_art.py src/ascart/cli.py tests/test_video_output.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Add safe one-pass ASCII MP4 export"
+git status
+```

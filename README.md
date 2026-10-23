@@ -17,6 +17,7 @@ The main purpose is to understand Python, image processing, code organization, G
 - GIF playback once, continuously, or for a specified number of playbacks.
 - Saving GIF input as an animated ASCII GIF containing one complete animation, set to play once.
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
+- Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
 - Readable messages for common input, decoding, and file-saving errors.
 
 ## Setup
@@ -25,9 +26,9 @@ The project declares Python 3.10 or newer and these dependencies:
 
 | Package | Purpose | Declared version |
 | --- | --- | --- |
-| Pillow | Read photos/GIFs, resize frames, get brightness and RGB colors, and save PNG/GIF artwork. | `>=13.0.0` |
+| Pillow | Read photos/GIFs, resize frames, get brightness and RGB colors, and draw saved ASCII frames. | `>=13.0.0` |
 | pyfiglet | Render text using character-based banner fonts. | `>=1.0.2,<2` |
-| opencv-python-headless | Decode video frames through the `cv2` module, without desktop display windows. | `>=4.12,<5` |
+| opencv-python-headless | Decode video frames and encode silent MP4 output through `cv2`, without desktop display windows. | `>=4.12,<5` |
 
 OpenCV also installs NumPy, which represents frames as arrays of pixel values. Development has been checked with Python 3.14.8, Pillow 13.0.0, pyfiglet 1.0.4, OpenCV 4.14.0.94, and NumPy 2.5.4; other versions have not yet been verified.
 
@@ -122,7 +123,7 @@ Pillow draws the characters in its built-in fixed-width bitmap font, preserving 
 
 Photo PNGs use black backgrounds with white characters in dark mode, or white backgrounds with black characters in light mode. Automatic background selection uses the existing terminal hint. Use `--background dark` or `--background light` for a predictable photo canvas. With `--color`, the character strokes retain the source RGB colors and the border stays neutral. PNGs are opaque RGB pictures. They contain the converted ASCII artwork, not a copy of the source photo.
 
-PNG pictures larger than 20 million pixels are rejected before allocation; reduce `--width` or shorten the banner text. GIF input saves only as `.gif`, not `.png` or `.txt`. Video saving, including MP4 export, is not implemented.
+PNG pictures larger than 20 million pixels are rejected before allocation; reduce `--width` or shorten the banner text. GIF input saves only as `.gif`, while video input saves only as `.mp4`. Cross-format animation export and individual-frame export are not implemented.
 
 ## Optional border
 
@@ -135,7 +136,7 @@ Add `--border` to a photo, text, GIF, or video command to frame the artwork with
 +-----+
 ```
 
-Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt`/`.png` output and saved GIF frames include the border. Video saving remains unsupported.
+Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt`/`.png` output and saved GIF/MP4 frames include the border.
 
 `--width` describes the artwork inside the frame; a 60-column image becomes 62 columns wide with the border. Banner width still controls wrapping, and its frame surrounds the longest rendered row. The border adds two rows as well. For photos/GIFs/videos, `--fit --border` reserves those extra dimensions within the existing terminal margins. A terminal smaller than four columns by five rows is rejected in this mode. Text banners still do not support `--fit`.
 
@@ -185,14 +186,14 @@ GIF also limits each picture dimension to 65,535 pixels. Oversized rendered fram
 | Photo: color + border + custom characters + width or fit + PNG output | Supported; the saved picture and terminal preview use the selected artwork. |
 | Photo: color + text-file output | Supported, but the saved text and preview are plain characters. |
 | GIF: color + border + custom characters + width or fit + GIF output + terminal loop count | Supported; the file stores one animation, independently of terminal repeats. |
-| Video: color + border + custom characters + width or fit + terminal loops | Supported for terminal playback; video saving is not implemented. |
+| Video: color + border + custom characters + width or fit + MP4 output + terminal loops | Supported; the saved video contains one pass without audio. |
 | Text: banner style + width + border + TXT or PNG output | Supported. |
 | Width + fit, or continuous loop + counted loop | Rejected: choose one sizing method and one loop mode. |
 | Text banners + color, fit, custom characters, manual background, or looping | Rejected: those options apply to media conversion. |
 
 For palettes beginning with `-`, use the equals form, for example `--chars=-+@`, so the argument parser treats the palette as a value. Text starting with option-like words can also use equals, for example `--text=--loop-4` renders that literal text.
 
-## Video playback
+## Video playback and MP4 saving
 
 Supply your own local video and replace `path/to/video.mp4` with its location:
 
@@ -204,6 +205,9 @@ ascart path/to/video.mp4 --fit --chars " .:*#@" --background dark
 ascart path/to/video.mp4 --color --loop
 ascart path/to/video.mp4 --color --loop-4
 ascart path/to/video.mp4 --fit --border --color
+ascart path/to/video.mp4 --color --border --output output/ascii.mp4
+ascart path/to/video.avi --width 40 --output output/from-avi.mp4
+ascart path/to/video.mp4 --loop-4 --output output/ascii-preview-four.mp4
 ```
 
 The CLI detects the media type; no extra video switch is required. The default width is 60, and the same width, fitting, color, palette, and background controls used for photos apply to videos. Decoding depends on the formats and codecs supported by the installed OpenCV package. A file extension alone does not guarantee support; MP4 and MJPG AVI decoding have been checked in development.
@@ -214,13 +218,23 @@ Video plays once by default, without audio. It uses the same loop options as GIF
 - `--loop-4` plays four times in total; `--loop-count 4` means the same thing. Other positive counts are supported.
 - Continuous and counted loop options cannot be combined. Zero and negative counts are rejected; use `--loop` for continuous playback.
 
-Playback requires an interactive terminal supporting ANSI controls, clears the screen, replaces frames, and leaves the last frame visible. Ctrl+C stops playback, closes the video reader, and restores cursor visibility. Video `--output` is not supported yet.
+Playback requires an interactive terminal supporting ANSI controls, clears the screen, replaces frames, and leaves the last frame visible. Ctrl+C stops playback, closes the video reader, and restores cursor visibility. With `--output`, saving also works without an interactive terminal and skips playback in that case.
 
 OpenCV reads one frame at a time. Each frame is converted and displayed before reading the next, so ascart does not collect the whole video's converted frames in memory. It uses the video's reported FPS (frames per second) to calculate the time between frames, subtracting the time already spent reading, converting, and printing. Unknown FPS triggers a warning and a 30 FPS fallback.
 
 For each repeat, the previous video reader is closed and a new one opens the file from the beginning. This keeps memory usage independent of the number of repetitions, though reopening can add a short pause between playbacks. If reopening fails or a pass has no decodable frames, playback stops with an error instead of retrying endlessly.
 
 For inspection from Python, `ascart.video_art.inspect_video(path)` returns dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. Duration is estimated from frame count divided by FPS.
+
+Use a new `.mp4` output filename to save one complete ASCII video without audio. `.MP4` also works. Any decodable video input, including supported AVI files, can produce MP4 output. Video input does not save as `.gif`, `.txt`, or `.png`; GIF input does not save as MP4.
+
+Each decoded frame becomes ASCII text and then a picture using the same fixed-width font, padding, backgrounds, and optional colors/borders as PNG saving. OpenCV encodes those pictures with `mp4v` at the source's reported FPS. Missing or invalid FPS produces a warning and uses 30 FPS. The rendered pixel dimensions are even, as required by the encoder. Frames are processed one at a time, and every saved frame must have the same dimensions. Lossy video compression may slightly change character edges and RGB colors. MP4 viewers choose their own repeat behavior; the file contains no duplicated terminal playback passes.
+
+The video is encoded once before the terminal preview starts. `--loop`, `--loop-4`, and `--loop-count` affect only that preview. Ctrl+C during preview leaves the completed MP4 intact. Without an interactive terminal, saving prints the saved-file location without playback. Interrupting encoding stops the save and cleans up its temporary files.
+
+OpenCV writes into a private temporary folder beside the requested destination. After encoding closes, ascart decodes every generated frame to check the frame count and dimensions. Only then does it copy the video into a new file opened in exclusive creation mode. This protects existing files even if another program creates the destination during encoding. Temporary files are cleaned up after success, handled failure, or Ctrl+C; a hard process kill or shutdown can leave a temporary folder behind. `.ascart-*/` folders are ignored by Git to avoid accidentally committing such leftovers. Encoding and copying require enough free space for both the temporary video and the final copy. A failure during the final copy can leave a partial new destination, but never replaces an existing one.
+
+MP4 encoding requires an available `mp4v` encoder in OpenCV; ascart reports an error if it cannot open one. Readback verification detects missing encoded frames, but cannot prove that a damaged source was decoded completely: OpenCV can report a failed read for both the end of a video and a damaged tail. Source video timestamps are approximated using one FPS, so variable-frame-rate timing is not preserved exactly. No extra dependencies or command-line recording limits were added.
 
 ## File errors
 
@@ -243,8 +257,11 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 | File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
 | Destination already exists | Choose a new output filename; ascart does not overwrite or automatically number files. |
 | Output must not point to the input file | Use a different destination, not the source or a link to it. |
-| Output currently supports only .txt and .png for photos/banners, or .gif for GIF input | Match the output format to the input; MP4 export is not implemented. |
+| Output supports only .txt/.png for photos/banners, .gif for GIF input, or .mp4 for video input | Match the output format to the input. |
 | GIF output supports only .gif files | Use a new `.gif` filename for GIF input. |
+| Video output supports only .mp4 files | Use a new `.mp4` filename for video input. |
+| MP4 encoding is unavailable | The OpenCV installation needs an available `mp4v` encoder. |
+| Incomplete MP4 encoding | The temporary encoding failed verification; the final destination was not created. |
 | PNG would exceed 20 million pixels | Reduce `--width` or shorten the banner text. |
 | No space left on device | Free storage space or choose another output location. |
 
@@ -252,7 +269,7 @@ If Pillow cannot identify a photo/GIF, ascart checks whether OpenCV can decode a
 
 Photo and text saving share the same rules. Without `--output`, artwork is displayed in the terminal. With `--output`, artwork is saved and then displayed in the terminal, followed by the saved-file location. A non-empty path ending in `.txt` or `.png` is required (uppercase extensions also work). The terminal preview uses the same artwork: `.txt` saves and previews remain plain, while colored PNG saves also show colored characters in the terminal. If saving fails, ascart reports the error without printing a preview or success message. Quote paths containing spaces. Empty or whitespace-only arguments and unsupported extensions are rejected before conversion or folder creation. Repeating a save command with the same destination produces an error; choose a new filename.
 
-Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. These protections also apply to GIF saving. Automatic numbering, overwriting, and video export are not implemented.
+Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. These protections also apply to GIF and MP4 saving. Automatic numbering and overwriting are not implemented.
 
 ## How conversion works
 
@@ -267,7 +284,7 @@ Photos, GIFs, and videos share the same image conversion function.
 
 ## Current limitations and future work
 
-- Video playback has no audio or export yet. Codec availability depends on the OpenCV installation.
+- Video playback and saved MP4s have no audio. Codec availability depends on the OpenCV installation; export currently uses `mp4v` only.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
 - GIF frames are converted into memory before playback, and GIF export also holds rendered picture frames in memory. Large animations can consume substantial memory.
 - GIF playback does not compensate for terminal rendering overhead.
@@ -296,6 +313,8 @@ PNG tests check fixed character cells, blank rows/spaces, RGB strokes, light/dar
 GIF export tests read back actual saved animations to check frame timing, source-loop removal, colors, borders, fitting, missing-timing fallback, merged identical frames, and independence from terminal loop counts. They also cover saving without an interactive terminal, completed-file preservation on playback interruption, wrong input/output combinations, existing-file/link protection, competing creation, truncated input, rendering failures, permission errors, and partial writes. Fixtures and outputs stay in temporary directories.
 
 The combination suite exercises 1,344 option combinations: 216 photo cases, 864 GIF cases (including expected non-interactive playback rejections), 216 real MP4 playback cases, and 48 text-banner cases. It crosses colors, borders, automatic/manual backgrounds, default/custom palettes, default/explicit/fitted sizing, supported save formats, terminal availability, and loop modes where applicable. It checks displayed grids and reopens saved files to verify dimensions, timing, and one-pass GIF metadata. Additional cases check invalid combinations, option-like text, background hints, and malformed paths. Source-media SHA-256 hashes must remain unchanged. This covers the listed scenarios; it is not a guarantee for every possible file or codec.
+
+MP4 export tests add 32 saved-video rendering combinations, reopen real encoded MP4s, and check dimensions, frame count, FPS, color order, source preservation, and temporary-file cleanup. They cover AVI input, terminal-loop independence, interrupted playback, non-interactive saving, unsupported format combinations, existing files and links, competing destination creation, unavailable/failing encoders, incomplete encoding, missing FPS, permission failures, source interruption, and partial-copy errors.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 
