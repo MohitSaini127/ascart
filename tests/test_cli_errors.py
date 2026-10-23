@@ -163,6 +163,7 @@ class CliFileErrorTests(unittest.TestCase):
                 self.assertEqual(code, 0, errors)
                 self.assertEqual(errors, "")
                 self.assertIn("Saved ASCII art to", output)
+                self.assertEqual(output, expected + "\n" + f"Saved ASCII art to {target}\n")
                 self.assertEqual(target.read_text(encoding="utf-8"), expected + "\n")
                 before = target.read_bytes()
                 errors = self.assert_file_error(
@@ -179,7 +180,7 @@ class CliFileErrorTests(unittest.TestCase):
                     self.assertEqual(code, 2)
                     self.assertEqual(output, "")
                     self.assertIn("--output must not be empty", errors)
-            for suffix in ("png", "gif", "mp4", "jpg", "html", ""):
+            for suffix in ("gif", "mp4", "jpg", "html", ""):
                 target = self.root / "not-created" / (f"art.{suffix}" if suffix else "art")
                 with self.subTest(inputs=inputs, suffix=suffix):
                     code, output, errors = self.run_cli(*inputs, "--output", target)

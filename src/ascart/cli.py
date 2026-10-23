@@ -13,6 +13,7 @@ from ascart.border import add_border
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif
 from ascart.image_art import inspect_image
+from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
 from ascart.video_art import inspect_video, play_video
 
@@ -39,29 +40,37 @@ def validate_output(output, input_path, parser):
             ):
                 parser.error(f"Cannot save artwork to {output!r}: output must not point to the input file")
         if output_path.is_dir():
-            parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new .txt filename")
+            parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new .txt or .png filename")
         if output_path.exists() or output_path.is_symlink():
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
     except OSError as error:
         report_file_error(parser, "Cannot validate output", output, error)
-    if output_path.suffix.lower() != ".txt":
-        parser.error("--output currently supports only .txt files; PNG, GIF, and MP4 export is not implemented")
+    if output_path.suffix.lower() not in (".txt", ".png"):
+        parser.error("--output currently supports only .txt and .png files; GIF and MP4 export is not implemented")
 
 
-def display_art(art, output, parser):
+def display_art(art, output, parser, background="dark"):
     if output is not None:
         output_path = Path(output)
         try:
+            # Render before creating a destination, so rendering errors leave
+            # no empty output file behind.
+            picture = art_to_png(art, background) if output_path.suffix.lower() == ".png" else None
             output_path.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as error:
+        except (OSError, ValueError) as error:
             report_file_error(parser, "Cannot save artwork to", output_path, error)
         try:
-            with output_path.open("x", encoding="utf-8") as file:
-                file.write(art + "\n")
+            if picture is not None:
+                with output_path.open("xb") as file:
+                    picture.save(file, format="PNG")
+            else:
+                with output_path.open("x", encoding="utf-8") as file:
+                    file.write(art + "\n")
         except FileExistsError:
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
         except OSError as error:
             report_file_error(parser, "Cannot save artwork to", output_path, error)
+        print(art)
         print("Saved ASCII art to", output_path)
     else:
         print(art)
@@ -93,7 +102,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save ASCII art to a new .txt file; existing files are never overwritten")
+    parser.add_argument("--output", help="Show photo or banner artwork and save it to a new .txt or .png file; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -101,7 +110,7 @@ def main():
         "--loop-count", type=int, help="Total GIF or video playbacks; --loop-4 is shorthand for --loop-count 4"
     )
     parser.add_argument(
-        "--color", action="store_true", help="Use RGB terminal colors (saved text stays plain)"
+        "--color", action="store_true", help="Use RGB colors in the terminal or PNG pictures (saved text stays plain)"
     )
     parser.add_argument(
         "--chars",
@@ -162,7 +171,7 @@ def main():
     if args.loop_count is not None and args.loop_count <= 0:
         parser.error("Loop count must be greater than 0")
     loops = 0 if args.loop else (args.loop_count or 1)
-    color = args.color and not args.output
+    color = args.color and (args.output is None or Path(args.output).suffix.lower() == ".png")
     if args.chars is None:
         args.chars = COLOR_PALETTE if color else DEFAULT_PALETTE
     if args.width is not None and args.width <= 0:
@@ -263,4 +272,4 @@ def main():
         report_file_error(parser, "Cannot convert photo", args.path, error)
     if args.border:
         art = add_border(art)
-    display_art(art, args.output, parser)
+    display_art(art, args.output, parser, background)

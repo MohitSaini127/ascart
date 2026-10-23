@@ -58,6 +58,17 @@ class MediaCliTests(unittest.TestCase):
             self.assertEqual(self.run_cli(self.video)[0], 0)
             play.assert_called_once()
 
+    def test_png_export_rejected_for_gif_and_video_even_with_loop(self):
+        for source in (self.gif, self.video):
+            for looping in ((), ("--loop",), ("--loop-4",)):
+                with self.subTest(source=source, looping=looping):
+                    target = self.root / "not-created" / "art.png"
+                    code, output, errors = self.run_cli(source, *looping, "--output", target)
+                    self.assertEqual(code, 2)
+                    self.assertEqual(output, "")
+                    self.assertIn("not supported yet", errors)
+                    self.assertFalse(target.parent.exists())
+
     def test_actual_video_playback(self):
         for options, expected_frames in (((), 1), (("--loop-4",), 4)):
             with self.subTest(options=options), patch("ascart.video_art.time.sleep"):
@@ -136,8 +147,9 @@ class MediaCliTests(unittest.TestCase):
                 self.assertEqual(code, 0, errors)
                 self.assertEqual(output, add_border(expected) + "\n")
                 target = self.root / f"border-{index}.txt"
-                code, _, errors = self.run_cli(*inputs, "--border", "--output", target)
+                code, saved_output, errors = self.run_cli(*inputs, "--border", "--output", target)
                 self.assertEqual(code, 0, errors)
+                self.assertEqual(saved_output, output + f"Saved ASCII art to {target}\n")
                 self.assertEqual(target.read_text(), output)
                 self.assertNotIn("\033", target.read_text())
 
