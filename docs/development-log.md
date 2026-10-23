@@ -1245,3 +1245,78 @@ git status
 ```
 
 The commit ID should be recorded after the user performs the commit. No GitHub upload is included in this step.
+
+## 47. Saving only to new text files — 23 October 2026
+
+The user committed the preceding sample replacement as `cfadd24` (`Replace sample image with credited Tux artwork`). They then approved implementing and testing safe text-file saving without disrupting their media or existing output. Their instruction remains that the assistant must not stage, commit, or push; commands are provided for the user instead.
+
+Before testing, an inline .venv/bin/python -B command recorded SHA-256 hashes for examples/image1.png and all existing files under output/ (8 files total). Tests use only generated fixtures and temporary directories. The final preservation check compared hashes and the file list to ensure those existing image/output files were neither changed, added to, nor removed.
+
+### Implementation
+
+In src/ascart/cli.py, we added `validate_output(output, input_path, parser)` and call it after selecting exactly one input, before either the text or media branch performs conversion:
+
+- `output is None` means the option was omitted, so terminal display remains the default. Otherwise, `output.strip()` must be non-empty. The original path is kept intact rather than stripping spaces from valid filenames.
+- `Path.resolve()` compares normalized paths and follows symbolic links. If both files exist, `samefile()` also compares their filesystem identity, catching hard links to the source. Matching the input produces an error before any write, even if its extension is not .txt.
+- A directory is rejected with a specific message. Existing destinations and symbolic links (including dangling links) are rejected rather than replaced. Expected filesystem validation failures use the shared error-reporting helper.
+- The suffix must be .txt, case-insensitively. Unsupported extensions and filenames with no extension are rejected before conversion or parent-folder creation. PNG, GIF, and MP4 export remain unimplemented.
+
+In the shared `display_art` function, the existing UTF-8 overwriting write was replaced with:
+
+```python
+with output_path.open("x", encoding="utf-8") as file:
+    file.write(art + "\n")
+```
+
+`x` means exclusive creation: create a new file or raise FileExistsError if the destination already exists. This enforces the no-overwrite rule even when another process creates the file between validation and opening. The with block closes the stream. Expected write or close errors are caught, and the success message appears only after the with block finishes successfully. Parent-folder creation has its own error handler so failures there keep their filesystem explanation. A file-created-during-saving error gets the clear existing-destination message.
+
+There is no overwriting option or automatic filename numbering. A failed write can leave a partial newly created file. The application does not delete that file or any existing user file. Preventing replacement of existing data is the implemented guarantee; all-or-nothing creation of a complete new output is a separate future feature. No character palettes or image-conversion algorithms changed.
+
+### Tests and results
+
+We updated tests/test_cli_errors.py to replace the previous successful-overwrite expectation with rejection and byte-for-byte preservation. New cases cover blank output, unsupported/missing extensions, omitted and missing-value output options, existing destinations, source paths and aliases, hard links, symbolic links, dangling links, spaces, uppercase .TXT, a competing file creation, and a simulated disk error partway through writing a new file.
+
+The initial run exposed test mocks that intercepted pyfiglet's own font reads because Path.open is shared across modules. We isolated the saving-failure tests by supplying already-rendered banner text, allowing those mocks to exercise only the intended output failure. Successful rendering/saving tests still use the real banner renderer. The race test creates another file just before exclusive opening, then checks that its bytes survive. The partial-write test uses a real temporary destination, writes only three characters, raises a simulated disk-space error, and verifies that a neighboring existing file is intact.
+
+Command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+Final output:
+
+```text
+Ran 40 tests in 0.461s
+
+OK
+```
+
+An additional inline script launched the actual installed CLI using generated PNG input and a destination in a temporary folder. It verified successful saving in a new parent folder, rejection of a repeated destination, rejection of using the input as output, blank output rejection, and unsupported-extension rejection. Success exited with status 0; errors exited with status 2 without tracebacks or false success output. Key messages:
+
+```text
+New .txt output: exit 0; saved successfully in new parent folder.
+destination already exists; choose a new filename
+output must not point to the input file
+--output must not be empty or whitespace only
+--output currently supports only .txt files; PNG, GIF, and MP4 export is not implemented
+Temporary source and pre-existing output preserved byte for byte.
+```
+
+The preservation check on the user's actual files reported:
+
+```text
+Preservation check passed: all 8 existing image/output files unchanged; no files added or removed there.
+```
+
+README.md now documents new-file-only saving, .txt validation, input-alias protection, repeated-command behavior, and the partial-new-file limitation. Help text now says that saving requires a new .txt file. No dependencies or ignore rules changed. Historical log entries describing earlier overwrite behavior remain as history.
+
+Commands for the user to review, stage, and commit this milestone (not executed by the assistant):
+
+```bash
+git diff --check
+git add src/ascart/cli.py tests/test_cli_errors.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Prevent overwriting existing files when saving ASCII art"
+git status
+```

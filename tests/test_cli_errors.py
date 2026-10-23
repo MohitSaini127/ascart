@@ -48,13 +48,15 @@ class CliFileErrorTests(unittest.TestCase):
         data = self.photo.read_bytes()
         truncated = data[:data.index(b"IDAT") + 6]
         self.photo.write_bytes(truncated)
-        target = self.root / "keep.txt"
-        target.write_text("previous artwork")
+        previous = self.root / "keep.txt"
+        previous.write_text("previous artwork")
+        target = self.root / "new.txt"
         errors = self.assert_file_error(
             self.run_cli(self.photo, "--output", target), "Cannot convert photo", self.photo
         )
         self.assertIn("truncated", errors)
-        self.assertEqual(target.read_text(), "previous artwork")
+        self.assertEqual(previous.read_text(), "previous artwork")
+        self.assertFalse(target.exists())
         self.assertEqual(self.photo.read_bytes(), truncated)
 
     def test_truncated_gif_does_not_start_playback(self):
@@ -131,20 +133,23 @@ class CliFileErrorTests(unittest.TestCase):
         self.assertEqual(blocker.read_text(), "keep this file")
 
     def test_permission_and_disk_errors_during_saving(self):
-        target = self.root / "keep.txt"
-        target.write_text("previous artwork")
+        previous = self.root / "keep.txt"
+        previous.write_text("previous artwork")
+        target = self.root / "new.txt"
         cases = (
             ("ascart.cli.Path.mkdir", PermissionError(errno.EACCES, "Permission denied")),
-            ("ascart.cli.Path.write_text", PermissionError(errno.EACCES, "Permission denied")),
-            ("ascart.cli.Path.write_text", OSError(errno.ENOSPC, "No space left on device")),
+            ("ascart.cli.Path.open", PermissionError(errno.EACCES, "Permission denied")),
+            ("ascart.cli.Path.open", OSError(errno.ENOSPC, "No space left on device")),
         )
         for operation, error in cases:
-            with self.subTest(operation=operation, error=error), patch(operation, side_effect=error):
+            with self.subTest(operation=operation, error=error), patch(operation, side_effect=error), \
+                 patch("ascart.cli.text_to_ascii", return_value="art"):
                 errors = self.assert_file_error(
                     self.run_cli("--text", "Hi", "--output", target), "Cannot save artwork to", target
                 )
             self.assertIn(error.strerror, errors)
-            self.assertEqual(target.read_text(), "previous artwork")
+            self.assertEqual(previous.read_text(), "previous artwork")
+            self.assertFalse(target.exists())
 
     def test_successful_photo_and_text_saving(self):
         cases = (
@@ -154,13 +159,131 @@ class CliFileErrorTests(unittest.TestCase):
         for index, (inputs, expected) in enumerate(cases):
             with self.subTest(inputs=inputs):
                 target = self.root / f"nested-{index}" / "art.txt"
-                for attempt in range(2):
+                code, output, errors = self.run_cli(*inputs, "--output", target)
+                self.assertEqual(code, 0, errors)
+                self.assertEqual(errors, "")
+                self.assertIn("Saved ASCII art to", output)
+                self.assertEqual(target.read_text(encoding="utf-8"), expected + "\n")
+                before = target.read_bytes()
+                errors = self.assert_file_error(
+                    self.run_cli(*inputs, "--output", target), "Cannot save artwork to", target
+                )
+                self.assertIn("already exists", errors)
+                self.assertEqual(target.read_bytes(), before)
+
+    def test_empty_output_and_unsupported_extensions(self):
+        for inputs in ((self.photo,), ("--text", "Hi")):
+            for value in ("", "   ", "\t"):
+                with self.subTest(inputs=inputs, value=value):
+                    code, output, errors = self.run_cli(*inputs, "--output", value)
+                    self.assertEqual(code, 2)
+                    self.assertEqual(output, "")
+                    self.assertIn("--output must not be empty", errors)
+            for suffix in ("png", "gif", "mp4", "jpg", "html", ""):
+                target = self.root / "not-created" / (f"art.{suffix}" if suffix else "art")
+                with self.subTest(inputs=inputs, suffix=suffix):
                     code, output, errors = self.run_cli(*inputs, "--output", target)
-                    self.assertEqual(code, 0, errors)
-                    self.assertEqual(errors, "")
-                    self.assertIn("Saved ASCII art to", output)
-                    self.assertEqual(target.read_text(encoding="utf-8"), expected + "\n")
-                    target.write_text("old artwork to replace")
+                    self.assertEqual(code, 2)
+                    self.assertEqual(output, "")
+                    self.assertIn("only .txt", errors)
+                    self.assertFalse(target.parent.exists())
+
+    def test_missing_output_value_and_terminal_default(self):
+        for inputs in ((self.photo,), ("--text", "Hi")):
+            with self.subTest(inputs=inputs):
+                code, output, errors = self.run_cli(*inputs, "--output")
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertIn("expected one argument", errors)
+                code, output, errors = self.run_cli(*inputs)
+                self.assertEqual(code, 0, errors)
+                self.assertTrue(output.strip())
+                self.assertNotIn("Saved ASCII art", output)
+
+    def test_output_cannot_be_input_or_its_alias(self):
+        before = self.photo.read_bytes()
+        symlink = self.root / "symbolic.txt"
+        symlink.symlink_to(self.photo)
+        hardlink = self.root / "hard.txt"
+        hardlink.hardlink_to(self.photo)
+        targets = (self.photo, self.root / ".." / self.root.name / "photo.png", symlink, hardlink)
+        for target in targets:
+            with self.subTest(target=target):
+                errors = self.assert_file_error(
+                    self.run_cli(self.photo, "--output", target), "Cannot save artwork to", target
+                )
+                self.assertIn("input file", errors)
+                self.assertEqual(self.photo.read_bytes(), before)
+                self.assertEqual(target.read_bytes(), before)
+
+    def test_existing_destination_links_are_preserved(self):
+        other = self.root / "other.txt"
+        other.write_text("keep other data")
+        link = self.root / "link.txt"
+        link.symlink_to(other)
+        dangling = self.root / "dangling.txt"
+        missing = self.root / "missing.txt"
+        dangling.symlink_to(missing)
+        for target in (link, dangling):
+            with self.subTest(target=target):
+                errors = self.assert_file_error(
+                    self.run_cli("--text", "Hi", "--output", target), "Cannot save artwork to", target
+                )
+                self.assertIn("already exists", errors)
+                self.assertTrue(target.is_symlink())
+        self.assertEqual(other.read_text(), "keep other data")
+        self.assertFalse(missing.exists())
+
+    def test_file_created_after_validation_is_preserved(self):
+        target = self.root / "race.txt"
+        original_open = Path.open
+
+        def competing_create(path, mode="r", *args, **kwargs):
+            self.assertEqual(path, target)
+            self.assertEqual(mode, "x")
+            with original_open(path, "x", encoding="utf-8") as file:
+                file.write("created by another process")
+            return original_open(path, mode, *args, **kwargs)
+
+        with patch("ascart.cli.Path.open", new=competing_create), \
+             patch("ascart.cli.text_to_ascii", return_value="art"):
+            errors = self.assert_file_error(
+                self.run_cli("--text", "Hi", "--output", target), "Cannot save artwork to", target
+            )
+        self.assertIn("already exists", errors)
+        self.assertEqual(target.read_text(), "created by another process")
+
+    def test_spaces_and_uppercase_txt_extension(self):
+        target = self.root / "new folder" / "my art.TXT"
+        code, output, errors = self.run_cli("--text", "Hi", "--output", target)
+        self.assertEqual(code, 0, errors)
+        self.assertIn("Saved ASCII art", output)
+        self.assertEqual(target.read_text(), text_to_ascii("Hi") + "\n")
+
+    def test_failure_during_write_only_leaves_new_partial_file(self):
+        target = self.root / "partial.txt"
+        previous = self.root / "keep.txt"
+        previous.write_text("previous artwork")
+        original_open = Path.open
+        art = text_to_ascii("Hi")
+
+        @contextlib.contextmanager
+        def failing_open(path, mode="r", *args, **kwargs):
+            with original_open(path, mode, *args, **kwargs) as file:
+                class Writer:
+                    def write(self, content):
+                        file.write(content[:3])
+                        raise OSError(errno.ENOSPC, "No space left on device")
+                yield Writer()
+
+        with patch("ascart.cli.Path.open", new=failing_open), \
+             patch("ascart.cli.text_to_ascii", return_value=art):
+            errors = self.assert_file_error(
+                self.run_cli("--text", "Hi", "--output", target), "Cannot save artwork to", target
+            )
+        self.assertIn("No space left", errors)
+        self.assertEqual(target.read_text(), art[:3])
+        self.assertEqual(previous.read_text(), "previous artwork")
 
     def test_successful_gif_playback_and_interrupt(self):
         with patch("ascart.gif_art.time.sleep"):
@@ -175,10 +298,11 @@ class CliFileErrorTests(unittest.TestCase):
         cases = (
             ((self.photo,), "ascart.cli.inspect_image"),
             ((self.gif,), "ascart.cli.gif_to_ascii"),
-            (("--text", "Hi", "--output", self.root / "art.txt"), "ascart.cli.Path.write_text"),
+            (("--text", "Hi", "--output", self.root / "art.txt"), "ascart.cli.Path.open"),
         )
         for inputs, operation in cases:
-            with self.subTest(operation=operation), patch(operation, side_effect=TypeError("test bug")):
+            with self.subTest(operation=operation), patch(operation, side_effect=TypeError("test bug")), \
+                 patch("ascart.cli.text_to_ascii", return_value="art"):
                 with self.assertRaisesRegex(TypeError, "test bug"):
                     self.run_cli(*inputs, terminal=True)
 

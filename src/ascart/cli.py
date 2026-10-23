@@ -24,12 +24,41 @@ def report_file_error(parser, action, path, error):
     parser.error(f"{action} {str(path)!r}: {reason or 'invalid or incomplete file data'}")
 
 
+def validate_output(output, input_path, parser):
+    if output is None:
+        return
+    if not output.strip():
+        parser.error("--output must not be empty or whitespace only")
+    output_path = Path(output)
+    try:
+        if input_path is not None:
+            source = Path(input_path)
+            if output_path.resolve() == source.resolve() or (
+                output_path.exists() and source.exists() and output_path.samefile(source)
+            ):
+                parser.error(f"Cannot save artwork to {output!r}: output must not point to the input file")
+        if output_path.is_dir():
+            parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new .txt filename")
+        if output_path.exists() or output_path.is_symlink():
+            parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
+    except OSError as error:
+        report_file_error(parser, "Cannot validate output", output, error)
+    if output_path.suffix.lower() != ".txt":
+        parser.error("--output currently supports only .txt files; PNG, GIF, and MP4 export is not implemented")
+
+
 def display_art(art, output, parser):
-    if output:
+    if output is not None:
         output_path = Path(output)
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(art + "\n", encoding="utf-8")
+        except OSError as error:
+            report_file_error(parser, "Cannot save artwork to", output_path, error)
+        try:
+            with output_path.open("x", encoding="utf-8") as file:
+                file.write(art + "\n")
+        except FileExistsError:
+            parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
         except OSError as error:
             report_file_error(parser, "Cannot save artwork to", output_path, error)
         print("Saved ASCII art to", output_path)
@@ -63,7 +92,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save ASCII art to a text file")
+    parser.add_argument("--output", help="Save ASCII art to a new .txt file; existing files are never overwritten")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
@@ -109,6 +138,7 @@ def main():
     args = parser.parse_args(arguments)
     if (args.path is None) == (args.text is None):
         parser.error("Provide either a media path or --text, but not both")
+    validate_output(args.output, args.path, parser)
     if args.text is not None:
         args.text, text_font = args.text
         if not args.text.strip():

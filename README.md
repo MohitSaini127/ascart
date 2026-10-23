@@ -65,7 +65,7 @@ The default width is 60; `--width` sets the wrapping limit, not the size of indi
 
 `--text-slant` uses the original right-leaning font design. Separate direction options are not supported.
 
-Text mode supports `--width` and `--output`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, and existing files are replaced. Banner color is not implemented.
+Text mode supports `--width` and `--output`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output. Saving requires a new `.txt` filename; existing files are never overwritten. Banner color is not implemented.
 
 ## Photo conversion
 
@@ -92,7 +92,7 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 | `--chars "CHARACTERS"` | Choose a non-empty palette of printable ASCII characters, ordered from least to most visually dense. Quote spaces. |
 | `--background auto` | Default: use a limited terminal background hint, with a dark fallback. |
 | `--background light` or `--background dark` | Manually choose brightness mapping. |
-| `--output PATH` | Save photo artwork as UTF-8 plain text, creating parent folders as needed. Existing file contents are replaced. |
+| `--output PATH` | Save photo artwork as UTF-8 plain text to a new `.txt` file, creating parent folders as needed. Existing destinations and input-file aliases are rejected. |
 
 Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `--output`, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
@@ -166,11 +166,16 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 | Image file is truncated | Use a complete, undamaged copy of the source. |
 | Unsupported or damaged media | Check the file and whether its format/codec is supported. |
 | File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
+| Destination already exists | Choose a new output filename; ascart does not overwrite or automatically number files. |
+| Output must not point to the input file | Use a different destination, not the source or a link to it. |
+| Output currently supports only .txt files | Use a `.txt` extension; image and animated export are not implemented. |
 | No space left on device | Free storage space or choose another output location. |
 
 If Pillow cannot identify a photo/GIF, ascart checks whether OpenCV can decode a video frame before treating the input as a video. This avoids reporting video-only option errors for an unrelated or unreadable media file. This check does not verify every frame in a video.
 
-Photo and text saving share the same error handling. Parent folders are created when possible, and existing output files are replaced. Writes go directly to the destination: a failure partway through writing can leave partial output; preserving the previous file through an atomic save is future work. Input media is opened for reading.
+Photo and text saving share the same rules. Without `--output`, artwork is displayed in the terminal. With `--output`, a non-empty path ending in `.txt` is required (`.TXT` also works). Quote paths containing spaces. Empty or whitespace-only arguments and unsupported extensions are rejected before conversion or folder creation. Repeating a save command with the same destination produces an error; choose a new filename.
+
+Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. Automatic numbering, overwriting, and image/animation export are not implemented.
 
 ## How conversion works
 
@@ -205,7 +210,7 @@ python -m pip check
 
 The suite checks video inspection, MP4/AVI decoding, color conversion, timing, counted and continuous playback, cleanup after interruption or failed restarts, rejected options, and selected photo/GIF/text regressions. It creates temporary media that is deleted afterward. The real decoding tests require working MP4 and MJPG encoders in OpenCV. Automated checks do not replace viewing the artwork in your own terminal.
 
-File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They also verify successful saving and ensure unexpected programming errors are not hidden by a catch-all exception handler.
+File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 
 ## Development history
 
