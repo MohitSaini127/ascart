@@ -174,6 +174,24 @@ Saved frames use the same fixed-width font and padding as PNG output. Color, cus
 
 The enlarged bitmap font and dense default color characters (`#%@`) can make saved artwork look thicker than terminal text. No additional bold styling is applied. Use a custom `--chars` palette if you prefer lighter characters.
 
+GIF's per-frame timing field allows at most 655.35 seconds. If consecutive frames become identical ASCII art, Pillow can merge their delays and exceed this limit. Saving then reports a readable timing error; use a shorter animation. As with other write failures, a partial new output file may remain.
+
+GIF also limits each picture dimension to 65,535 pixels. Oversized rendered frames are rejected before destination creation; reduce `--width` if this happens.
+
+## Combining options
+
+| Combination | Result |
+| --- | --- |
+| Photo: color + border + custom characters + width or fit + PNG output | Supported; the saved picture and terminal preview use the selected artwork. |
+| Photo: color + text-file output | Supported, but the saved text and preview are plain characters. |
+| GIF: color + border + custom characters + width or fit + GIF output + terminal loop count | Supported; the file stores one animation, independently of terminal repeats. |
+| Video: color + border + custom characters + width or fit + terminal loops | Supported for terminal playback; video saving is not implemented. |
+| Text: banner style + width + border + TXT or PNG output | Supported. |
+| Width + fit, or continuous loop + counted loop | Rejected: choose one sizing method and one loop mode. |
+| Text banners + color, fit, custom characters, manual background, or looping | Rejected: those options apply to media conversion. |
+
+For palettes beginning with `-`, use the equals form, for example `--chars=-+@`, so the argument parser treats the palette as a value. Text starting with option-like words can also use equals, for example `--text=--loop-4` renders that literal text.
+
 ## Video playback
 
 Supply your own local video and replace `path/to/video.mp4` with its location:
@@ -276,6 +294,8 @@ Border tests cover visible widths with ANSI colors, row padding, saved text, ter
 PNG tests check fixed character cells, blank rows/spaces, RGB strokes, light/dark canvases, neutral borders, all banner styles, uppercase extensions, the size limit, no-overwrite protection including links and competing creation, and readable save failures. GIF/video PNG export is rejected before creating output folders, including with loop options.
 
 GIF export tests read back actual saved animations to check frame timing, source-loop removal, colors, borders, fitting, missing-timing fallback, merged identical frames, and independence from terminal loop counts. They also cover saving without an interactive terminal, completed-file preservation on playback interruption, wrong input/output combinations, existing-file/link protection, competing creation, truncated input, rendering failures, permission errors, and partial writes. Fixtures and outputs stay in temporary directories.
+
+The combination suite exercises 1,344 option combinations: 216 photo cases, 864 GIF cases (including expected non-interactive playback rejections), 216 real MP4 playback cases, and 48 text-banner cases. It crosses colors, borders, automatic/manual backgrounds, default/custom palettes, default/explicit/fitted sizing, supported save formats, terminal availability, and loop modes where applicable. It checks displayed grids and reopens saved files to verify dimensions, timing, and one-pass GIF metadata. Additional cases check invalid combinations, option-like text, background hints, and malformed paths. Source-media SHA-256 hashes must remain unchanged. This covers the listed scenarios; it is not a guarantee for every possible file or codec.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 

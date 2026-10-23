@@ -1624,3 +1624,50 @@ git status
 The user noticed that the saved artwork looked bold. We explained that the existing two-times enlargement of the bitmap font and the dense `#%@` color palette can produce thicker-looking strokes; no extra bold effect was added. The user liked both appearances and chose to keep them. README.md now explains this appearance and the existing custom-palette option.
 
 The user then explicitly asked the assistant to update the README and development log, stage, and commit the GIF feature. This authorizes assistant staging and committing for this milestone, superseding the earlier instruction to leave those steps to the user. The five intended files are README.md, docs/development-log.md, src/ascart/cli.py, src/ascart/gif_art.py, and tests/test_gif_output.py. The suite already passed all 84 tests as recorded above; the follow-up edits only document the accepted appearance and commit authorization. No push was requested.
+
+## 53. Feature-combination audit and edge-case fixes — 23 October 2026
+
+The GIF milestone was committed as `5c4b23f` (`Add one-pass animated ASCII GIF export`). The user then requested broad testing, especially options used together. The working tree was clean before this audit. No staging, commit, or push was performed during the audit.
+
+### Combination coverage
+
+Added tests/test_feature_combinations.py. It generates a gradient photo, a three-frame GIF, and a two-frame MP4 in a temporary directory. The MP4 cases decode actual video frames through OpenCV; animation waits are replaced during tests to avoid delays. Continuous-loop tests deliberately simulate Ctrl+C after a displayed frame. Fixed terminal dimensions make fitting assertions reproducible.
+
+The four matrices execute 1,344 option combinations:
+
+| Mode | Cases | Options crossed |
+| --- | --- | --- |
+| Photos | 216 | Color on/off, border on/off, auto/dark/light background, default/custom characters, default/explicit/fitted size, terminal/TXT/PNG output. |
+| GIFs | 864 | The same rendering options, once/twice/continuous terminal playback, saving on/off, interactive/non-interactive stdout. This includes 216 expected rejections for playback without a terminal and without saving. |
+| Videos | 216 | The same rendering options and once/twice/continuous terminal playback, using real MP4 decoding. |
+| Text | 48 | Standard/slanted/bold/named-small font, widths 20/60, border on/off, terminal/TXT/PNG output. |
+
+Successful cases assert the visible grid dimensions, color presence, custom character set, borders, fitting limits, animation frame counts, and cursor restoration. Saved PNGs are reopened to verify pixel dimensions and canvas backgrounds. Saved GIFs are reopened to verify their three frames, 40/70/100 ms timing, and absent repeat metadata independently of terminal loops. TXT contents must match the printed artwork and contain no ANSI codes. Temporary source hashes must match their initial SHA-256 values after the audit.
+
+Additional tests cover 40 invalid media/text combinations, missing option values, empty/non-ASCII/non-printable text, unknown fonts, widths too small for each banner style, option-like literal text, leading-hyphen palettes using equals syntax, background hints/fallbacks, and malformed paths supplied through Python. Existing tests still cover real damaged media, permissions, disk errors, missing files, input/output aliases, existing destinations, and competing file creation.
+
+### Problems found and changes
+
+1. Very long consecutive GIF frames can become identical ASCII artwork. Pillow then merges their durations; a combined delay over GIF's 655.35-second limit raised an unhandled OverflowError. In src/ascart/gif_art.py, this encoder error now becomes a readable ValueError explaining the limit and suggesting a shorter animation. The CLI reports the save failure without starting playback. A new regression test uses two distinct source shades, each with a valid 400-second delay, that become identical ASCII frames. It confirms the handled error and unchanged source/other files. As with other write failures, a partial new destination can remain.
+2. GIF dimensions also have a 65,535-pixel per-side limit. Extremely wide ASCII output can be under the existing 20-million-pixel canvas cap but exceed this separate format limit. The GIF saver now checks dimensions before destination creation and reports a readable size error. This also prevents size overflow from being misreported as a timing problem. A regression test renders a 5,460-character row and confirms no destination folder is created.
+3. Malformed path strings containing a null character could raise a raw ValueError when the CLI was called from Python. Such characters cannot be passed as normal operating-system command-line arguments, but are possible in programmatic tests. In src/ascart/cli.py, output paths explicitly reject nulls and input/output path operations handle ValueError with the existing readable file-error reporting. Initial matrix execution caught an additional relative output-path case; the explicit validation fixes it too.
+
+README.md now records the format limits, explains which combinations work or are rejected, documents equals syntax for option-like values, and describes the combination-test scope. No dependencies, ignore rules, or media assets changed. Real user artwork was not used as an output destination.
+
+### Commands and results
+
+The original suite passed all 84 tests before the expanded checks. A focused GIF regression run passed after the timing fix. The updated combination suite passed all nine test methods, including its 1,344 matrix cases and additional invalid-input checks. After the fixes and final regression additions, ran the full suite:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 95 tests in 26.956s
+
+OK
+```
+
+`git diff --check` passed with no output. Tests and fixes cover the documented cases, not every possible image, codec, terminal, or operating system. Deliberate restrictions remain: width and fit are mutually exclusive; continuous and counted loops are mutually exclusive; TXT saving stays plain even with --color; text banners reject media-only options; GIF input saves only as GIF; video saving is not implemented.

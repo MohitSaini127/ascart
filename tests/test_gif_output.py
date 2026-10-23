@@ -135,6 +135,31 @@ class GifOutputTests(unittest.TestCase):
             self.assertEqual(gif.info["duration"], 130)
             self.assertNotIn("loop", gif.info)
 
+    def test_merged_frame_timing_overflow_is_readable_and_preserves_other_files(self):
+        source = self.root / "long.gif"
+        # Different source frames can become identical ASCII art. Each source
+        # delay is valid, but their merged ASCII delay exceeds the GIF limit.
+        first = Image.new("RGB", (16, 12), (0, 0, 0))
+        second = Image.new("RGB", (16, 12), (1, 1, 1))
+        try:
+            first.save(source, save_all=True, append_images=[second], duration=[400000, 400000], optimize=False)
+        finally:
+            first.close()
+            second.close()
+        before = source.read_bytes()
+        keep = self.root / "keep.gif"
+        keep.write_bytes(b"user artwork")
+        target = self.root / "new.gif"
+        with patch("ascart.cli.play_gif") as play:
+            code, output, errors = self.run_cli(source, "--border", "--output", target, terminal=True)
+        self.assertEqual(code, 2)
+        self.assertEqual(output, "")
+        self.assertIn("GIF frame timing exceeds 655.35 seconds", errors)
+        self.assertNotIn("Traceback", errors)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertEqual(keep.read_bytes(), b"user artwork")
+        play.assert_not_called()
+
     def test_fit_is_respected_in_saved_frames(self):
         target = self.root / "fitted.gif"
         with patch("ascart.cli.shutil.get_terminal_size", return_value=os.terminal_size((20, 10))):
@@ -249,6 +274,12 @@ class GifOutputTests(unittest.TestCase):
             with self.subTest(frames=frames), self.assertRaises(ValueError):
                 save_ascii_gif(frames, target)
             self.assertFalse(target.parent.exists())
+
+    def test_gif_dimension_limit_rejected_before_destination_creation(self):
+        target = self.root / "not-created" / "wide.gif"
+        with self.assertRaisesRegex(ValueError, "GIF dimensions must not exceed 65535"):
+            save_ascii_gif([("@" * 5460, 100)], target)
+        self.assertFalse(target.parent.exists())
 
     def test_unexpected_programming_errors_are_not_hidden(self):
         with patch("ascart.cli.save_ascii_gif", side_effect=TypeError("test bug")):

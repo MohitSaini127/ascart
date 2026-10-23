@@ -31,6 +31,8 @@ def validate_output(output, input_path, parser):
         return
     if not output.strip():
         parser.error("--output must not be empty or whitespace only")
+    if "\0" in output:
+        parser.error(f"Cannot validate output {output!r}: path must not contain a null character")
     output_path = Path(output)
     try:
         if input_path is not None:
@@ -43,7 +45,7 @@ def validate_output(output, input_path, parser):
             parser.error(f"Cannot save artwork to {output!r}: destination is a directory; choose a new filename with a supported extension")
         if output_path.exists() or output_path.is_symlink():
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
-    except OSError as error:
+    except (OSError, ValueError) as error:
         report_file_error(parser, "Cannot validate output", output, error)
     if output_path.suffix.lower() not in (".txt", ".png", ".gif"):
         parser.error("--output currently supports only .txt and .png for photos/banners, or .gif for GIF input; MP4 export is not implemented")
@@ -199,7 +201,7 @@ def main():
             max_height -= 2
     try:
         mode = Path(args.path).stat().st_mode
-    except OSError as error:
+    except (OSError, ValueError) as error:
         report_file_error(parser, "Cannot read input", args.path, error)
     if not S_ISREG(mode):
         parser.error(f"Cannot read input {args.path!r}: expected a regular file")

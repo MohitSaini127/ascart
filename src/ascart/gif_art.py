@@ -26,13 +26,23 @@ def save_ascii_gif(frames, path, background="dark"):
             durations.append(duration if duration > 0 else 100)
         if any(picture.size != pictures[0].size for picture in pictures):
             raise ValueError("GIF frames must have matching dimensions")
+        if any(side > 65535 for side in pictures[0].size):
+            raise ValueError("GIF dimensions must not exceed 65535 pixels per side; use a smaller --width")
         output_path = Path(path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("xb") as file:
-            pictures[0].save(
-                file, format="GIF", save_all=True, append_images=pictures[1:],
-                duration=durations, disposal=2, optimize=False,
-            )
+            try:
+                pictures[0].save(
+                    file, format="GIF", save_all=True, append_images=pictures[1:],
+                    duration=durations, disposal=2, optimize=False,
+                )
+            except OverflowError:
+                # Pillow merges identical consecutive pictures and adds their
+                # delays. That sum can exceed GIF's 16-bit delay field.
+                raise ValueError(
+                    "GIF frame timing exceeds 655.35 seconds, possibly after merging "
+                    "identical ASCII frames; use a shorter animation"
+                ) from None
         # No loop option is passed above: omitting GIF loop metadata requests
         # one playback, even when the input GIF repeats continuously.
     finally:
