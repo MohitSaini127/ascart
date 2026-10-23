@@ -81,7 +81,7 @@ ascart examples/image1.png --background light
 ascart examples/image1.png --output output/robot.txt
 ```
 
-The included sample is an AI-generated robot-and-coffee meme: "ONE QUICK FIX / THREE NEW BUGS". Matching GIF and MP4 samples are included too. See [sample media and generation prompts](examples/README.md) for provenance, sizes, and rebuilding instructions.
+The included sample is an AI-generated robot-and-coffee meme: "ONE QUICK FIX / THREE NEW BUGS", created for ascart using the built-in image generation tool. Only this PNG is bundled; supply your own files for GIF and video playback.
 
 | Option | Behavior |
 | --- | --- |
@@ -100,13 +100,13 @@ Automatic background selection reads the last field of the `COLORFGBG` environme
 
 ## GIF playback
 
-Try the included robot animation, or substitute your own GIF path:
+Supply your own GIF and replace `path/to/animation.gif` with its location:
 
 ```bash
-ascart examples/robot.gif --fit
-ascart examples/robot.gif --fit --color
-ascart examples/robot.gif --fit --loop
-ascart examples/robot.gif --fit --loop-4
+ascart path/to/animation.gif --fit
+ascart path/to/animation.gif --fit --color
+ascart path/to/animation.gif --fit --loop
+ascart path/to/animation.gif --fit --loop-4
 ```
 
 - Without a loop option, playback stops after one pass.
@@ -120,15 +120,15 @@ Frame durations come from the GIF in milliseconds. Missing or zero timing uses a
 
 ## Video playback
 
-Try the included eight-second robot clip, or substitute your own local video path:
+Supply your own local video and replace `path/to/video.mp4` with its location:
 
 ```bash
-ascart examples/robot.mp4
-ascart examples/robot.mp4 --width 60
-ascart examples/robot.mp4 --fit --color
-ascart examples/robot.mp4 --fit --chars " .:*#@" --background dark
-ascart examples/robot.mp4 --color --loop
-ascart examples/robot.mp4 --color --loop-4
+ascart path/to/video.mp4
+ascart path/to/video.mp4 --width 60
+ascart path/to/video.mp4 --fit --color
+ascart path/to/video.mp4 --fit --chars " .:*#@" --background dark
+ascart path/to/video.mp4 --color --loop
+ascart path/to/video.mp4 --color --loop-4
 ```
 
 The CLI detects the media type; no extra video switch is required. The default width is 60, and the same width, fitting, color, palette, and background controls used for photos apply to videos. Decoding depends on the formats and codecs supported by the installed OpenCV package. A file extension alone does not guarantee support; MP4 and MJPG AVI decoding have been checked in development.

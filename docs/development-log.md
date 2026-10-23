@@ -1177,3 +1177,41 @@ git commit -m "Add generated robot meme samples for images GIFs and videos"
 Only these seven files belong to this milestone. The local cat backup, full-size generation sources, and the user's scuba.gif are not part of the commit. The final commit ID is available in Git history. Publishing this new local commit to GitHub is a separate push.
 
 The sample milestone was committed as `1591d2a`. The staged whitespace check reported an extra blank line at the end of examples/README.md; the commit had already been recorded before that result was addressed. We removed that blank line and recorded this note in a small follow-up documentation commit rather than rewriting the sample commit. No media bytes changed during this cleanup.
+
+## 45. Keeping only one simple sample image — 23 October 2026
+
+The user requested simplifying the project by keeping examples/image1.png and removing the additional sample-media machinery. We kept the generated 640x640 PNG unchanged and verified its SHA-256 hash before and after cleanup. Its file size remains 435,580 bytes. examples/ now contains only image1.png.
+
+We removed examples/robot.gif, examples/robot.mp4, examples/README.md, and tools/build_sample_media.py, then removed the empty tools directory. The user's untracked examples/scuba.gif was moved to output/local-media/scuba.gif so it remains available locally under the existing ignored output/ directory. The move refused to overwrite an existing destination. Existing full-size generation sources and the earlier cat-image backup remain in the ignored output/sample-sources directory.
+
+README.md now describes the single AI-generated PNG and uses path/to/animation.gif and path/to/video.mp4 as placeholders for users' own files. The separate sample-generation notes and their link were removed. GIF/video conversion and looping features remain implemented. Historical development-log entries remain as records of the earlier work.
+
+Verification commands and results:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -v
+```
+
+```text
+Ran 33 tests in 2.465s
+
+OK
+```
+
+An inline image-conversion check through .venv/bin/python -B verified the retained PNG at width 60 in both monochrome and color, with 30 output rows. Output:
+
+```text
+Remaining sample converts successfully in monochrome and color at width 60.
+Files in examples: image1.png
+```
+
+No dependencies or ignore rules needed changes. This is a normal cleanup commit; earlier media remains in Git history. No history rewrite or GitHub push is part of this step.
+
+Git commands for this milestone:
+
+```bash
+git add README.md docs/development-log.md examples/README.md examples/robot.gif examples/robot.mp4 tools/build_sample_media.py
+git commit -m "Simplify examples to a single sample image"
+```
+
+git add stages the documentation changes and the four tracked deletions. The retained PNG is unchanged, so it needs no new staging. Git history records the final commit ID.
