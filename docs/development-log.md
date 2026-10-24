@@ -2434,3 +2434,44 @@ Bytes: 1851 | Camera handle released: True
 Each simulated command used --camera --width 10 --color --border --output PATH. These checks verify real saving with simulated input; they do not establish physical-camera timing or appearance. No test media was added to the repository. The default three-second countdown remains enabled in production and was independently exercised with the fake clock.
 
 All 173 tests and git diff --check passed. Per the agreed workflow, stage the five milestone files and commit as `Add safe camera snapshots with countdown`. Nothing is pushed. The next user check is an actual webcam snapshot, for example ascart --camera --color --width 120 --chars '@' --output output/camera.png, using a new filename. Native driver/hardware compatibility remains experimental. Timed recordings and side-by-side comparison remain future work.
+
+
+## 71. Live ASCII preview during snapshot countdown
+
+The user requested a live terminal preview while the snapshot countdown runs, followed by a frozen view of the captured snapshot and saving that same frame to the chosen output format.
+
+Updated camera_art.snapshot_camera with an optional preview argument. When enabled, each countdown frame is converted using the same orientation, width/fit, palette, colours, background, and border as the final snapshot. ANSI controls replace the previous view instead of scrolling it. A status line beneath the art shows seconds remaining and Ctrl+C guidance. It is clipped to one terminal row (columns minus one) so it does not consume extra rows reserved by --fit. The capture loop continues to read recent frames and uses the existing three-second deadline.
+
+After the deadline, the function reads one final frame, converts it, and redraws that exact artwork without the countdown. It returns the same ASCII string to the save path. The camera is released before saving; a finally block resets colours and restores cursor visibility after display starts, including on read/conversion errors or Ctrl+C. The final snapshot stays visible while output rendering/writing takes place.
+
+Updated cli.py to enable preview only when stdout is an interactive terminal. Non-interactive snapshots retain their previous behaviour: no animated preview or ANSI cursor codes, countdown messages on standard error, and only the final saved artwork on standard output. Added an optional refresh_terminal argument to display_art. After a successful interactive camera save it replaces the frozen screen with the same final artwork and saved-file location, avoiding a duplicate snapshot below it. Other callers keep their existing behaviour. If rendering/writing fails, the frozen frame remains visible with an error and no success message; exclusive saving and existing-file protections are unchanged.
+
+README.md now describes the live countdown, final-frame freeze, matching saved artwork, status-line sizing, non-interactive fallback, and save-failure behaviour. No new command, dependency, generated example, or ignore rule was needed.
+
+Added four tests to tests/test_camera_snapshot.py. A simulated countdown verifies live frames, all countdown values, status clipping, the final post-deadline frame, timer removal, handle release, and cursor restoration. Error/cancellation tests require cleanup after preview starts. CLI integration checks both orientations and all three save formats, comparing the final visible artwork with saved TXT, exact PNG pixels, or parsed HTML. A save-render failure must leave the frozen picture/cursor state visible while reporting failure and creating no output. Existing non-interactive and 288 snapshot combination tests continue to pass. All camera handles remain mocked; no actual webcam was opened by the agent.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_camera*.py'
+```
+
+```text
+Ran 30 tests in 2.760s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 177 tests in 36.859s
+
+OK
+```
+
+All 177 tests and git diff --check passed. Stage the five changed files and commit as `Preview live ASCII during camera snapshot countdown`, following the agreed workflow. Nothing is pushed. Actual terminal appearance on the user's webcam remains for manual review with a new output filename.

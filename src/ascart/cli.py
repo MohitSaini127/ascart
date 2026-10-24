@@ -55,7 +55,7 @@ def validate_output(output, input_path, parser):
         parser.error("--output supports .txt/.png/.html for photos/banners, .gif/.html for GIF input, or .mp4/.html for video input")
 
 
-def display_art(art, output, parser, background="dark"):
+def display_art(art, output, parser, background="dark", refresh_terminal=False):
     if output is not None:
         output_path = Path(output)
         try:
@@ -77,6 +77,8 @@ def display_art(art, output, parser, background="dark"):
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
         except OSError as error:
             report_file_error(parser, "Cannot save artwork to", output_path, error)
+        if refresh_terminal:
+            print("\033[H\033[J", end="")
         print(art)
         print("Saved ASCII art to", output_path)
     else:
@@ -247,7 +249,7 @@ def main():
                             max_height=max_height, color=color, border=args.border,
                             mirrored=args.camera_mirrored is not None)
             if args.output is not None:
-                art = snapshot_camera(args.camera, **settings)
+                art = snapshot_camera(args.camera, preview=sys.stdout.isatty(), **settings)
             else:
                 print(f"Starting camera {args.camera}; press Ctrl+C to stop.", flush=True)
                 play_camera(args.camera, **settings)
@@ -260,7 +262,7 @@ def main():
         except (OSError, ValueError, cv2.error) as error:
             parser.error(f"Cannot use camera {args.camera}: {error}")
         if args.output is not None:
-            display_art(art, args.output, parser, background)
+            display_art(art, args.output, parser, background, refresh_terminal=sys.stdout.isatty())
         return
     try:
         mode = Path(args.path).stat().st_mode

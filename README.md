@@ -191,7 +191,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart --camera --color --fit --border` | Shows coloured, bordered live ASCII fitted to the terminal. |
 | `ascart --camera --width 60 --chars " .:*#@"` | Uses a fixed width and custom character palette. |
 | `ascart --camera --background light` | Maps brightness for a light terminal theme. |
-| `ascart --camera --output output/snapshot.txt` | Counts down three seconds, saves one plain ASCII frame, and closes the camera. |
+| `ascart --camera --output output/snapshot.txt` | Previews ASCII during a three-second countdown, then saves one plain frame and closes the camera. |
 | `ascart --camera --color --width 120 --border --output output/snapshot.png` | Saves one coloured, bordered ASCII picture after the countdown. |
 | `ascart --camera-mirrored --color --output output/snapshot.html` | Saves one selectable HTML snapshot in the alternative camera orientation. |
 
@@ -399,7 +399,7 @@ Camera mode supports one snapshot with `--output`, but rejects `--loop`, `--loop
 
 ### Camera snapshots
 
-Use a new `.txt`, `.png`, or `.html` output filename with either camera command. It opens the selected camera, prints a **3 → 2 → 1** countdown to standard error, captures one frame, closes the camera, then saves and displays that ASCII frame. The countdown begins after the camera opens; camera/driver delays can make the total command longer than three seconds. Warm-up frames are read and discarded during the countdown so the final read supplies a recent picture and gives automatic exposure a chance to settle. The countdown does not show a live ASCII preview and is not configurable yet.
+Use a new `.txt`, `.png`, or `.html` output filename with either camera command. In an interactive terminal, it opens the selected camera and shows live ASCII with a **3 → 2 → 1** countdown beneath it. At the end it captures one final frame, freezes that frame on screen, closes the camera, then saves the same artwork and prints its location. The countdown disappears and the captured snapshot stays visible. The countdown begins after the camera opens; camera/driver delays can make the total command longer than three seconds. Frames continue to be read during the countdown so the final read supplies a recent picture and gives automatic exposure a chance to settle. Preview frames use the same orientation, size, colours, palette, and border as the snapshot. The countdown is not configurable yet. The status line is clipped to the terminal width to avoid wrapping when using --fit.
 
 ```bash
 ascart --camera --color --width 120 --chars '@' --output output/camera.png
@@ -407,9 +407,9 @@ ascart --camera --border --output output/camera.txt
 ascart --camera-mirrored 1 --color --output output/camera.html
 ```
 
-Both orientations, width/fit, borders, custom palettes, and background options apply. TXT saves and previews stay plain even with --color; PNG/HTML save and preview colours. HTML contains a static, selectable frame, not an animation. Snapshots also work without an interactive terminal; only live viewing requires one. The camera is released before rendering or writing the output file.
+Both orientations, width/fit, borders, custom palettes, and background options apply. TXT saves and previews stay plain even with --color; PNG/HTML save and preview colours. HTML contains a static, selectable frame, not an animation. Snapshots also work without an interactive terminal; they skip the animated preview and screen-control codes, print the countdown to standard error, and save/display only the final frame. Only unsaved live viewing requires an interactive terminal. The camera is released before rendering or writing the output file.
 
-Existing files, directories, and links are rejected before the camera opens. The final save also uses exclusive creation, protecting a file created by another program during the countdown. Parent folders are created only after successful capture and rendering. Ctrl+C during the countdown closes the camera, reports cancellation, and creates no output. A capture or rendering failure also creates no output file. A write failure can leave a partial new file, but never replaces existing data. There is no GIF/MP4 or timed recording in this step. Camera snapshots remain experimental and depend on local hardware/driver compatibility.
+Existing files, directories, and links are rejected before the camera opens. The final save also uses exclusive creation, protecting a file created by another program during the countdown. Parent folders are created only after successful capture and rendering. Ctrl+C during the countdown closes the camera, reports cancellation, and creates no output. A capture or rendering failure also creates no output file. If saving or output rendering fails after an interactive capture, the frozen snapshot remains visible with the error; no success message is printed. A write failure can leave a partial new file, but never replaces existing data. There is no GIF/MP4 or timed recording in this step. Camera snapshots remain experimental and depend on local hardware/driver compatibility.
 
 Automated camera tests use simulated devices and never access real cameras. Check actual compatibility, colours, responsiveness, and camera release on your own hardware before relying on this feature.
 
@@ -506,7 +506,7 @@ Animated HTML tests add 96 GIF/video option combinations, check exact converted 
 
 Camera tests use mock capture handles and controlled image arrays, covering 96 rendering combinations across both camera orientations, default/explicit camera IDs, listing discovery, inaccessible/empty devices, read/conversion failures, disconnects, Ctrl+C, redraw pacing, cursor restoration, and handle release. An asymmetric colour-frame test checks that the default flips left/right before conversion while the mirrored option preserves source pixels, without modifying the source array. Invalid modes/output/loops, non-interactive playback, and malformed IDs must fail before camera access or file creation. Existing command checks verify that help, version, text, and photo commands do not open cameras. Real webcam compatibility remains a manual check.
 
-Snapshot tests add 288 format/visual combinations and a simulated countdown clock. They check fresh post-countdown frames, both orientations, plain TXT, exact PNG pixels, selectable HTML, camera release before writing, non-interactive saving, invalid formats/options, existing files and links, competing creation, cancellation, capture/render errors, permissions, and partial-write safety. No automated test accesses physical cameras.
+Snapshot tests add 288 format/visual combinations and a simulated countdown clock. Interactive checks verify live countdown frames, clipped status text, cursor restoration, final-frame freezing, matching saved/visible artwork for all formats and orientations, and readable save failures. They check fresh post-countdown frames, both orientations, plain TXT, exact PNG pixels, selectable HTML, camera release before writing, non-interactive saving, invalid formats/options, existing files and links, competing creation, cancellation, capture/render errors, permissions, and partial-write safety. No automated test accesses physical cameras.
 
 ## License and credits
 

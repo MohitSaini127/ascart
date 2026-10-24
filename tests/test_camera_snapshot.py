@@ -22,6 +22,46 @@ from test_html_art import ArtworkParser
 
 
 class SnapshotCaptureTests(unittest.TestCase):
+    def test_preview_freezes_final_frame_removes_timer_and_restores_cursor(self):
+        now = [0.0]
+        warmup = np.zeros((24, 32, 3), dtype=np.uint8)
+        final = np.full((24, 32, 3), (10, 30, 200), dtype=np.uint8)
+        capture = fake_capture([])
+        capture.read.side_effect = lambda: (True, final if now[0] >= 3 else warmup)
+        output, errors = io.StringIO(), io.StringIO()
+        def sleep(delay):
+            now[0] += delay
+        with patch("ascart.camera_art.cv2.VideoCapture", return_value=capture), \
+             patch("ascart.camera_art.time.monotonic", side_effect=lambda: now[0]), \
+             patch("ascart.camera_art.time.sleep", side_effect=sleep), \
+             patch("ascart.camera_art.shutil.get_terminal_size", return_value=os.terminal_size((18, 10))), \
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+            art = snapshot_camera(width=10, color=True, border=True, preview=True)
+        expected = add_border(video_frame_to_ascii(cv2.flip(final, 1), width=10, color=True))
+        self.assertEqual(art, expected)
+        self.assertEqual(errors.getvalue(), "")
+        for seconds in (3, 2, 1):
+            self.assertIn(f"{seconds}s to snapshot", output.getvalue())
+        screens = output.getvalue().split("\033[H\033[J")
+        self.assertGreater(len(screens), 3)
+        self.assertTrue(all(len(screen.split("\n")[-1]) <= 17 for screen in screens[1:-1]))
+        self.assertEqual(screens[-1], expected + "\033[0m\033[?25h\n")
+        capture.release.assert_called_once()
+
+    def test_preview_failure_or_cancellation_restores_cursor_and_releases(self):
+        frame = np.zeros((24, 32, 3), dtype=np.uint8)
+        for failure in (OSError("device failed"), ValueError("conversion failed"), KeyboardInterrupt()):
+            output = io.StringIO()
+            capture = fake_capture([(True, frame), (True, frame)])
+            with patch("ascart.camera_art.cv2.VideoCapture", return_value=capture), \
+                 patch("ascart.camera_art.time.sleep"), \
+                 patch("ascart.camera_art.camera_frame_to_ascii", side_effect=["@", failure]), \
+                 contextlib.redirect_stdout(output):
+                with self.assertRaises(type(failure)):
+                    snapshot_camera(preview=True)
+            self.assertIn("\033[?25h", output.getvalue())
+            capture.release.assert_called_once()
+
     def test_countdown_discards_warmup_and_uses_frame_after_three_seconds(self):
         now = [0.0]
         warmup = np.zeros((24, 32, 3), dtype=np.uint8)
@@ -77,9 +117,10 @@ class SnapshotCliTests(unittest.TestCase):
         self.frame[:, 12:] = (200, 80, 20)
         self.original = self.frame.copy()
 
-    def run_cli(self, *args):
+    def run_cli(self, *args, terminal=False):
         output, errors = io.StringIO(), io.StringIO()
         with patch("sys.argv", ["ascart", *map(str, args)]), \
+             patch.object(output, "isatty", return_value=terminal), \
              patch("ascart.camera_art.SNAPSHOT_COUNTDOWN_SECONDS", 0), \
              patch.dict(os.environ, {"COLORFGBG": "0;15"}), \
              patch("ascart.cli.shutil.get_terminal_size", return_value=os.terminal_size((18, 10))), \
@@ -90,6 +131,41 @@ class SnapshotCliTests(unittest.TestCase):
             except SystemExit as error:
                 code = error.code
         return code, output.getvalue(), errors.getvalue()
+
+    def test_interactive_snapshot_shows_and_saves_same_final_frame_for_all_formats(self):
+        for suffix, mirrored in itertools.product(("txt", "png", "html"), (False, True)):
+            target = self.root / f"preview-{mirrored}.{suffix}"
+            capture = fake_capture([(True, self.frame)])
+            option = "--camera-mirrored" if mirrored else "--camera"
+            with patch("ascart.camera_art.cv2.VideoCapture", return_value=capture):
+                code, output, errors = self.run_cli(option, "--color", "--width=10", "--border", "--output", target, terminal=True)
+            self.assertEqual(code, 0, errors)
+            color = suffix != "txt"
+            palette = "#%@" if color else " .:-=+*#%@"
+            expected = add_border(video_frame_to_ascii(self.frame if mirrored else cv2.flip(self.frame, 1), 10, palette, "light", color=color))
+            screens = output.split("\033[H\033[J")
+            self.assertEqual(screens[-2], expected + "\033[0m\033[?25h\n")
+            self.assertEqual(screens[-1], expected + f"\nSaved ASCII art to {target}\n")
+            if suffix == "txt":
+                self.assertEqual(target.read_text(), expected + "\n")
+            elif suffix == "html":
+                self.assertEqual("".join(ArtworkParser(target.read_text()).text), COLOR_CODE.sub("", expected))
+            else:
+                with Image.open(target) as saved, art_to_png(expected, "light") as picture:
+                    np.testing.assert_array_equal(np.asarray(saved), np.asarray(picture))
+            capture.release.assert_called_once()
+
+    def test_save_failure_keeps_frozen_frame_without_success_message(self):
+        target = self.root / "not-created" / "snapshot.png"
+        capture = fake_capture([(True, self.frame)])
+        with patch("ascart.camera_art.cv2.VideoCapture", return_value=capture), patch("ascart.cli.art_to_png", side_effect=ValueError("render failed")):
+            code, output, errors = self.run_cli("--camera", "--color", "--output", target, terminal=True)
+        self.assertEqual(code, 2)
+        self.assertIn("\033[?25h", output)
+        self.assertNotIn("Saved ASCII", output)
+        self.assertIn("render failed", errors)
+        self.assertFalse(target.parent.exists())
+        capture.release.assert_called_once()
 
     def test_snapshot_format_and_visual_option_matrix(self):
         cases = itertools.product((".txt", ".png", ".html"), (False, True), (False, True),

@@ -2,6 +2,7 @@
 
 import math
 import re
+import shutil
 import sys
 import time
 from contextlib import contextmanager
@@ -78,28 +79,47 @@ def camera_frame_to_ascii(frame, width, palette, background, max_height, color, 
 
 def snapshot_camera(
     index=0, width=60, palette=DEFAULT_PALETTE, background="dark",
-    max_height=None, color=False, border=False, mirrored=False,
+    max_height=None, color=False, border=False, mirrored=False, preview=False,
 ):
-    """Warm up during a countdown, then convert one frame and release the camera."""
-    with camera_capture(index) as capture:
-        deadline = time.monotonic() + SNAPSHOT_COUNTDOWN_SECONDS
-        previous = None
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                break
-            seconds = math.ceil(remaining)
-            if seconds != previous:
-                print(f"Snapshot in {seconds}... (Ctrl+C cancels)", file=sys.stderr, flush=True)
+    """Count down with optional live preview, then freeze and return one frame."""
+    screen_started = False
+    status_width = max(1, shutil.get_terminal_size(fallback=(80, 24)).columns - 1) if preview else 0
+    try:
+        with camera_capture(index) as capture:
+            deadline = time.monotonic() + SNAPSHOT_COUNTDOWN_SECONDS
+            previous = None
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                seconds = math.ceil(remaining)
+                status = f"Snapshot in {seconds}... (Ctrl+C cancels)"
+                if not preview and seconds != previous:
+                    print(status, file=sys.stderr, flush=True)
                 previous = seconds
-            # Read and discard warm-up frames to avoid saving the first buffered
-            # picture after waiting. This also allows auto-exposure to settle.
-            read_camera_frame(capture, index)
-            delay = min(1 / 30, max(0, deadline - time.monotonic()))
-            if delay > 0:
-                time.sleep(delay)
-        frame = read_camera_frame(capture, index)
-        return camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored)
+                frame = read_camera_frame(capture, index)
+                if preview:
+                    art = camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored)
+                    if not screen_started:
+                        screen_started = True
+                        print("\033[2J\033[H\033[?25l", end="", flush=True)
+                    status = f"{seconds}s to snapshot | Ctrl+C cancels"[:status_width]
+                    print("\033[H\033[J" + art + "\n" + status, end="", flush=True)
+                delay = min(1 / 30, max(0, deadline - time.monotonic()))
+                if delay > 0:
+                    time.sleep(delay)
+            frame = read_camera_frame(capture, index)
+            art = camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored)
+            if preview:
+                if not screen_started:
+                    screen_started = True
+                    print("\033[2J\033[H\033[?25l", end="", flush=True)
+                # Freeze the actual captured frame, removing the countdown.
+                print("\033[H\033[J" + art, end="", flush=True)
+            return art
+    finally:
+        if screen_started:
+            print("\033[0m\033[?25h", flush=True)
 
 
 def play_camera(
