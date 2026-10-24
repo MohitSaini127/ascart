@@ -234,7 +234,7 @@ Choose the output format using the filename extension, such as `--output art.png
 - Text banners accept printable ASCII text. Their width controls wrapping, not the size of individual letters; bold and slant are character designs that also survive plain-text saving.
 - Custom palettes run from least to most visually dense. Defaults are ` .:-=+*#%@` for monochrome and `#%@` for colour. Light background mode reverses the character mapping, not the source colours; automatic detection is only a terminal hint.
 - `--width` counts characters inside the border. Adding a border adds two columns and two rows. `--fit` reads the terminal size once; rerun after resizing.
-- PNG and HTML use their own fonts, so saved artwork can look different from your terminal. GIF-file and video-file exports use a bitmap font; camera GIF/MP4 recordings use the smoother PNG font. GIF colours are limited to 256 per frame.
+- Saved artwork may look different from your terminal. GIF supports up to 256 colours per frame.
 - HTML files work offline and keep the characters selectable. Animated pages open paused with Play, Pause, and Replay controls. GIF and camera-recording pages also have an optional Loop checkbox. Animated HTML requires JavaScript and is limited to 3,000 frames and 20 MiB.
 - For values beginning with `-`, use the equals form: `--chars=-+@` or `--text=--loop-4`.
 

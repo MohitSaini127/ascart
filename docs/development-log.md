@@ -2817,3 +2817,8 @@ The user approved a crisp feature summary. Replaced the fifteen README feature b
 ## 86. Add a supported export formats table
 
 The user approved the proposed input/output table and requested an appropriate heading. Added Supported export formats immediately after the unchanged command guide, listing exports for text banners, images, GIFs, videos, camera snapshots, and camera recordings. Added one sentence explaining that the output filename extension selects the format. Verified the six input rows against the previously reviewed CLI format rules and confirmed removing the inserted section reproduces the previous README exactly. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Document supported export formats in README table`. Nothing is pushed.
+
+
+## 87. Shorten the saved-artwork appearance note
+
+The user approved shortening the font explanation. Replaced the long README usage-note bullet with: Saved artwork may look different from your terminal. GIF supports up to 256 colours per frame. Technical font details remain in docs/usage.md. Verified this was the only README change, preserving the command guide and all other content. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Shorten README artwork appearance note`. Nothing is pushed.
