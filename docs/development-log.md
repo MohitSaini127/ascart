@@ -1956,3 +1956,63 @@ Ran 116 tests in 32.507s
 
 OK
 ```
+
+## 61. Show the installed version — 24 October 2026
+
+The user approved this feature order: version reporting, HTML export, live webcam ASCII, then side-by-side comparison. They explicitly requested implementation, testing, README/development-log updates, staging, and a separate commit for each milestone. Pushing remains user-managed. The working tree was clean and synchronized with origin/main before this milestone.
+
+The project already declares version 0.1.0 in pyproject.toml. We kept that declaration as the source for installed package metadata rather than introducing a second manually maintained number or changing the version for this feature.
+
+In src/ascart/__init__.py, added a package docstring and imported `version` and `PackageNotFoundError` from Python's standard-library importlib.metadata module. `__version__ = version("ascart")` reads the installed package version. If the project is imported from an uninstalled source checkout with no package metadata, the specific exception is handled and __version__ becomes `"unknown"`. This adds no third-party dependency. Editing pyproject.toml's version requires reinstalling the editable package to refresh its metadata.
+
+In src/ascart/cli.py, imported __version__ and registered `--version` with argparse's `action="version"`. Its output is `ascart` followed by the installed version. Argparse prints that line and exits successfully before the normal input/output validation, so users do not need to provide a photo, video, or text. The action neither converts artwork nor writes output files. Literal text containing --version still renders when supplied with the equals form, such as `-t=--version`.
+
+README.md now has a small general-command table in the Command guide for --help and --version, expected output for the current version, and a note on installed metadata and the unknown fallback. No runtime dependencies, ignore rules, assets, or existing conversion behavior were changed.
+
+Added tests/test_cli_version.py with four test methods. They compare the version with installed metadata, require successful exit and no stderr, check that no input is required, ensure media is not opened and existing/new output paths are untouched, check help and literal option-like text, and invoke the real Python module entry point in a subprocess. Output-path checks use temporary directories.
+
+Focused test command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_cli_version.py -v
+```
+
+Output ended with:
+
+```text
+Ran 4 tests in 0.363s
+
+OK
+```
+
+Ran both real entry points:
+
+```bash
+.venv/bin/ascart --version
+.venv/bin/python -B -m ascart --version
+```
+
+Each command printed `ascart 0.1.0` and exited successfully. `git diff --check` passed. The planned milestone commit is `Add --version command using installed package metadata`; no push is part of this milestone.
+
+Full-suite command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 120 tests in 22.026s
+
+OK
+```
+
+After verification, stage the five files and create the agreed milestone commit:
+
+```bash
+git add src/ascart/__init__.py src/ascart/cli.py tests/test_cli_version.py README.md docs/development-log.md
+git diff --staged --stat
+git commit -m "Add --version command using installed package metadata"
+git status
+```

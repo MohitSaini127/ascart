@@ -110,7 +110,12 @@ Use `deactivate` to leave the environment. The `.venv/` folder stays on your com
 
 After [setup](#setup), activate your environment and run these commands from the project folder. Replace `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Image examples use the bundled `examples/image1.png`; replace that path to convert another image. Quote paths containing spaces.
 
-For built-in help, run `ascart --help`.
+| General command | What it does |
+| --- | --- |
+| `ascart --help` | Shows the available options. |
+| `ascart --version` | Prints the installed version and exits; no text or media input is needed. |
+
+For this version, `ascart --version` prints `ascart 0.1.0`. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.
 
 [Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands)
 
