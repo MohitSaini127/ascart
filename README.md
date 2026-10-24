@@ -106,21 +106,11 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Standard, slanted, bold-looking, and named-font text banners, with width wrapping and TXT/PNG/HTML saving.
-- Photo-to-ASCII conversion, with a default width of 60 characters.
-- Custom output width or optional fitting to terminal width and height.
-- Optional ASCII borders for photos, text banners, GIFs, and videos.
-- Custom printable ASCII character palettes.
-- RGB foreground color output with a denser default palette.
-- Light/dark background mapping, with basic automatic selection and manual overrides.
-- Saving photo conversions as plain text, PNG pictures, or selectable HTML artwork, including optional colors and borders.
-- GIF playback once, continuously, or for a specified number of playbacks.
-- Saving GIF input as an animated ASCII GIF containing one complete animation, set to play once.
-- Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
-- Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
-- Animated, selectable HTML export for GIFs and videos, with Play, Pause, and Replay controls.
-- Experimental live local-camera ASCII, TXT/PNG/HTML snapshots, and timed GIF/HTML/silent MP4 recording, with camera selection, access checking, a snapshot countdown, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
-- Readable messages for common input, decoding, and file-saving errors.
+- Text banners and ASCII conversion for images, GIFs, and videos.
+- Experimental live camera, snapshots, and timed recording.
+- Colour, custom characters, borders, width control, and terminal fitting.
+- TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
+- Animation playback with continuous or counted loops.
 
 ## Setup
 

@@ -2807,3 +2807,8 @@ Validation confirmed everything from the Command guide onward is byte-for-byte u
 The user approved moving the README Running tests section to `docs/development.md`. Preserved both test commands and all coverage explanations in the development document. Replaced the README section body with a short development-guide link. All preceding README content, including the command guide, and the following license/credits and development-history content remain unchanged.
 
 Validation confirmed the complete testing section exists in its new location, all unaffected README content matches the previous text, and local file/heading links in both documents resolve. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Move testing instructions to development guide`. Nothing is pushed.
+
+
+## 85. Shorten the working features list
+
+The user approved a crisp feature summary. Replaced the fifteen README feature bullets with five covering supported text/media inputs, experimental camera snapshots/recording, visual controls, input-dependent export formats, and animation looping. All content outside Working features, including the command guide, remains unchanged. Verified exactly five bullets and an unchanged remainder; `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Condense README features into five bullets`. Nothing is pushed.
