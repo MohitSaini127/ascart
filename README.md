@@ -106,7 +106,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Text banners, side-by-side image comparisons, and ASCII conversion for images, GIFs, and videos.
+- Text banners, side-by-side image exports with experimental terminal preview, and ASCII conversion for images, GIFs, and videos.
 - Experimental live camera, snapshots, and timed recording.
 - Colour, custom characters, borders, width control, and terminal fitting.
 - TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
@@ -153,7 +153,7 @@ After [installation](#installation), run these commands from any folder using yo
 | `ascart photo.png --output output/image.txt` | Saves plain-text artwork and displays it. |
 | `ascart photo.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
 | `ascart photo.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
-| `ascart photo.png --compare --color` | Previews the original beside ASCII in a supported terminal; otherwise shows an export hint. |
+| `ascart photo.png --compare --color` | Experimental side-by-side terminal preview; shows an export hint if unavailable. |
 | `ascart photo.png --compare --color --output output/comparison.png` | Saves the original beside its ASCII version as a PNG. |
 | `ascart photo.png --compare --color --output output/comparison.html` | Saves an offline comparison webpage with selectable ASCII text. |
 
@@ -226,7 +226,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-For still images, `--compare` previews the original on the left and ASCII on the right in a supported terminal. Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG or HTML; saving works even when preview is unavailable. See the [comparison guide](docs/usage.md#image-comparison) for details.
+**Experimental terminal preview:** for still images, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG or HTML; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

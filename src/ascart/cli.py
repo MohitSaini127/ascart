@@ -135,7 +135,7 @@ def main():
     )
     parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4/.gif/.html with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
-    parser.add_argument("--compare", action="store_true", help="Preview a still image beside its ASCII art in a supported terminal; optionally save PNG or HTML with --output")
+    parser.add_argument("--compare", action="store_true", help="Experimental terminal preview of a still image beside ASCII art; optionally save PNG or HTML with --output (export needs no terminal image support)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(

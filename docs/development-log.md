@@ -2963,3 +2963,10 @@ OK
 ```
 
 README, usage, and credits local links/heading anchors resolve. `git diff --check` passed. Commit the six feature/documentation files as `Preview natively in Ghostty without Kitty helpers`. Nothing is pushed. Next manual check: run `.venv/bin/ascart examples/image1.png --compare --color` from the project folder inside Ghostty, ensuring the latest local code is used rather than an older pipx installation. Actual physical-terminal appearance remains a user check.
+
+
+## 95. Mark terminal comparison preview as experimental
+
+The user confirmed native comparison preview works in Ghostty, then requested an experimental label because support varies by terminal. Added the label to the README feature summary, preview command description, comparison note, usage reference, and --compare CLI help. Clearly separated experimental direct terminal display from PNG/HTML export, which does not require terminal image support. No rendering or saving behaviour changed.
+
+Validation: checked CLI help text and reran the focused comparison tests after the help wording change. `git diff --check` passed. The user's untracked comparison.png remains excluded. Commit as `Mark terminal comparison preview as experimental`. Nothing is pushed; the user wants to push once the comparison work is complete.

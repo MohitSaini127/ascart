@@ -40,6 +40,8 @@ Automatic background selection reads the last field of the `COLORFGBG` environme
 
 ## Image comparison
 
+**Experimental terminal preview:** direct side-by-side display is not supported in every terminal. PNG/HTML export remains available without terminal image support.
+
 Use `--compare` to preview a still image beside its ASCII artwork. Add a new `.png` or `.html` output filename to save it too:
 
 ```bash
@@ -52,7 +54,7 @@ The comparison labels the original on the left and ASCII artwork on the right. T
 
 Direct terminal preview first tries the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) natively on POSIX systems such as Linux/macOS. This supports terminals such as Ghostty and Kitty without installing another terminal or helper. Input and output must be interactive and attached to the same terminal. A bounded query checks support, reads the protocol and device-attributes replies, and restores terminal settings afterward. Terminal names or environment variables are not treated as proof of support.
 
-The native path sends the comparison PNG in base64 chunks of at most 4,096 bytes. The terminal fits it into a rectangle sized from its current columns and rows, preserving proportions. Space is reserved for the preview and the cursor is left below it. Replies are suppressed during image transfer so they do not become shell input. No user output file is created for preview-only commands. Physical Ghostty/Kitty display still needs manual verification; automated checks use private pseudo-terminals.
+The native path sends the comparison PNG in base64 chunks of at most 4,096 bytes. The terminal fits it into a rectangle sized from its current columns and rows, preserving proportions. Space is reserved for the preview and the cursor is left below it. Replies are suppressed during image transfer so they do not become shell input. No user output file is created for preview-only commands. Native preview has been confirmed in one Ghostty setup; other terminal versions and configurations remain unverified. Automated checks use private pseudo-terminals.
 
 If native probing is unavailable or fails, an installed [Kitty `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/) remains an optional fallback (`kitten icat` or legacy `kitty +kitten icat`). The preview displays the complete comparison as a PNG; its ASCII panel is an image, not selectable terminal text. Other graphics protocols, including SIXEL, are not implemented.
 
