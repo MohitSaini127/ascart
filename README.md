@@ -62,14 +62,14 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Standard, slanted, bold-looking, and named-font text banners, with width wrapping and text/PNG saving.
+- Standard, slanted, bold-looking, and named-font text banners, with width wrapping and TXT/PNG/HTML saving.
 - Photo-to-ASCII conversion, with a default width of 60 characters.
 - Custom output width or optional fitting to terminal width and height.
 - Optional ASCII borders for photos, text banners, GIFs, and videos.
 - Custom printable ASCII character palettes.
 - RGB foreground color output with a denser default palette.
 - Light/dark background mapping, with basic automatic selection and manual overrides.
-- Saving photo conversions as plain text or PNG pictures, including optional colors and borders.
+- Saving photo conversions as plain text, PNG pictures, or selectable HTML artwork, including optional colors and borders.
 - GIF playback once, continuously, or for a specified number of playbacks.
 - Saving GIF input as an animated ASCII GIF containing one complete animation, set to play once.
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
@@ -133,6 +133,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart --text "Hello" --border` | Adds an ASCII border. |
 | `ascart --text "Hello" --output output/hello.txt` | Saves the banner as text and displays it. |
 | `ascart --text-slant "Hello" --border --output output/hello.png` | Saves a bordered banner as a PNG and displays it. |
+| `ascart -t "Hello" --border --output output/hello.html` | Saves a selectable banner as a webpage and displays it. |
 
 ### Image commands
 
@@ -147,6 +148,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart examples/image1.png --background light` | Adjusts the character mapping for a light background. |
 | `ascart examples/image1.png --output output/image.txt` | Saves plain-text artwork and displays it. |
 | `ascart examples/image1.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
+| `ascart examples/image1.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
 
 ### GIF commands
 
@@ -173,7 +175,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 
 Keep these rules in mind:
 
-- Use a new output filename each time. Existing files are never overwritten, and output folders are created as needed. TXT output stays plain; PNG/GIF/MP4 output supports photo or frame colors.
+- Use a new output filename each time. Existing files are never overwritten, and output folders are created as needed. TXT output stays plain; PNG/HTML/GIF/MP4 output supports photo or frame colors.
 - GIF and MP4 files store one complete animation. `--loop`, `--loop-4`, and `--loop-count 4` affect only terminal playback. Saved GIFs request one playback; video players control their own repeat settings.
 - Terminal animation previews need an interactive terminal. Saving still works without one and skips playback. MP4 output has no audio.
 - Use either `--width` or `--fit`. GIFs and videos also accept the image options for width, fitting, custom characters, and backgrounds. Text banners support width, border, and output, but reject media-only options such as color and fit.
@@ -182,13 +184,13 @@ Keep these rules in mind:
 
 Choose exactly one text-input option or a photo/GIF/video path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
 
-`-t` is a short form of `--text`: `ascart -t "Hello"` produces the same standard banner. Both forms support width, borders, and TXT/PNG saving, for example `ascart -t "Hi" --border --output output/hi.png`. Use `--text-slant` or `--text-bold` directly for those styles; they are separate text-input choices.
+`-t` is a short form of `--text`: `ascart -t "Hello"` produces the same standard banner. Both forms support width, borders, and TXT/PNG/HTML saving, for example `ascart -t "Hi" --border --output output/hi.png`. Use `--text-slant` or `--text-bold` directly for those styles; they are separate text-input choices.
 
 The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected. Text-input options cannot be combined with each other.
 
 `--text-slant` uses the original right-leaning font design. Separate direction options are not supported.
 
-Text mode supports `--width`, `--output`, and `--border`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, including the border when selected. Saving requires a new `.txt` or `.png` filename; existing files are never overwritten. Banner color is not implemented; banner PNGs use white characters on black.
+Text mode supports `--width`, `--output`, and `--border`. Photo/GIF/video options (`--fit`, `--color`, `--chars`, manual background selection, and looping) are rejected for banners. Saved files contain the same banner as terminal output, including the border when selected. Saving requires a new `.txt`, `.png`, or `.html` filename; existing files are never overwritten. Banner color is not implemented; banner PNGs and HTML pages use white characters on black.
 
 ## Photo conversion
 
@@ -202,13 +204,13 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 | `--width NUMBER` | Choose a positive width in character columns. |
 | `--fit` | Fit both terminal dimensions, reserving one column and two rows. Cannot be combined with `--width`. |
 | `--border` | Add a plain ASCII frame around the artwork. Off by default; also works for text banners and animation frames. |
-| `--color` | Use RGB foreground colors in PNG pictures or a compatible terminal. Saved `.txt` files stay plain. |
+| `--color` | Use RGB foreground colors in PNG pictures, HTML pages, or a compatible terminal. Saved `.txt` files stay plain. |
 | `--chars "CHARACTERS"` | Choose a non-empty palette of printable ASCII characters, ordered from least to most visually dense. Quote spaces. |
 | `--background auto` | Default: use a limited terminal background hint, with a dark fallback. |
 | `--background light` or `--background dark` | Manually choose brightness mapping. |
-| `--output PATH` | Show the artwork in the terminal and save it as UTF-8 plain text (`.txt`) or a PNG picture (`.png`), creating parent folders as needed. Existing destinations and input-file aliases are rejected. |
+| `--output PATH` | Show the artwork in the terminal and save it as UTF-8 plain text (`.txt`), a PNG picture (`.png`), or a webpage (`.html`), creating parent folders as needed. Existing destinations and input-file aliases are rejected. |
 
-Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal, PNG, and GIF output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `.txt` output, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
+Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal, PNG, HTML, GIF, and MP4 output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `.txt` output, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
 Brightness values from 0 through 255 are divided into near-equal bands across the palette. For the three-character color palette, `#` covers 0–85, `%` covers 86–170, and `@` covers 171–255 before any light-background reversal. Similar brightness values still produce repeated characters; adding more characters does not automatically improve clarity, and apparent character density depends on the terminal font.
 
@@ -231,6 +233,26 @@ Photo PNGs use black backgrounds with white characters in dark mode, or white ba
 
 PNG pictures larger than 20 million pixels are rejected before allocation; reduce `--width` or shorten the banner text. GIF input saves only as `.gif`, while video input saves only as `.mp4`. Cross-format animation export and individual-frame export are not implemented.
 
+## HTML export
+
+Save photos and text banners as standalone webpages using a new `.html` filename:
+
+```bash
+ascart examples/image1.png --color --border --output output/penguin.html
+ascart examples/image1.png --background light --output output/penguin-light.html
+ascart examples/image1.png --fit --chars " .:*#@" --output output/penguin-custom.html
+ascart -t "Hello" --border --output output/hello.html
+ascart --text-slant "Hello" --output output/slanted.html
+```
+
+Open the saved file in a web browser. Its ASCII characters stay selectable and copyable, with spaces, blank rows, and optional borders preserved. Photos support the existing width/fit, character palette, color, and background options. Banner styles and wrapping are preserved; banners keep their existing restrictions on media-only options and use white text on black.
+
+HTML uses a fixed-width browser font rather than pixels, so its appearance can differ slightly from your terminal or PNG output. Source RGB foreground colors are converted to inline color styles, and color resets keep borders neutral. Dark photo mode uses white text on black; light mode uses black text on white. Automatic mode uses the same terminal hint as other photo output. Image colors themselves are not inverted.
+
+Each file includes its own styles and needs no internet connection, JavaScript, external fonts, or additional Python packages. Characters such as `<`, `>`, quotes, and `&` are escaped so they display as artwork rather than HTML markup. The output contains the ASCII artwork, not the original photo or its source path.
+
+After saving, the artwork is also printed in the terminal, followed by the output location. Existing files and input aliases are rejected, including files appearing during saving. Parent folders are created as needed. `.HTML` also works; `.htm` is not currently supported. GIF/video input cannot save as HTML yet. A write failure may leave a partial new file, as with other text exports.
+
 ## Optional border
 
 Add `--border` to a photo, text, GIF, or video command to frame the artwork with ordinary ASCII characters:
@@ -242,7 +264,7 @@ Add `--border` to a photo, text, GIF, or video command to frame the artwork with
 +-----+
 ```
 
-Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner `.txt`/`.png` output and saved GIF/MP4 frames include the border.
+Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner TXT/PNG/HTML output and saved GIF/MP4 frames include the border.
 
 `--width` describes the artwork inside the frame; a 60-column image becomes 62 columns wide with the border. Banner width still controls wrapping, and its frame surrounds the longest rendered row. The border adds two rows as well. For photos/GIFs/videos, `--fit --border` reserves those extra dimensions within the existing terminal margins. A terminal smaller than four columns by five rows is rejected in this mode. Text banners still do not support `--fit`.
 
@@ -261,7 +283,7 @@ Playback requires an interactive terminal supporting ANSI screen and cursor cont
 
 Frame durations come from the GIF in milliseconds. Missing or zero timing uses a 100 ms fallback. Terminal playback follows the command-line loop choice rather than the GIF's loop metadata.
 
-Use a new `.gif` output filename to save the complete converted animation. Existing files, input-file aliases, and symbolic links are rejected. Parent folders are created as needed. `.GIF` also works. GIF input does not currently save as `.txt` or `.png`; photo/banner input does not save as `.gif`.
+Use a new `.gif` output filename to save the complete converted animation. Existing files, input-file aliases, and symbolic links are rejected. Parent folders are created as needed. `.GIF` also works. GIF input does not currently save as `.txt`, `.png`, or `.html`; photo/banner input does not save as `.gif`.
 
 The output stores one pass of the source frames with their timings. It omits GIF repeat metadata, requesting one playback even if the source repeats forever. `--loop`, `--loop-4`, and `--loop-count` control only the terminal preview; they never duplicate saved frames or change the saved GIF's repeat behavior. No saved-loop setting is offered yet. External viewers can override a GIF's playback behavior.
 
@@ -279,11 +301,11 @@ GIF also limits each picture dimension to 65,535 pixels. Oversized rendered fram
 
 | Combination | Result |
 | --- | --- |
-| Photo: color + border + custom characters + width or fit + PNG output | Supported; the saved picture and terminal preview use the selected artwork. |
+| Photo: color + border + custom characters + width or fit + PNG or HTML output | Supported; the saved artwork and terminal preview use the selected options. |
 | Photo: color + text-file output | Supported, but the saved text and preview are plain characters. |
 | GIF: color + border + custom characters + width or fit + GIF output + terminal loop count | Supported; the file stores one animation, independently of terminal repeats. |
 | Video: color + border + custom characters + width or fit + MP4 output + terminal loops | Supported; the saved video contains one pass without audio. |
-| Text: banner style + width + border + TXT or PNG output | Supported. |
+| Text: banner style + width + border + TXT, PNG, or HTML output | Supported. |
 | Width + fit, or continuous loop + counted loop | Rejected: choose one sizing method and one loop mode. |
 | Text banners + color, fit, custom characters, manual background, or looping | Rejected: those options apply to media conversion. |
 
@@ -309,7 +331,7 @@ For each repeat, the previous video reader is closed and a new one opens the fil
 
 For inspection from Python, `ascart.video_art.inspect_video(path)` returns dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. Duration is estimated from frame count divided by FPS.
 
-Use a new `.mp4` output filename to save one complete ASCII video without audio. `.MP4` also works. Any decodable video input, including supported AVI files, can produce MP4 output. Video input does not save as `.gif`, `.txt`, or `.png`; GIF input does not save as MP4.
+Use a new `.mp4` output filename to save one complete ASCII video without audio. `.MP4` also works. Any decodable video input, including supported AVI files, can produce MP4 output. Video input does not save as `.gif`, `.txt`, `.png`, or `.html`; GIF input does not save as MP4.
 
 Each decoded frame becomes ASCII text and then a picture using the same fixed-width font, padding, backgrounds, and optional colors/borders as PNG saving. OpenCV encodes those pictures with `mp4v` at the source's reported FPS. Missing or invalid FPS produces a warning and uses 30 FPS. The rendered pixel dimensions are even, as required by the encoder. Frames are processed one at a time, and every saved frame must have the same dimensions. Lossy video compression may slightly change character edges and RGB colors. MP4 viewers choose their own repeat behavior; the file contains no duplicated terminal playback passes.
 
@@ -340,7 +362,7 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 | File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
 | Destination already exists | Choose a new output filename; ascart does not overwrite or automatically number files. |
 | Output must not point to the input file | Use a different destination, not the source or a link to it. |
-| Output supports only .txt/.png for photos/banners, .gif for GIF input, or .mp4 for video input | Match the output format to the input. |
+| Output supports only .txt/.png/.html for photos/banners, .gif for GIF input, or .mp4 for video input | Match the output format to the input. |
 | GIF output supports only .gif files | Use a new `.gif` filename for GIF input. |
 | Video output supports only .mp4 files | Use a new `.mp4` filename for video input. |
 | MP4 encoding is unavailable | The OpenCV installation needs an available `mp4v` encoder. |
@@ -350,7 +372,7 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 
 If Pillow cannot identify a photo/GIF, ascart checks whether OpenCV can decode a video frame before treating the input as a video. This avoids reporting video-only option errors for an unrelated or unreadable media file. This check does not verify every frame in a video.
 
-Photo and text saving share the same rules. Without `--output`, artwork is displayed in the terminal. With `--output`, artwork is saved and then displayed in the terminal, followed by the saved-file location. A non-empty path ending in `.txt` or `.png` is required (uppercase extensions also work). The terminal preview uses the same artwork: `.txt` saves and previews remain plain, while colored PNG saves also show colored characters in the terminal. If saving fails, ascart reports the error without printing a preview or success message. Quote paths containing spaces. Empty or whitespace-only arguments and unsupported extensions are rejected before conversion or folder creation. Repeating a save command with the same destination produces an error; choose a new filename.
+Photo and text saving share the same rules. Without `--output`, artwork is displayed in the terminal. With `--output`, artwork is saved and then displayed in the terminal, followed by the saved-file location. A non-empty path ending in `.txt`, `.png`, or `.html` is required (uppercase extensions also work). The terminal preview uses the same artwork: `.txt` saves and previews remain plain, while colored PNG/HTML saves also show colored characters in the terminal. If saving fails, ascart reports the error without printing a preview or success message. Quote paths containing spaces. Empty or whitespace-only arguments and unsupported extensions are rejected before conversion or folder creation. Repeating a save command with the same destination produces an error; choose a new filename.
 
 Input/output aliases, existing files, directories, and existing symbolic links are rejected as destinations. Parent folders are created when possible. Files are opened in exclusive creation mode, which also refuses replacement if a destination appears after validation. Input media is opened for reading. A failure during writing or closing can leave a partial new file, but no success message is printed and existing files are not overwritten. These protections also apply to GIF and MP4 saving. Automatic numbering and overwriting are not implemented.
 
@@ -398,6 +420,8 @@ GIF export tests read back actual saved animations to check frame timing, source
 The combination suite exercises 1,344 option combinations: 216 photo cases, 864 GIF cases (including expected non-interactive playback rejections), 216 real MP4 playback cases, and 48 text-banner cases. It crosses colors, borders, automatic/manual backgrounds, default/custom palettes, default/explicit/fitted sizing, supported save formats, terminal availability, and loop modes where applicable. It checks displayed grids and reopens saved files to verify dimensions, timing, and one-pass GIF metadata. Additional cases check invalid combinations, option-like text, background hints, and malformed paths. Source-media SHA-256 hashes must remain unchanged. This covers the listed scenarios; it is not a guarantee for every possible file or codec.
 
 Short-text alias tests compare `-t` with `--text` across widths, borders, and terminal/TXT/PNG output, including identical saved contents. They also check help text, literal option-like text, invalid values, and incompatible input modes.
+
+HTML tests parse exported pages to check selectable characters, escaping, whitespace/blank rows, colors and resets, neutral borders, and standalone markup. They include 48 photo-option combinations and 20 banner combinations, including -t, width, fitting, borders, backgrounds, and custom palettes with HTML-special characters. Other checks cover animation rejection, uppercase extensions, existing destinations/links, competing creation, rendering failures, permissions, partial writes, and unchanged source media.
 
 MP4 export tests add 32 saved-video rendering combinations, reopen real encoded MP4s, and check dimensions, frame count, FPS, color order, source preservation, and temporary-file cleanup. They cover AVI input, terminal-loop independence, interrupted playback, non-interactive saving, unsupported format combinations, existing files and links, competing destination creation, unavailable/failing encoders, incomplete encoding, missing FPS, permission failures, source interruption, and partial-copy errors.
 

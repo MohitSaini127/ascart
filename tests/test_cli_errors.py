@@ -180,7 +180,7 @@ class CliFileErrorTests(unittest.TestCase):
                     self.assertEqual(code, 2)
                     self.assertEqual(output, "")
                     self.assertIn("--output must not be empty", errors)
-            for suffix in ("gif", "mp4", "jpg", "html", ""):
+            for suffix in ("gif", "mp4", "jpg", "svg", ""):
                 target = self.root / "not-created" / (f"art.{suffix}" if suffix else "art")
                 with self.subTest(inputs=inputs, suffix=suffix):
                     code, output, errors = self.run_cli(*inputs, "--output", target)

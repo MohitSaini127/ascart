@@ -13,6 +13,7 @@ from ascart import __version__
 from ascart.border import add_border
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_to_ascii, play_gif, save_ascii_gif
+from ascart.html_art import art_to_html
 from ascart.image_art import inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
@@ -48,8 +49,8 @@ def validate_output(output, input_path, parser):
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
     except (OSError, ValueError) as error:
         report_file_error(parser, "Cannot validate output", output, error)
-    if output_path.suffix.lower() not in (".txt", ".png", ".gif", ".mp4"):
-        parser.error("--output supports only .txt/.png for photos/banners, .gif for GIF input, or .mp4 for video input")
+    if output_path.suffix.lower() not in (".txt", ".png", ".html", ".gif", ".mp4"):
+        parser.error("--output supports only .txt/.png/.html for photos/banners, .gif for GIF input, or .mp4 for video input")
 
 
 def display_art(art, output, parser, background="dark"):
@@ -59,6 +60,7 @@ def display_art(art, output, parser, background="dark"):
             # Render before creating a destination, so rendering errors leave
             # no empty output file behind.
             picture = art_to_png(art, background) if output_path.suffix.lower() == ".png" else None
+            document = art_to_html(art, background) if output_path.suffix.lower() == ".html" else None
             output_path.parent.mkdir(parents=True, exist_ok=True)
         except (OSError, ValueError) as error:
             report_file_error(parser, "Cannot save artwork to", output_path, error)
@@ -68,7 +70,7 @@ def display_art(art, output, parser, background="dark"):
                     picture.save(file, format="PNG")
             else:
                 with output_path.open("x", encoding="utf-8") as file:
-                    file.write(art + "\n")
+                    file.write(document if document is not None else art + "\n")
         except FileExistsError:
             parser.error(f"Cannot save artwork to {output!r}: destination already exists; choose a new filename")
         except OSError as error:
@@ -106,7 +108,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save and display artwork: .txt/.png for photos or banners, .gif for GIF input, .mp4 for videos; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos or banners, .gif for GIF input, .mp4 for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -114,7 +116,7 @@ def main():
         "--loop-count", type=int, help="Total terminal GIF or video playbacks; --loop-4 means --loop-count 4; saved animations contain one pass"
     )
     parser.add_argument(
-        "--color", action="store_true", help="Use source colors in the terminal, PNG, GIF, or MP4 output (saved text stays plain)"
+        "--color", action="store_true", help="Use source colors in terminal, PNG, HTML, GIF, or MP4 output (saved text stays plain)"
     )
     parser.add_argument(
         "--chars",
@@ -157,7 +159,7 @@ def main():
     output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
     if args.text is not None:
         if output_suffix in (".gif", ".mp4"):
-            parser.error("Photo and text output supports only .txt and .png files")
+            parser.error("Photo and text output supports only .txt, .png, and .html files")
         args.text, text_font = args.text
         if not args.text.strip():
             parser.error("--text must not be empty or whitespace only")
@@ -294,7 +296,7 @@ def main():
         return
 
     if output_suffix in (".gif", ".mp4"):
-        parser.error("Photo and text output supports only .txt and .png files")
+        parser.error("Photo and text output supports only .txt, .png, and .html files")
     if args.loop or args.loop_count is not None:
         parser.error("Loop options are only supported for GIF and video files")
     try:

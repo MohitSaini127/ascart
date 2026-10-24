@@ -2042,3 +2042,78 @@ OK
 Ran `.venv/bin/ascart -V`; it printed `ascart 0.1.0` and exited successfully. `git diff --check` passed. The previous full suite passed all 120 tests in section 61; this one-option alias change was verified with the expanded focused version tests rather than repeating all media matrices.
 
 The four changed files are staged and committed as `Add -V shortcut for version reporting`, following the user's workflow. Nothing is pushed; HTML export remains the next planned feature.
+
+## 63. Export selectable ASCII artwork as HTML — 24 October 2026
+
+The -V shortcut was committed as `8794e8b`. The user approved implementing HTML export for images and text banners, followed by testing, documentation updates, staging, and a separate commit. GIF/video HTML export remains outside this milestone. The working tree was clean before this work; no push is part of it.
+
+### Rendering and saving
+
+Added src/ascart/html_art.py with `art_to_html(art, background="dark")`. It uses Python's standard-library html.escape and re modules plus the existing ANSI color-code pattern. No external package is required.
+
+The renderer splits generated artwork into text and color instructions. Plain text is escaped so `<`, `>`, `&`, and quotes display as characters instead of introducing webpage markup. RGB foreground instructions become inline span styles using their numeric color values. Reset instructions restore the default inherited color, keeping border characters neutral. Unsupported color instructions and out-of-range RGB values raise readable rendering errors before destination creation.
+
+The document includes a doctype, UTF-8 charset, viewport metadata, title, and its own stylesheet. A preformatted code block preserves spaces, rows, and selectable characters. Nesting code inside pre also prevents the browser's special initial-newline handling for pre from removing a deliberate blank first row. The font is fixed-width, ligatures are disabled, and no wrapping is introduced. Dark mode uses a black canvas/white default characters; light mode uses white/black. Photo colors retain their source RGB values. The file contains no script, external font, image, stylesheet, or source filename/path and can be opened offline.
+
+In src/ascart/cli.py, allowed case-insensitive .html output and documented it in help/error text. Photos and all text-banner styles can save HTML; GIFs and videos continue rejecting it before output-folder creation. Existing --color handling remains enabled for HTML, using the color palette unless overridden. Text banners keep their previous option restrictions and default white-on-black presentation.
+
+The shared display_art function now prepares an HTML document before creating folders or opening a destination. HTML uses the existing exclusive UTF-8 text creation mode, `"x"`, so existing destinations and files appearing after validation cannot be replaced. Input aliases, directories, and symbolic links retain their protections. After saving, the original artwork is printed to the terminal and the location is reported. A failed write can leave a partial newly created file, consistent with TXT saving, but does not print a success message or overwrite existing user data.
+
+README.md now includes HTML commands in the text/image guide, a dedicated HTML export section, and updated format/color/border/combination/error documentation. It explains selectable output, fixed-width browser fonts, escaping, supported options, offline use, format restrictions, and safe saving. No runtime dependency, ignore rule, version declaration, or media asset was changed.
+
+### Tests and real command checks
+
+Added tests/test_html_art.py with 13 test methods. An HTMLParser helper extracts the code block and color spans without including document titles or styles. Tests require exact recovered artwork, including special characters, leading/trailing spaces, blank first/last rows, and color resets. Other checks cover neutral borders, dark/light defaults, black/white RGB strokes, unsupported color instructions, and absence of active/external content.
+
+Integration coverage includes 48 image combinations (color, border, dark/light/auto backgrounds, normal/special-character palettes, and width/fit) and 20 text combinations (standard, -t, slant, bold, named-small font, widths, and borders). Saved HTML text must match the terminal preview after stripping ANSI colors, and source bytes remain unchanged. Tests also cover uppercase extensions and paths with spaces, rejected GIF/video exports with loops, existing files and links, competing creation, rendering errors before folder creation, permissions, partial writes, and propagation of unexpected programming errors.
+
+Updated tests/test_cli_errors.py to use SVG rather than HTML as an unsupported extension. All test output stays in temporary directories.
+
+Focused command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_html_art.py -v
+```
+
+Actual output ended with:
+
+```text
+Ran 13 tests in 1.465s
+
+OK
+```
+
+Full-suite command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 133 tests in 22.358s
+
+OK
+```
+
+A temporary script invoked the real module commands and captured their terminal artwork:
+
+```bash
+.venv/bin/python -B -m ascart examples/image1.png --width 40 --color --border --background dark --output /tmp/ascart-html-review-61cguqhm/penguin.html
+.venv/bin/python -B -m ascart -t Hello --border --output /tmp/ascart-html-review-61cguqhm/banner.html
+```
+
+Output summaries:
+
+```text
+Saved ASCII art to /tmp/ascart-html-review-61cguqhm/penguin.html
+HTML size: 40385 bytes
+Saved ASCII art to /tmp/ascart-html-review-61cguqhm/banner.html
+HTML size: 729 bytes
+Source unchanged: True
+```
+
+The script compared the source image's SHA-256 before and after. No project preview asset was created. A browser visual check could not be completed: local Firefox's help command exited 139, and the browser tool explicitly blocked file:// navigation because only HTTP/HTTPS URLs were allowed. No workaround was attempted. The saved document structure and exact selectable text/colors were verified through parsing; actual browser appearance remains for user review by opening an exported file locally.
+
+Whitespace and README internal-link checks passed. Per the agreed workflow, the six milestone files are staged and committed with `Add HTML export for photo and text ASCII art`. Nothing is pushed. Live webcam ASCII is the next planned feature.
