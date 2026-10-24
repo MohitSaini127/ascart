@@ -12,7 +12,7 @@ ascart is a Python command-line learning project that creates text banners and c
 
 The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
 
-[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands)
+[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [License and credits](#license-and-credits)
 
 ## Preview
 
@@ -391,6 +391,25 @@ The combination suite exercises 1,344 option combinations: 216 photo cases, 864 
 MP4 export tests add 32 saved-video rendering combinations, reopen real encoded MP4s, and check dimensions, frame count, FPS, color order, source preservation, and temporary-file cleanup. They cover AVI input, terminal-loop independence, interrupted playback, non-interactive saving, unsupported format combinations, existing files and links, competing destination creation, unavailable/failing encoders, incomplete encoding, missing FPS, permission failures, source interruption, and partial-copy errors.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
+
+## License and credits
+
+ascart's original source code and documentation are licensed under the [MIT License](LICENSE), copyright (c) 2026 Mohit Saini. Third-party libraries, font designs, and images retain their own licenses and notices; ascart's license does not replace those terms.
+
+Thanks to the projects that make ascart possible:
+
+| Project | Used for | License information |
+| --- | --- | --- |
+| [Pillow](https://github.com/python-pillow/Pillow) | Reading images/GIFs, resizing frames, and drawing ASCII pictures. | [Pillow license and bundled notices](https://github.com/python-pillow/Pillow/blob/main/LICENSE) |
+| [pyfiglet](https://github.com/pwaller/pyfiglet) | Rendering text banners with FIGlet fonts. | [pyfiglet MIT license](https://github.com/pwaller/pyfiglet/blob/main/LICENSE); font files can have additional notices. |
+| [OpenCV / opencv-python-headless](https://github.com/opencv/opencv-python) | Decoding video and encoding silent MP4 output. | [Package, OpenCV, and bundled-component licensing](https://github.com/opencv/opencv-python#licensing) |
+| [NumPy](https://numpy.org/) | Representing and converting video-frame pixels; installed with OpenCV. | [NumPy license](https://numpy.org/doc/stable/license.html); installed packages also include bundled-component notices. |
+
+The banner fonts are credited in their font-file headers: `standard` was created by Glenn Chappell and Ian Chai; `slant` by Glenn Chappell, based on Standard; and `banner3` by Merlin Greywolf. Thanks also to their later contributors and the original FIGlet project. See [pyfiglet's font notes](https://github.com/pwaller/pyfiglet#faq) and the notices in the installed font files for details. Font files are supplied by pyfiglet rather than copied into this repository.
+
+The bundled Tux image and its ASCII preview are based on the credited [CC0 sample](#photo-conversion). Its upstream credits and CC0 notice remain separate from ascart's MIT license.
+
+Dependencies are installed separately. These credits acknowledge their authors; they do not replace the license texts and notices required when redistributing third-party software. A future bundled executable must retain the applicable library, font, and bundled-component notices.
 
 ## Development history
 
