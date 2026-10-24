@@ -2834,3 +2834,8 @@ Validation confirmed only the two approved credit passages changed and local fil
 ## 89. Move the version-information paragraph to the development guide
 
 The user explicitly approved moving the paragraph below the general commands table and above the Text commands heading, as an exception to leaving the command guide unchanged. Moved it under Version information in docs/development.md. Kept the --version and -V table rows, all other command tables, and the final --help example unchanged. The moved Setup link resolves locally in the development guide. Verified the paragraph removal is the only README change and the moved text is preserved. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Move version metadata explanation to development guide`. Nothing is pushed.
+
+
+## 90. Use personal-image placeholders in the command guide
+
+The user approved replacing examples/image1.png with photo.png in the image command table so pipx users can supply their own files. Updated all ten image examples and the first row's description, and adjusted the command-guide introduction to explain all personal-media placeholders. Kept the actual Tux image path in the preview. All other README content remains unchanged. Verified the ten replacements and exact preservation of the remaining content; `git diff --check` passed. Documentation only; commands use the same previously reviewed options and application tests were not rerun. Commit as `Use personal image paths in README command examples`. Nothing is pushed.

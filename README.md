@@ -118,7 +118,7 @@ Want to modify ascart? See the [development guide](docs/development.md#setup).
 
 ## Command guide
 
-After [installation](#installation), run these commands from any folder using your own media paths. Replace `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Image examples use `examples/image1.png`, which is available in a repository clone; pipx users should replace it with a path to their own image. Quote paths containing spaces. If using the [source setup](#setup) instead, activate that environment before running commands.
+After [installation](#installation), run these commands from any folder using your own media paths. Replace `photo.png`, `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Quote paths containing spaces. If using the [source setup](#setup) instead, activate that environment before running commands.
 
 | General command | What it does |
 | --- | --- |
@@ -147,16 +147,16 @@ After [installation](#installation), run these commands from any folder using yo
 
 | Command | What it does |
 | --- | --- |
-| `ascart examples/image1.png` | Converts the sample image at the default width of 60 characters. |
-| `ascart examples/image1.png --width 40` | Uses 40 character columns. |
-| `ascart examples/image1.png --fit` | Fits the artwork inside the terminal. |
-| `ascart examples/image1.png --color` | Uses colors from the image. |
-| `ascart examples/image1.png --border` | Adds an ASCII border. |
-| `ascart examples/image1.png --chars " .:*#@"` | Uses your chosen character palette. |
-| `ascart examples/image1.png --background light` | Adjusts the character mapping for a light background. |
-| `ascart examples/image1.png --output output/image.txt` | Saves plain-text artwork and displays it. |
-| `ascart examples/image1.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
-| `ascart examples/image1.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
+| `ascart photo.png` | Converts your image at the default width of 60 characters. |
+| `ascart photo.png --width 40` | Uses 40 character columns. |
+| `ascart photo.png --fit` | Fits the artwork inside the terminal. |
+| `ascart photo.png --color` | Uses colors from the image. |
+| `ascart photo.png --border` | Adds an ASCII border. |
+| `ascart photo.png --chars " .:*#@"` | Uses your chosen character palette. |
+| `ascart photo.png --background light` | Adjusts the character mapping for a light background. |
+| `ascart photo.png --output output/image.txt` | Saves plain-text artwork and displays it. |
+| `ascart photo.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
+| `ascart photo.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
 
 ### GIF commands
 
