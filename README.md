@@ -18,16 +18,10 @@ The main purpose is to understand Python, image processing, code organization, G
 
 You need Python 3.11+, Git, and [pipx](https://pipx.pypa.io/stable/how-to/install-pipx.html).
 
-On macOS with Homebrew:
+On Ubuntu/Debian:
 
 ```bash
-brew install pipx
-pipx ensurepath
-```
-
-On Debian/Ubuntu:
-
-```bash
+sudo apt update
 sudo apt install pipx
 pipx ensurepath
 ```
@@ -39,7 +33,21 @@ sudo dnf install pipx
 pipx ensurepath
 ```
 
-For Windows and other systems, follow the [pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html).
+On macOS with Homebrew:
+
+```bash
+brew install pipx
+pipx ensurepath
+```
+
+On Windows (PowerShell, with Python's `py` launcher installed):
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+```
+
+For other systems, follow the [pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html).
 
 Open a new terminal after `ensurepath`, then install and run:
 

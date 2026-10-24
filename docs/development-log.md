@@ -2765,3 +2765,12 @@ Validation: `git diff --check` passed without output. Reviewed the new Installat
 The user supplied a screenshot and requested a short installation guide in that style. Replaced the longer README Installation section with one prerequisites sentence, copyable pipx setup blocks for macOS, Debian/Ubuntu, and Fedora, a pipx documentation link for Windows/other systems, and a final GitHub installation plus `ascart -t "HI"` example. Kept the instruction to open a new terminal after ensurepath and clarified that manual environment activation is unnecessary. Removed the extra explanations and maintenance commands from this section. The existing source Setup section remains for the separate relocation step.
 
 Validation: reviewed the Installation navigation anchor and GitHub URL, and ran `git diff --check` successfully. Documentation only; no installation commands were executed and application tests were not rerun. Commit as `Simplify README installation instructions`. Nothing is pushed.
+
+
+## 79. Add Windows pipx commands and reorder installation platforms
+
+The user requested copyable Windows commands and this order: Ubuntu/Debian, Fedora, macOS, Windows. Reordered the short README installation blocks and added a PowerShell block using `py -m pip install --user pipx` followed by `py -m pipx ensurepath`, explicitly requiring Python's py launcher. Added `sudo apt update` before the Ubuntu/Debian package installation. Kept the new-terminal instruction and common GitHub installation/banner example.
+
+Checked Linux/macOS commands, current Python requirements, terminal restart, and Git-based installation against the [official pipx guide](https://pipx.pypa.io/stable/how-to/install-pipx.html). Checked the Windows module invocation against the [Python Packaging User Guide](https://packaging.python.org/en/latest/guides/installing-stand-alone-command-line-tools/). This verifies documented syntax and prerequisites, not execution on each operating system.
+
+A read-only Python check confirmed platform order, the Windows command pair, the installation URL matching `git remote get-url origin`, and balanced code fences. Actual output: `Checked platform order, Windows commands, GitHub URL, and paired code fences.` `git diff --check` passed without output. No packages were installed or application code changed; application tests were not rerun. Commit as `Add Windows pipx setup and reorder installation guide`. Nothing is pushed.
