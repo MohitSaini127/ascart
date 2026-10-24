@@ -2475,3 +2475,44 @@ OK
 ```
 
 All 177 tests and git diff --check passed. Stage the five changed files and commit as `Preview live ASCII during camera snapshot countdown`, following the agreed workflow. Nothing is pushed. Actual terminal appearance on the user's webcam remains for manual review with a new output filename.
+
+
+## 72. Smoother PNG characters after the bold-export report
+
+The user asked about colour in TXT and reported exported artwork looking much bolder than terminal output, then confirmed the affected format was PNG. Confirmed existing TXT behaviour: --color is accepted but plain-text saving and its preview intentionally have no colour formatting. PNG's old renderer used Pillow's built-in 6-by-11 bitmap font and nearest-neighbour 2x enlargement, causing blocky, thick character strokes. This is a picture-font difference rather than different ASCII characters in the converter.
+
+Updated png_art.art_to_png to use Pillow's embedded regular scalable font for PNG exports. It draws antialiased glyph masks at row height suitable for the existing fixed 12-by-22 character grid and 12-pixel padding. Glyphs share a baseline, are centred in cells, and wide glyph masks are fitted horizontally using Lanczos resampling. A small per-image glyph cache avoids drawing the same mask repeatedly for every coloured character. Colours use the supplied RGB foreground with edge pixels blended against the background. The exact terminal font is not known, so this improves regularity/thickness without promising an exact terminal match.
+
+The first candidate used small 12-pixel glyphs; visual inspection showed excessive empty space. The final candidate uses 18-pixel regular glyphs contained within the same cells. Printed-character tests check nonempty glyphs and no ink spilling into adjacent space cells. A sample of @%# uses less ink than the old enlarged bitmap and has intermediate antialiasing values. Existing monochrome tests were updated to check neutral grayscale edges rather than requiring only black/white pixels; a neutral-border test likewise accepts smooth gray coverage.
+
+Added a keyword-only smooth parameter, enabled by default for PNG. GIF and MP4 call the renderer with smooth=False to retain their previous bitmap appearance and encoding inputs. If Pillow lacks FreeType, smooth PNG falls back to the bitmap renderer rather than adding a font dependency or preventing export. No system font is searched, no downloaded/bundled font file is added, and no Pillow/dependency/version change is required. Output dimensions, cell positions, canvas colours, limits, paths, file protection, and ASCII conversion stay unchanged. TXT/HTML and live terminal rendering are unaffected.
+
+README.md now explains regular PNG drawing, cell fitting, antialiased edges, fallback behaviour, and remaining terminal-font differences. GIF/MP4 paragraphs explicitly describe their retained bitmap rendering. While editing that section, corrected a stale PNG-section sentence that omitted the already supported animated HTML exports. Added three PNG test methods for smoother/lighter strokes, all printable ASCII glyphs staying within their cells, and byte-identical bitmap fallback without FreeType.
+
+Generated a comparison from the existing Tux source in /tmp/ascart-png-font-review-rw93v43p. before.png contains the previous bitmap result, after.png the new renderer, and comparison.png shows them side by side with labels. They use the exact same bordered ASCII string and source RGB values. Visual inspection confirmed thinner regular strokes with the same dimensions and aligned grid. These temporary files are outside the project and are not staged; no source or tracked preview image was replaced and no webcam was accessed.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_png_art.py
+```
+
+```text
+Ran 13 tests in 0.419s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 180 tests in 26.495s
+
+OK
+```
+
+All 180 tests and git diff --check passed. Stage the six changed files and commit as `Render PNG exports with smoother regular characters`, following the agreed workflow. Nothing is pushed. User review can use a new PNG snapshot filename; existing saved images are not modified automatically.

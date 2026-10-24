@@ -16,7 +16,7 @@ def save_ascii_gif(frames, path, background="dark"):
     durations = []
     try:
         for art, duration in frames:
-            with art_to_png(art, background) as picture:
+            with art_to_png(art, background, smooth=False) as picture:
                 # GIF allows up to 256 colors per frame. Avoid dithering so
                 # plain character strokes do not acquire speckled patterns.
                 pictures.append(picture.convert(

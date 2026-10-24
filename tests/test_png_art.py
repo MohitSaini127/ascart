@@ -14,6 +14,31 @@ from ascart.png_art import art_to_png
 
 
 class PngRenderingTests(unittest.TestCase):
+    def test_regular_font_has_smooth_edges_and_less_ink_than_enlarged_bitmap(self):
+        with art_to_png("@%#") as smooth, art_to_png("@%#", smooth=False) as bitmap:
+            self.assertEqual(smooth.size, bitmap.size)
+            smooth_ink = list(smooth.convert("L").get_flattened_data())
+            bitmap_ink = list(bitmap.convert("L").get_flattened_data())
+            self.assertTrue(any(0 < value < 255 for value in smooth_ink))
+            self.assertLess(sum(smooth_ink), sum(bitmap_ink))
+            self.assertEqual(set(bitmap_ink), {0, 255})
+
+    def test_printable_glyphs_stay_in_their_cells_and_leave_spaces_empty(self):
+        characters = "".join(chr(value) for value in range(33, 127))
+        with art_to_png(" ".join(characters)) as image:
+            for index, character in enumerate(characters):
+                with self.subTest(character=character):
+                    cell = image.crop((12 + index * 24, 12, 24 + index * 24, 34))
+                    self.assertIsNotNone(cell.getbbox())
+                    if index + 1 < len(characters):
+                        self.assertIsNone(image.crop((24 + index * 24, 12, 36 + index * 24, 34)).getbbox())
+
+    def test_bitmap_fallback_works_when_freetype_is_unavailable(self):
+        with art_to_png("@ i", smooth=False) as expected:
+            with patch("ascart.png_art.ImageFont.load_default", side_effect=ImportError("FreeType unavailable")):
+                with art_to_png("@ i") as actual:
+                    self.assertEqual(actual.size, expected.size)
+                    self.assertEqual(actual.tobytes(), expected.tobytes())
     def test_fixed_grid_preserves_spaces_and_blank_rows(self):
         image = art_to_png("W i\n\n#")
         self.assertEqual(image.size, (60, 90))
@@ -25,7 +50,9 @@ class PngRenderingTests(unittest.TestCase):
         image = art_to_png(add_border("\033[38;2;12;34;56m@\033[0m"))
         self.assertEqual(image.size, (60, 90))
         self.assertIn((12, 34, 56), image.crop((24, 34, 36, 56)).get_flattened_data())
-        self.assertIn((255, 255, 255), image.crop((36, 34, 48, 56)).get_flattened_data())
+        border_pixels = image.crop((36, 34, 48, 56)).get_flattened_data()
+        self.assertTrue(any(red > 0 for red, _, _ in border_pixels))
+        self.assertTrue(all(red == green == blue for red, green, blue in border_pixels))
         self.assertNotIn((12, 34, 56), image.crop((36, 34, 48, 56)).get_flattened_data())
 
     def test_light_background_and_color_reset(self):
@@ -96,7 +123,10 @@ class PngCliTests(unittest.TestCase):
             self.assertEqual(output, preview + f"Saved ASCII art to {target}\n")
             with Image.open(target) as image:
                 self.assertEqual(image.format, "PNG")
-                self.assertEqual(set(image.get_flattened_data()), {(0, 0, 0), (255, 255, 255)})
+                pixels = set(image.get_flattened_data())
+                self.assertIn((0, 0, 0), pixels)
+                self.assertTrue(any(0 < red < 255 for red, _, _ in pixels))
+                self.assertTrue(all(red == green == blue for red, green, blue in pixels))
 
     def test_existing_png_and_links_preserved(self):
         target = self.root / "keep.png"

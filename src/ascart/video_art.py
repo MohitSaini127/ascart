@@ -64,7 +64,7 @@ def video_frame_to_picture(frame, width, palette, background, max_height, color,
     art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
     if border:
         art = add_border(art)
-    with art_to_png(art, background) as picture:
+    with art_to_png(art, background, smooth=False) as picture:
         return cv2.cvtColor(np.asarray(picture), cv2.COLOR_RGB2BGR)
 
 
