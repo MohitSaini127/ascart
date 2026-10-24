@@ -16,47 +16,39 @@ The main purpose is to understand Python, image processing, code organization, G
 
 ## Installation
 
-Install once with **pipx**, then run `ascart` from any folder. Pipx installs the dependencies and manages a separate Python environment automatically; you do not need to create or activate one yourself. No separate repository clone is needed.
+You need Python 3.11+, Git, and [pipx](https://pipx.pypa.io/stable/how-to/install-pipx.html).
 
-For this installation method, have **Python 3.11 or newer**, **Git**, and an internet connection available. First install pipx for your system:
-
-| System | Install pipx |
-| --- | --- |
-| Fedora | `sudo dnf install pipx` |
-| Ubuntu/Debian | Run `sudo apt update`, then `sudo apt install pipx` |
-| macOS (with Homebrew installed) | `brew install pipx` |
-| Windows (with Python's `py` launcher installed) | `py -m pip install --user pipx` |
-
-On Linux/macOS, run:
+On macOS with Homebrew:
 
 ```bash
+brew install pipx
 pipx ensurepath
 ```
 
-On Windows, run:
+On Debian/Ubuntu:
 
-```powershell
-py -m pipx ensurepath
+```bash
+sudo apt install pipx
+pipx ensurepath
 ```
 
-This makes installed commands discoverable by your terminal. **Close and reopen your terminal**, then install ascart:
+On Fedora:
+
+```bash
+sudo dnf install pipx
+pipx ensurepath
+```
+
+For Windows and other systems, follow the [pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html).
+
+Open a new terminal after `ensurepath`, then install and run:
 
 ```bash
 pipx install git+https://github.com/MohitSaini127/ascart.git
+ascart -t "HI"
 ```
 
-This installs the code currently pushed to GitHub. Check the installation and create your first banner:
-
-```bash
-ascart --version
-ascart -t "Hello"
-```
-
-In future terminals, just run `ascart`; no environment activation is needed. If you already activated a project `.venv`, run `deactivate` before trying the pipx-installed command. Use your own image/video paths: relative paths are resolved from your current folder, and the repository's example images are not installed beside the command.
-
-To update from GitHub, run `pipx upgrade ascart`. To remove the application, run `pipx uninstall ascart`.
-
-For other systems or pipx setup help, see the [official pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html). To edit ascart's source, the existing [source setup instructions](#setup) are available below.
+After installation, run `ascart` from any folder. No manual environment activation is needed.
 
 ## Preview
 

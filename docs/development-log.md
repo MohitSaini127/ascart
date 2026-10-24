@@ -2758,3 +2758,10 @@ Checked the commands against the [official pipx installation guide](https://pipx
 Updated the main navigation to link Installation and changed the command-guide introduction to support running the pipx-installed command from any folder. Kept the existing Setup section and marked it as source development instructions, with a link back to Installation. Removing or relocating that section is a separate next step: move useful source setup and testing instructions to a development document and leave a small README link.
 
 Validation: `git diff --check` passed without output. Reviewed the new Installation and existing Setup heading links and matched the repository URL to `git remote -v`. This is documentation only: no packages were installed, no user environment changed, and the application test suite was not rerun. Stage README.md and docs/development-log.md and commit as `Add pipx installation guide near the start of README`, following the agreed workflow. Nothing is pushed.
+
+
+## 78. Simplify the pipx installation section
+
+The user supplied a screenshot and requested a short installation guide in that style. Replaced the longer README Installation section with one prerequisites sentence, copyable pipx setup blocks for macOS, Debian/Ubuntu, and Fedora, a pipx documentation link for Windows/other systems, and a final GitHub installation plus `ascart -t "HI"` example. Kept the instruction to open a new terminal after ensurepath and clarified that manual environment activation is unnecessary. Removed the extra explanations and maintenance commands from this section. The existing source Setup section remains for the separate relocation step.
+
+Validation: reviewed the Installation navigation anchor and GitHub URL, and ran `git diff --check` successfully. Documentation only; no installation commands were executed and application tests were not rerun. Commit as `Simplify README installation instructions`. Nothing is pushed.
