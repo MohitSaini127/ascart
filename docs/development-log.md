@@ -3099,3 +3099,8 @@ Validation:
 - Tracked-file audit found no .venv, .env, __pycache__, egg-info, or temporary encoding folders committed. The user-created root comparison.png remains untracked and excluded. Generated output/ is ignored. `git diff --check` passed.
 
 No new unaddressed blocking issue was found in these checks. Physical camera behaviour, Windows/macOS execution, every media codec, and every terminal implementation remain outside automated verification; the existing experimental labels and limitations stay in place. Nothing is pushed. Commit the review fixes as `Fix metadata, transparency and documentation found in project review`.
+
+
+## 102. Restore the dark README preview
+
+The user preferred the dark Tux preview. Regenerated docs/previews/penguin-ascii.png with width 40, the default colour palette, a border, and a dark background; changed the matching README example back to --background dark. Application code, transparency handling, and the source sample are unchanged. Verified that the saved preview exactly matches the generated pixels. This documentation-only change does not need another full test run. git diff --check passed. Commit locally as Restore dark Tux preview in README; do not push. The user-created comparison.png remains untracked and untouched.

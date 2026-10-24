@@ -95,7 +95,7 @@ ascart --text-slant "ascart"
 The included [Tux sample](#photo-conversion), converted into colored ASCII characters:
 
 ```bash
-ascart examples/image1.png --width 40 --color --border --background light
+ascart examples/image1.png --width 40 --color --border --background dark
 ```
 
 <p align="center">
