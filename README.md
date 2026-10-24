@@ -168,10 +168,12 @@ After [installation](#installation), run these commands from any folder using yo
 | `ascart animation.gif --color --border --output output/animation.html` | Saves one ASCII animation as an offline webpage with playback controls and an optional Loop checkbox. |
 | `ascart animation.gif --color --output output/ascii.gif` | Saves one colored ASCII animation, then previews it. |
 | `ascart animation.gif --loop-4 --output output/ascii-four.gif` | Saves one animation and previews it four times. |
+| `ascart animation.gif --compare --color` | Experimental animated side-by-side preview in terminals with native graphics support. |
+| `ascart animation.gif --compare --color --loop-4` | Plays the comparison four times. |
 | `ascart animation.gif --compare --color --output output/comparison.gif` | Saves one animation with the original beside its ASCII version. |
 | `ascart animation.gif --compare --color --output output/comparison.html` | Saves a synchronized comparison webpage with playback and Loop controls. |
 
-GIF comparison currently requires `--output`; animated terminal comparison preview and loop flags are not supported yet.
+GIF comparison plays once by default; use `--loop` or `--loop-4` to repeat the terminal preview. With `--output`, it saves one pass before previewing; unsupported terminals can still export.
 
 ### Video commands
 
@@ -230,7 +232,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-**Experimental terminal preview:** for still images, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG or HTML; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
+**Experimental terminal preview:** for still images and GIFs, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images or GIF/HTML for GIFs; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

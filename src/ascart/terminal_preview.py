@@ -120,19 +120,63 @@ def _send_native_png(buffer):
     # Reserve space without clearing existing terminal history. C=1 keeps
     # image placement from moving the cursor; we move below it explicitly.
     sys.stdout.write("\r" + "\n" * rows + f"\033[{rows}A\r")
-    buffer.seek(0)
-    first = True
     try:
-        chunk = buffer.read(3072)
-        while chunk:
-            following = buffer.read(3072)
-            metadata = f"a=T,f=100,c={columns},r={rows},C=1," if first else ""
-            payload = base64.b64encode(chunk).decode("ascii")
-            sys.stdout.write(f"\033_G{metadata}q=2,m={1 if following else 0};{payload}\033\\")
-            first = False
-            chunk = following
+        _write_png_chunks(buffer, f"a=T,f=100,c={columns},r={rows},C=1,")
     finally:
         sys.stdout.write(f"\033[{rows}B\r\n")
+        sys.stdout.flush()
+
+
+def _write_png_chunks(buffer, metadata):
+    """Transfer one PNG without changing its caller's cursor position."""
+    buffer.seek(0)
+    chunk = buffer.read(3072)
+    while chunk:
+        following = buffer.read(3072)
+        payload = base64.b64encode(chunk).decode("ascii")
+        sys.stdout.write(f"\033_G{metadata}q=2,m={1 if following else 0};{payload}\033\\")
+        metadata = ""
+        chunk = following
+    sys.stdout.flush()
+
+
+def preview_gif_comparison(frame_factory, background="dark", loops=1):
+    """Stream fresh passes into one reserved native-graphics display area."""
+    size = shutil.get_terminal_size(fallback=(80, 24))
+    columns, rows = max(1, size.columns - 1), max(1, size.lines - 3)
+    number = secrets.randbits(32) or 1
+    other_number = number % 4294967295 + 1
+    completed = 0
+    active = None
+    sending = None
+    sys.stdout.write("\r" + "\n" * rows + f"\033[{rows}A\r\033[?25l")
+    try:
+        while loops == 0 or completed < loops:
+            count = 0
+            with closing(frame_factory()) as frames:
+                for source, art, duration in frames:
+                    started = time.monotonic()
+                    with closing(comparison_to_png(source, art, background)) as picture, BytesIO() as buffer:
+                        picture.save(buffer, format="PNG")
+                        sending = number if active != number else other_number
+                        _write_png_chunks(buffer, f"a=T,f=100,I={sending},c={columns},r={rows},C=1,")
+                        if active is not None:
+                            # Keep the old picture until its replacement arrives.
+                            # Never delete images belonging to another program.
+                            sys.stdout.write(f"\033_Ga=d,d=N,I={active},q=2;\033\\")
+                        active = sending
+                    count += 1
+                    time.sleep(max(0, duration / 1000 - (time.monotonic() - started)))
+            if not count:
+                raise ValueError("No frames to preview")
+            completed += 1
+    finally:
+        # Also terminates an interrupted multipart transfer. Leave the last
+        # complete picture visible and the shell cursor below the display.
+        sys.stdout.write("\033\\")
+        if sending is not None and sending != active:
+            sys.stdout.write(f"\033_Ga=d,d=N,I={sending},q=2;\033\\")
+        sys.stdout.write(f"\033[0m\033[?25h\033[{rows}B\r\n")
         sys.stdout.flush()
 
 

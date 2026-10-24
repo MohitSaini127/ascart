@@ -94,7 +94,7 @@ class GifComparisonTests(unittest.TestCase):
         link.symlink_to(existing)
         cases = [[], ["--output", self.root / "new.png"],
                  ["--output", existing], ["--output", link], ["--output", self.source],
-                 ["--output", self.root / "new.gif", "--loop-4"]]
+                 ["--output", self.root / "new.gif", "--loop-count", "0"]]
         for args in cases:
             with self.subTest(args=args):
                 code, output, errors = self.run_cli(self.source, "--compare", *args)

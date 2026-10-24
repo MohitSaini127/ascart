@@ -2990,3 +2990,26 @@ No push: the user wants all comparison work completed before publishing. The use
 Full command: `.venv/bin/python -B -m unittest discover -s tests`
 Output: `Ran 257 tests in 42.156s ... OK`. `git diff --check` passed.
 Stage the seven feature/documentation files and commit as `Add synchronized GIF and HTML comparison exports`.
+
+
+## 97. Preview animated GIF comparisons in the terminal
+
+Added experimental animated side-by-side preview for GIFs using the existing native Kitty graphics detection. `ascart animation.gif --compare --color` plays once; `--loop`, `--loop-4`, and `--loop-count 4` control terminal repeats. Still-image comparisons continue to reject loop flags. The optional icat helper remains a fallback for still images only: animated preview requires native graphics support with interactive input/output attached to the same terminal.
+
+`src/ascart/terminal_preview.py` shares its bounded PNG chunk writer between still and animated previews. Animated playback reserves one terminal area and decodes/renders one frame at a time. Each pass reopens the input instead of buffering every picture. It alternates two private image numbers, retains the previous picture until a replacement arrives, then deletes only its own previous image and data. It does not clear unrelated images or the screen. Replies are suppressed, interrupted multipart transfers are terminated, incomplete replacements are cleaned up, and the cursor is restored below the final picture. Source delays are used with PNG rendering/transfer time subtracted from each wait; slow decoding/rendering/transfer can still slow playback. Display geometry is fixed when playback starts, so resize before running.
+
+`src/ascart/cli.py` saves GIF/HTML comparison output before starting preview. Terminal repeats never duplicate saved frames. Unsupported/redirected terminals can still export; preview-only commands give a GIF/HTML-specific export hint. Failed or interrupted preview leaves a successful export intact. Save failures prevent terminal access. Existing output protection and source-file preservation remain in place.
+
+Updated README commands/help and the detailed usage guide, retaining the experimental label. Eight new playback tests check native transfer/placement/replacement, timing, repeated fresh passes, default/counted/infinite CLI loops, interruption and reader cleanup, interrupted transfers retaining the previous complete picture, preview failures after successful one-pass GIF/HTML export, format-specific unsupported-terminal hints, and existing-file preservation. Updated the earlier GIF comparison rejection test to reject an invalid zero loop count instead of the now-supported four-loop command.
+
+Focused command: `.venv/bin/python -B -m unittest discover -s tests -p 'test_*comparison*.py'`
+Output: `Ran 27 tests in 1.186s ... OK`.
+The existing still-image/native preview suite also passed: 21 tests.
+
+Protocol reference: https://sw.kovidgoyal.net/kitty/graphics-protocol/ (image numbers, per-image deletion, PNG transfer and quiet replies). No new Python dependency. Actual animated appearance and responsiveness require the user's physical-terminal check; automated tests cannot confirm every terminal implementation.
+
+Nothing is pushed. The user's untracked comparison.png remains untouched and excluded from the local feature commit.
+
+Full command: `.venv/bin/python -B -m unittest discover -s tests`
+Output: `Ran 265 tests in 35.837s ... OK`. `git diff --check` passed.
+Stage the seven implementation/test/documentation files and commit as `Preview animated GIF comparisons with native terminal graphics`.

@@ -69,6 +69,8 @@ Still-image comparison rejects animated or multipage images other than GIFs, vid
 ## GIF comparison
 
 ```bash
+ascart animation.gif --compare --color
+ascart animation.gif --compare --color --loop-4
 ascart animation.gif --compare --color --output output/comparison.gif
 ascart animation.gif --compare --color --border --output output/comparison.html
 ```
@@ -77,7 +79,11 @@ Each decoded frame appears as original-left / ASCII-right, with its source delay
 
 GIF saves one pass, without loop metadata, and streams pictures instead of collecting them in memory. Identical frames retain their separate delays. GIF supports at most 256 colours per frame, so shades can be approximated; some viewers may repeat the file anyway. The combined frame has the existing 20-million-pixel and GIF dimension limits. HTML embeds each scaled original alongside selectable ASCII, has Play/Pause/Replay and an optional Loop checkbox, and starts paused. It is limited to 3,000 frames and 20 MiB for the complete page.
 
-This stage requires a new `.gif` or `.html` output filename. Animated terminal comparison preview is not implemented yet; loop flags are rejected rather than changing the saved animation. Existing files and links are protected. A write error or cancellation may leave a partial newly created GIF; HTML checks frame/size limits before creating the destination. No source media is modified or uploaded.
+**Experimental terminal preview:** `--compare` alone plays the comparison once in a terminal with native Kitty graphics support. `--loop`, `--loop-4`, and `--loop-count 4` repeat only terminal playback. Preview decodes one frame at a time and reopens the source for each pass. It reserves one display area, replaces only its own image, and restores the cursor below the final frame on completion or Ctrl+C. Frame rendering/transfer can make playback slower than the source; the display area is sized when playback starts, so resize the terminal before running the command. Both panels are pictures in the terminal, rather than selectable text.
+
+Animated preview requires successful native detection with interactive input/output on the same terminal; the optional `icat` helper fallback is limited to still images. Compatibility remains experimental and needs a physical-terminal check. No output file is created for preview-only commands. Unsupported terminals get an error with GIF/HTML export commands.
+
+With a new `.gif` or `.html` output filename, saving finishes before preview starts. A saved file contains one pass regardless of terminal loop flags. Unavailable/failed/cancelled preview leaves successful exports intact and reports how to view them. Unsupported or redirected terminals can export without playing. Existing files and links are protected. A write error or cancellation may leave a partial newly created GIF; HTML checks frame/size limits before creating the destination. No source media is modified or uploaded.
 
 ## Saving a PNG picture
 
