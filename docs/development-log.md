@@ -2800,3 +2800,10 @@ The user approved shortening the introduction to no more than three lines, cover
 The user approved moving the existing README Setup instructions to `docs/development.md`. Preserved the dependency table, declared/tested versions, virtual environment and editable installation commands, and activation/deactivation explanations in the new document. Updated its Installation link to point back to the README. Replaced the original setup body with one short development-guide link, retaining the Setup heading so existing links inside the unchanged command guide continue to work.
 
 Validation confirmed everything from the Command guide onward is byte-for-byte unchanged and local file/heading links in README.md and docs/development.md resolve. `git diff --check` passed. Documentation only; no environment changes or application tests. Commit as `Move source setup instructions to development guide`. Nothing is pushed.
+
+
+## 84. Move testing instructions into the development guide
+
+The user approved moving the README Running tests section to `docs/development.md`. Preserved both test commands and all coverage explanations in the development document. Replaced the README section body with a short development-guide link. All preceding README content, including the command guide, and the following license/credits and development-history content remain unchanged.
+
+Validation confirmed the complete testing section exists in its new location, all unaffected README content matches the previous text, and local file/heading links in both documents resolve. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Move testing instructions to development guide`. Nothing is pushed.
