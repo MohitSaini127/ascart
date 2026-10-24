@@ -2694,3 +2694,56 @@ OK
 ```
 
 `git diff --check` also passed without output. Stage these six feature files and commit as `Stream camera GIF frames to support larger widths`, following the agreed workflow. Nothing is pushed. The next manual check is a width-140 camera GIF using a new destination filename; real hardware performance and appearance remain user checks.
+
+
+## 76. Reduce camera GIF finishing delays and show progress
+
+The user reported that GIF recording appeared stuck before the output file was saved. The streaming change removed the aggregate memory limit, but it still redrew and converted every repeated output slot into a 256-colour picture. At width 140, profiling six repeated coloured frames took 2.279 seconds: 1.448 seconds in picture conversion (mostly quantization), 0.696 seconds in PNG rendering, and 0.132 seconds in GIF frame encoding. These were synthetic frames; the report does not establish the exact state of the user's running webcam command.
+
+Updated `save_streaming_ascii_gif` in `src/ascart/gif_art.py` to reuse encoded bytes for consecutive identical ASCII artwork. At most two delay variants of the latest artwork are cached, matching the camera's alternating 60/70-ms timing. A change in artwork clears the cache. All output slots remain separate GIF frames, preserving frame count, colours, dimensions, and delays. Generated pictures still close promptly; the whole animation is never collected. Added an optional callback reporting each successfully written frame.
+
+Updated `src/ascart/camera_recording.py` to show `Encoding GIF` and `Checking GIF` frame counters on standard error, followed by a message before copying to the exclusive destination. Intermediate reports are limited to approximately once per second, with phase starts/completion always reported. GIF verification now seeks and decodes frames sequentially until EOF, rather than requesting `n_frames` (which scans to the end) before returning to the start for a second pass. Existing total-timing, dimensions, and frame-count checks still gate publication. Capture limits, cancellation, private temporary output, and existing-file protection remain in place. The camera countdown measures capture; finishing work may still continue afterward. MP4 and HTML saving are unchanged.
+
+Updated `tests/test_streaming_gif.py` with cache reuse and invalidation checks. Forty alternating-delay repeated slots require only two rendering/encoding calls and still reopen as forty correctly timed frames. The resource-closure test now uses changing artwork to exercise uncached frames. Updated the width-140 camera regression to forbid a preliminary `n_frames` scan during verification and assert encoding, checking, and copying progress messages. README documents finishing progress and repeated-frame reuse.
+
+Focused commands run:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_streaming_gif.py'
+.venv/bin/python -B -m unittest discover -s tests -p 'test_camera_animation.py'
+```
+
+Actual outputs:
+
+```text
+Ran 8 tests in 0.021s
+
+OK
+
+Ran 12 tests in 5.276s
+
+OK
+```
+
+A separate temporary-file benchmark loaded the previous committed saver using `git show HEAD:src/ascart/gif_art.py` and compared it with the updated saver on the same twelve repeated, coloured width-140 frames. This read-only Git command shows the previous source; it does not restore or change any project file. Both generated GIFs were reopened and checked. Actual output:
+
+```text
+Previous: 3.926s | frames: 12 | duration: 780ms | size: (1704, 1168)
+Updated: 0.669s | frames: 12 | duration: 780ms | size: (1704, 1168)
+```
+
+This measures repeated-frame saving on this machine, not general camera performance. Files stayed in an automatically cleaned temporary directory. No physical webcam or user media was accessed.
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 217 tests in 40.627s
+
+OK
+```
+
+`git diff --check` passed without output. Stage the six milestone files and commit as `Speed up repeated camera GIF frames and report saving progress`, following the agreed workflow. Nothing is pushed. The next manual check is a short width-140 GIF using a new filename; if it still stalls, the last progress line will identify the stage to investigate.

@@ -10,18 +10,31 @@ from ascart.image_art import image_to_ascii
 from ascart.png_art import art_to_png
 
 
-def save_streaming_ascii_gif(frames, path, background="dark", *, smooth=True):
+def save_streaming_ascii_gif(frames, path, background="dark", *, smooth=True, progress=None):
     """Encode full frames incrementally into a new GIF, without repeat metadata.
 
     Camera callers supply a private temporary path and verify the completed
-    file before publishing it. Only the current picture is retained here.
+    file before publishing it. Pictures are closed after encoding; at most two
+    encoded delay variants of the latest artwork are cached for repeated slots.
     """
     size = None
     output = None
+    previous_art = None
+    encoded_delays = {}
+    count = 0
     with ExitStack() as resources:
         for art, duration in frames:
             if not math.isfinite(duration) or not 10 <= duration <= 655350:
                 raise ValueError("GIF frame duration must be between 10 and 655350 milliseconds")
+            if art != previous_art:
+                encoded_delays.clear()
+                previous_art = art
+            if duration in encoded_delays:
+                output.writelines(encoded_delays[duration])
+                count += 1
+                if progress is not None:
+                    progress(count)
+                continue
             with closing(art_to_png(art, background, smooth=smooth)) as picture:
                 if any(side > 65535 for side in picture.size):
                     raise ValueError("GIF dimensions must not exceed 65535 pixels per side; use a smaller --width")
@@ -44,10 +57,19 @@ def save_streaming_ascii_gif(frames, path, background="dark", *, smooth=True):
                         output.writelines(header)
                     # Each frame has its own palette and fills the whole
                     # canvas, including repeated frames and their delays.
-                    output.writelines(GifImagePlugin.getdata(
+                    encoded = GifImagePlugin.getdata(
                         paletted, duration=duration, disposal=2,
                         include_color_table=True,
-                    ))
+                    )
+                    output.writelines(encoded)
+                    # Camera delays alternate between 60 and 70 ms. Cache
+                    # their bytes, rather than redrawing missed output slots.
+                    if len(encoded_delays) == 2:
+                        del encoded_delays[next(iter(encoded_delays))]
+                    encoded_delays[duration] = encoded
+            count += 1
+            if progress is not None:
+                progress(count)
         if output is None:
             raise ValueError("No frames to save")
         output.write(b";")  # GIF trailer, written only after every frame succeeds.

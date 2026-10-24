@@ -2,6 +2,7 @@
 
 import math
 import shutil
+import sys
 import tempfile
 import time
 from contextlib import ExitStack, closing
@@ -83,6 +84,15 @@ def _record_camera_animation(index, output, duration, preview=False, **settings)
     count = math.ceil(duration * RECORDING_FPS)
     if suffix == ".html" and count > MAX_ANIMATION_FRAMES:
         raise ValueError("HTML animation exceeds 3000 frames; use a duration of at most 200 seconds")
+    last_report = float("-inf")
+
+    def report(stage, completed):
+        nonlocal last_report
+        now = time.monotonic()
+        if completed in (0, count) or now - last_report >= 1:
+            print(f"\n{stage}: {completed}/{count} frames; Ctrl+C cancels.", file=sys.stderr, flush=True)
+            last_report = now
+
     with closing(_camera_animation_frames(index, duration, gif_timing=suffix == ".gif", preview=preview, **settings)) as frames:
         first = next(frames)
         grid = _grid_size(first[0])
@@ -93,20 +103,33 @@ def _record_camera_animation(index, output, duration, preview=False, **settings)
             if suffix == ".html":
                 save_animated_html(entries, temporary, settings["background"], loop_control=True)
             else:
-                save_streaming_ascii_gif(entries, temporary, settings["background"])
+                save_streaming_ascii_gif(
+                    entries, temporary, settings["background"],
+                    progress=lambda completed: report("Encoding GIF", completed),
+                )
                 total = 0
+                report("Checking GIF", 0)
                 with Image.open(temporary) as saved:
-                    for frame_index in range(saved.n_frames):
-                        saved.seek(frame_index)
+                    # Iterate once. Asking n_frames first scans to the end,
+                    # after which seeking back would decode the GIF again.
+                    saved_count = 0
+                    while True:
+                        frame_index = saved_count
+                        try:
+                            saved.seek(frame_index)
+                        except EOFError:
+                            break
                         saved.load()
                         if saved.size != (max(1, grid[0]) * 12 + 24, grid[1] * 22 + 24):
                             raise ValueError("Encoded GIF dimensions do not match the artwork")
                         total += saved.info.get("duration", 0)
-                    saved_count = saved.n_frames
+                        saved_count += 1
+                        report("Checking GIF", saved_count)
                 if total != round(count * 100 / RECORDING_FPS) * 10:
                     raise ValueError("Encoded GIF timing does not match the recording")
                 if saved_count != count:
                     raise ValueError("Encoded GIF frame count does not match the recording")
+                print("Copying checked GIF to the output file...", file=sys.stderr, flush=True)
             with temporary.open("rb") as source, output_path.open("xb") as destination:
                 shutil.copyfileobj(source, destination)
     return count

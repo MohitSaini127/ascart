@@ -45,13 +45,39 @@ class StreamingGifTests(unittest.TestCase):
                         pictures[-1].getpixel((0, 0))
                     self.assertTrue(self.target.exists())
                     self.assertEqual(encode.call_count, index)
-                yield "@", 60
+                yield str(index), 60
 
         with patch("ascart.gif_art.art_to_png", side_effect=render), \
              patch("ascart.gif_art.GifImagePlugin.getdata", wraps=GifImagePlugin.getdata) as encode:
             save_streaming_ascii_gif(frames(), self.target)
         with self.assertRaises(ValueError):
             pictures[-1].getpixel((0, 0))
+
+    def test_repeated_frames_reuse_two_delay_variants_and_report_every_slot(self):
+        frames = [("@", 60), ("@", 70)] * 20
+        progress = []
+        with patch("ascart.gif_art.art_to_png", side_effect=lambda *args, **kwargs: Image.new("RGB", (20, 20), "red")) as render, \
+             patch("ascart.gif_art.GifImagePlugin.getdata", wraps=GifImagePlugin.getdata) as encode:
+            save_streaming_ascii_gif(frames, self.target, progress=progress.append)
+        self.assertEqual(render.call_count, 2)
+        self.assertEqual(encode.call_count, 2)
+        self.assertEqual(progress, list(range(1, 41)))
+        with Image.open(self.target) as saved:
+            self.assertEqual(saved.n_frames, 40)
+            for index, (_, delay) in enumerate(frames):
+                saved.seek(index)
+                self.assertEqual(saved.info["duration"], delay)
+
+    def test_cache_is_discarded_when_artwork_changes(self):
+        colors = ["red", "blue", "red"]
+        with patch("ascart.gif_art.art_to_png", side_effect=lambda color, *args, **kwargs: Image.new("RGB", (20, 20), color)) as render:
+            save_streaming_ascii_gif([(color, 60) for color in colors], self.target)
+        self.assertEqual(render.call_count, 3)
+        with Image.open(self.target) as saved:
+            for index, expected in enumerate(((255, 0, 0), (0, 0, 255), (255, 0, 0))):
+                saved.seek(index)
+                with saved.convert("RGB") as picture:
+                    self.assertEqual(picture.getpixel((0, 0)), expected)
 
     def test_empty_stream_and_invalid_delays_do_not_create_destination(self):
         with self.assertRaisesRegex(ValueError, "No frames"):

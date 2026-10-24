@@ -7,7 +7,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import numpy as np
 from PIL import Image
@@ -187,11 +187,16 @@ class CameraAnimationTests(unittest.TestCase):
 
     def test_width_140_exceeds_old_total_pixel_budget_and_still_saves(self):
         target = self.root / "wide.gif"
-        with self.simulation():
+        with self.simulation(), patch("PIL.GifImagePlugin.GifImageFile.n_frames", new_callable=PropertyMock,
+                                      side_effect=AssertionError("Verification must not pre-scan every frame")):
             code, output, errors = self.run_cli(
                 "--camera", "--camera-duration=3", "--width=140", "--color", "--output", target,
             )
         self.assertEqual(code, 0, errors)
+        self.assertIn("Encoding GIF: 45/45 frames", errors)
+        self.assertIn("Checking GIF: 0/45 frames", errors)
+        self.assertIn("Checking GIF: 45/45 frames", errors)
+        self.assertIn("Copying checked GIF", errors)
         with Image.open(target) as saved:
             self.assertEqual(saved.n_frames, 45)
             self.assertEqual(saved.width, 140 * 12 + 24)
