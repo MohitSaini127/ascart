@@ -238,7 +238,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-**Experimental terminal preview:** for still images, GIFs, and videos, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images, GIF/HTML for GIFs, or MP4/HTML for videos; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
+**Experimental terminal preview:** for still images, GIFs, and videos, `--compare` shows the original on the left and ASCII on the right. Native preview keeps image proportions and may leave empty space. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images, GIF/HTML for GIFs, or MP4/HTML for videos; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

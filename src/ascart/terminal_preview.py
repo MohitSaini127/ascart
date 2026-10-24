@@ -113,7 +113,32 @@ def image_preview_backend():
     return command if result.returncode == 0 else None
 
 
-def _send_native_png(buffer):
+def _terminal_cell_size():
+    """Read cell pixel dimensions when available; estimate only the fit otherwise."""
+    try:
+        import fcntl
+        import struct
+        import termios
+        rows, columns, width, height = struct.unpack(
+            "HHHH", fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, b"\0" * 8)
+        )
+        if min(rows, columns, width, height) > 0:
+            return width / columns, height / rows
+    except (ImportError, AttributeError, OSError, ValueError):
+        pass
+    return 8, 16
+
+
+def _native_placement(image_size, columns, rows, cell_size):
+    """Specify one axis so the terminal derives the other without stretching."""
+    width, height = image_size
+    cell_width, cell_height = cell_size
+    if width * rows * cell_height <= height * columns * cell_width:
+        return f"r={rows},"
+    return f"c={columns},"
+
+
+def _send_native_png(buffer, image_size):
     """Send bounded base64 chunks and leave the prompt below the image."""
     size = shutil.get_terminal_size(fallback=(80, 24))
     columns, rows = max(1, size.columns - 1), max(1, size.lines - 3)
@@ -121,7 +146,8 @@ def _send_native_png(buffer):
     # image placement from moving the cursor; we move below it explicitly.
     sys.stdout.write("\r" + "\n" * rows + f"\033[{rows}A\r")
     try:
-        _write_png_chunks(buffer, f"a=T,f=100,c={columns},r={rows},C=1,")
+        placement = _native_placement(image_size, columns, rows, _terminal_cell_size())
+        _write_png_chunks(buffer, f"a=T,f=100,{placement}C=1,")
     finally:
         sys.stdout.write(f"\033[{rows}B\r\n")
         sys.stdout.flush()
@@ -144,6 +170,7 @@ def preview_animation_comparison(frame_factory, background="dark", loops=1):
     """Stream fresh passes into one reserved native-graphics display area."""
     size = shutil.get_terminal_size(fallback=(80, 24))
     columns, rows = max(1, size.columns - 1), max(1, size.lines - 3)
+    cell_size = _terminal_cell_size()
     number = secrets.randbits(32) or 1
     other_number = number % 4294967295 + 1
     completed = 0
@@ -159,7 +186,8 @@ def preview_animation_comparison(frame_factory, background="dark", loops=1):
                     with closing(comparison_to_png(source, art, background)) as picture, BytesIO() as buffer:
                         picture.save(buffer, format="PNG")
                         sending = number if active != number else other_number
-                        _write_png_chunks(buffer, f"a=T,f=100,I={sending},c={columns},r={rows},C=1,")
+                        placement = _native_placement(picture.size, columns, rows, cell_size)
+                        _write_png_chunks(buffer, f"a=T,f=100,I={sending},{placement}C=1,")
                         if active is not None:
                             # Keep the old picture until its replacement arrives.
                             # Never delete images belonging to another program.
@@ -190,7 +218,7 @@ def preview_comparison(image, art, background, backend):
         picture.save(buffer, format="PNG")
         sys.stdout.flush()
         if backend == NATIVE_BACKEND:
-            _send_native_png(buffer)
+            _send_native_png(buffer, picture.size)
             return
         with _preserve_terminal_state():
             subprocess.run(

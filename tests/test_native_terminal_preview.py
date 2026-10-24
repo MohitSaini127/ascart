@@ -39,7 +39,8 @@ class NativePreviewEncodingTests(unittest.TestCase):
         first = dict(part.split("=", 1) for part in packets[0][0].split(","))
         self.assertEqual(first["a"], "T")
         self.assertEqual(first["f"], "100")
-        self.assertEqual((first["c"], first["r"]), ("79", "21"))
+        self.assertEqual(first["c"], "79")
+        self.assertNotIn("r", first)
         self.assertEqual(first["C"], "1")
         for index, (control, payload) in enumerate(packets):
             fields = dict(part.split("=", 1) for part in control.split(","))

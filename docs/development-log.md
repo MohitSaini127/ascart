@@ -3053,3 +3053,24 @@ Actual physical-terminal animation remains a user check. Nothing is pushed. The 
 Full command: `.venv/bin/python -B -m unittest discover -s tests`
 Output: `Ran 280 tests in 43.176s ... OK`. `git diff --check` passed.
 Stage the eight feature/documentation files and commit as `Preview side-by-side video comparisons in native graphics terminals`.
+
+
+## 100. Preserve proportions in native comparison previews
+
+The user reported that video comparison preview changes the original video's proportions. They had run preview-only commands, so also supplied explicit MP4 and HTML save commands for comparison. Saved-file appearance for that particular input remains a user check.
+
+The original comparison panel already fits source pixels without cropping or stretching. Native terminal transfer previously supplied both c (columns) and r (rows), asking the terminal to fit a fixed rectangle. Changed both static and animated native previews to send only the limiting dimension: the terminal derives the other from the PNG aspect ratio. This follows the Kitty graphics protocol's single-axis aspect-preserving sizing rule and avoids depending on how individual terminals handle a two-axis placement. No export renderer, source file, or conversion setting changed.
+
+Added terminal cell pixel measurement through POSIX TIOCGWINSZ when available. An 8-by-16 cell estimate chooses the limiting axis when dimensions are unavailable; this may affect fit but still sends only one axis, preserving proportions in supporting terminals. The existing reserved area, cursor restoration, chunking, loop behaviour, and per-image cleanup remain intact. Updated README and detailed sizing notes.
+
+Added four regression checks covering wide/tall/square content, terminal cell proportions, narrow viewports, measured/fallback cell dimensions, and the original panel's preserved proportions before display. Updated native packet and GIF placement assertions to require a single scaling axis. Initial packet assertions expected the wrong limiting axis for the wide test fixture; corrected them to match the measured PNG proportions.
+
+Focused command: `.venv/bin/python -B -m unittest discover -s tests -p 'test_*preview*.py'`
+Output: `Ran 40 tests in 0.891s ... OK`.
+Protocol reference: https://sw.kovidgoyal.net/kitty/graphics-protocol/ (single-axis c/r sizing).
+
+The physical-terminal result still needs user confirmation. Nothing is pushed; the user's untracked comparison.png remains preserved and excluded from the commit.
+
+Full command: `.venv/bin/python -B -m unittest discover -s tests`
+Output: `Ran 284 tests in 48.995s ... OK`. `git diff --check` passed.
+Stage the seven fix/test/documentation files and commit as `Preserve aspect ratios in native comparison previews`.
