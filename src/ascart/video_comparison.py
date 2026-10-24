@@ -17,14 +17,15 @@ from ascart.image_art import image_to_ascii
 from ascart.video_art import open_video, positive_property, verify_video
 
 
-def video_comparison_frames(path, *, width, palette, background, max_height, color, border):
+def video_comparison_frames(path, *, width, palette, background, max_height, color, border, warn_fps=True):
     """Yield the original and artwork from the same decoded frame, plus delay."""
     capture = open_video(path)
     try:
         fps = positive_property(capture, cv2.CAP_PROP_FPS)
         if fps is None:
             fps = 30.0
-            print("Video frame rate unavailable; using 30 FPS for saving.", file=sys.stderr)
+            if warn_fps:
+                print("Video frame rate unavailable; using 30 FPS for saving.", file=sys.stderr)
         count = 0
         while True:
             success, pixels = capture.read()

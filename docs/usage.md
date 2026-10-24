@@ -88,6 +88,8 @@ With a new `.gif` or `.html` output filename, saving finishes before preview sta
 ## Video comparison
 
 ```bash
+ascart video.mp4 --compare --color
+ascart video.mp4 --compare --color --loop-4
 ascart video.mp4 --compare --color --output output/comparison.mp4
 ascart video.avi --compare --color --border --width 30 --output output/comparison.html
 ```
@@ -98,7 +100,9 @@ MP4 streams the combined pictures into a private temporary file at a constant so
 
 HTML uses synchronized embedded original pictures and selectable ASCII with Play/Pause/Replay controls, starting paused. It uses the same constant frame timing and enforces 3,000 frames / 20 MiB for the complete page. Try a smaller width or shorter clip if the limit is reached. GIF comparison retains its optional Loop checkbox; video HTML follows existing video HTML with no Loop checkbox.
 
-This stage requires a new `.mp4` or `.html` output filename; terminal video comparison preview is not implemented yet and loop flags are rejected. The combined 20-million-pixel frame limit applies. Existing files, links, and source aliases are rejected. Capture/writer handles close and private files are cleaned up on handled errors or Ctrl+C; a hard kill can leave a private folder. A failure while copying the completed MP4 or writing HTML may leave a partial newly created destination, without replacing existing data. Export creates no extra public preview files and does not upload media.
+**Experimental terminal preview:** `--compare` alone plays once using native Kitty graphics, as for GIF comparisons. `--loop`, `--loop-4`, and `--loop-count 4` repeat terminal playback; Ctrl+C stops it and restores the cursor. Each pass reopens the video and streams frames into one reserved display area. The last complete picture stays visible; source decoding/rendering/transfer may make playback slower. Resize before starting because the display area is sized once. Both panels are pictures, rather than selectable terminal text.
+
+Animated preview requires interactive input/output attached to the same terminal and a successful native graphics probe. The optional icat helper handles still images only. Unsupported terminals get an MP4/HTML export hint for preview-only commands. Adding a new `.mp4` or `.html` output filename saves one pass before preview, independently of loop options; unsupported or redirected terminals still export. Failed/cancelled preview leaves the saved file intact. Preview-only commands create no output file. The combined 20-million-pixel frame limit applies. Existing files, links, and source aliases are rejected. Capture/writer handles close and private files are cleaned up on handled errors or Ctrl+C; a hard kill can leave a private folder. A failure while copying the completed MP4 or writing HTML may leave a partial newly created destination, without replacing existing data. Export creates no extra public preview files and does not upload media.
 
 ## Saving a PNG picture
 

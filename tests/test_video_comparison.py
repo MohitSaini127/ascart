@@ -70,7 +70,7 @@ class VideoComparisonTests(unittest.TestCase):
                 code, output, errors = self.run_cli(*args)
                 self.assertEqual(code, 0, errors)
                 self.assertIn("Saved ASCII video comparison", output)
-                self.assertIn("preview is not available yet", errors)
+                self.assertIn("preview is unavailable", errors)
                 expected = self.frames(width=(13 if border else 15) if fit else 8,
                                        max_height=(6 if border else 8) if fit else None,
                                        palette=" .<&@", color=color, border=border, background=background)
@@ -109,7 +109,7 @@ class VideoComparisonTests(unittest.TestCase):
         link.symlink_to(existing)
         for args in ([], ["--output", existing], ["--output", link], ["--output", self.source],
                      ["--output", self.root / "new.gif"], ["--output", self.root / "new.png"],
-                     ["--output", self.root / "new.mp4", "--loop-4"]):
+                     ["--output", self.root / "new.mp4", "--loop-count", "0"]):
             with self.subTest(args=args), patch("ascart.cli.play_video") as play:
                 code, output, errors = self.run_cli(*args)
                 self.assertEqual(code, 2, errors)

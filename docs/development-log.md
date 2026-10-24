@@ -3033,3 +3033,23 @@ Nothing is pushed. The user's untracked comparison.png remains preserved and exc
 Full command: `.venv/bin/python -B -m unittest discover -s tests`
 Output: `Ran 273 tests in 41.063s ... OK`. `git diff --check` passed.
 Stage the seven feature/documentation files and commit as `Export side-by-side video comparisons to MP4 and HTML`.
+
+
+## 99. Preview video side-by-side comparisons in the terminal
+
+Implemented the previously planned `ascart video.mp4 --compare --color` command after the user tried it and received the export-only error. Preview is experimental and uses the same native Kitty graphics detection/display as the working GIF comparison. It plays once by default; `--loop`, `--loop-4`, and `--loop-count 4` control terminal repeats. Ctrl+C stops playback. Animated preview still requires native support; the optional helper fallback remains limited to still images.
+
+Renamed the shared renderer in terminal_preview.py to preview_animation_comparison and retained the GIF entry point as a compatibility alias. Both formats reserve one display area, stream original/ASCII pictures from the same decoded frame, keep the previous complete picture until its replacement arrives, free only their own previous terminal image, close each reader, and restore the cursor below the preview. Video decoding starts fresh for each pass. No preview-only output file is created. The display geometry is chosen at startup; slow source decoding/rendering/transfer can slow playback. Video remains silent and uses constant source-reported timing or a 30 FPS fallback.
+
+The CLI now permits video comparison without output, and saves optional MP4/HTML output before previewing. Saved files contain one pass irrespective of terminal repeats. Unsupported/redirected terminals can still export; preview-only commands give an MP4/HTML-specific hint. Failed/cancelled preview leaves the saved file intact. Existing output protection is unchanged. Added an optional FPS-warning switch to video_comparison_frames so preview readers do not print into the reserved area; preview-only fallback is reported once before display, and exporters keep their existing warning.
+
+Updated the README command guide, CLI help, and usage guide. Added seven video-preview tests: default/counted/continuous CLI loops; real video frame colours and fresh passes through the shared renderer; unsupported/helper-only backend hints and safe export; saving before successful/failed/cancelled preview with one-pass output; preview-only failure/cancellation; existing-file protection before terminal access; and one FPS fallback warning outside the display area. Updated export tests to expect unsupported-terminal hints rather than the removed export-only message, and reject invalid zero loops instead of valid counted loops.
+
+Focused command: `.venv/bin/python -B -m unittest discover -s tests -p 'test_*comparison*.py'`
+Output: `Ran 42 tests in 2.320s ... OK`.
+
+Actual physical-terminal animation remains a user check. Nothing is pushed. The user's untracked comparison.png is preserved and excluded from the feature commit.
+
+Full command: `.venv/bin/python -B -m unittest discover -s tests`
+Output: `Ran 280 tests in 43.176s ... OK`. `git diff --check` passed.
+Stage the eight feature/documentation files and commit as `Preview side-by-side video comparisons in native graphics terminals`.

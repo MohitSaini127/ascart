@@ -187,10 +187,12 @@ GIF comparison plays once by default; use `--loop` or `--loop-4` to repeat the t
 | `ascart video.mp4 --color --output output/ascii.mp4` | Saves one silent ASCII video, then previews it. |
 | `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
 | `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
+| `ascart video.mp4 --compare --color` | Experimental animated side-by-side preview in terminals with native graphics support. |
+| `ascart video.mp4 --compare --color --loop-4` | Plays the comparison four times. |
 | `ascart video.mp4 --compare --color --output output/comparison.mp4` | Saves one silent video with the original beside its ASCII version. |
 | `ascart video.mp4 --compare --color --output output/comparison.html` | Saves a synchronized comparison webpage with playback controls. |
 
-Video comparison currently requires `--output`; terminal video comparison preview and loop flags come next.
+Video comparison plays once by default; `--loop` or `--loop-4` repeats terminal playback. With `--output`, it saves one silent pass before previewing.
 
 ### Camera commands (experimental)
 
@@ -236,7 +238,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-**Experimental terminal preview:** for still images and GIFs, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images or GIF/HTML for GIFs; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
+**Experimental terminal preview:** for still images, GIFs, and videos, `--compare` shows the original on the left and ASCII on the right. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images, GIF/HTML for GIFs, or MP4/HTML for videos; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

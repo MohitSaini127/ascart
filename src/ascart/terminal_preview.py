@@ -140,7 +140,7 @@ def _write_png_chunks(buffer, metadata):
     sys.stdout.flush()
 
 
-def preview_gif_comparison(frame_factory, background="dark", loops=1):
+def preview_animation_comparison(frame_factory, background="dark", loops=1):
     """Stream fresh passes into one reserved native-graphics display area."""
     size = shutil.get_terminal_size(fallback=(80, 24))
     columns, rows = max(1, size.columns - 1), max(1, size.lines - 3)
@@ -178,6 +178,10 @@ def preview_gif_comparison(frame_factory, background="dark", loops=1):
             sys.stdout.write(f"\033_Ga=d,d=N,I={sending},q=2;\033\\")
         sys.stdout.write(f"\033[0m\033[?25h\033[{rows}B\r\n")
         sys.stdout.flush()
+
+
+# Keep the GIF entry point for existing callers; both formats stream the same layout.
+preview_gif_comparison = preview_animation_comparison
 
 
 def preview_comparison(image, art, background, backend):
