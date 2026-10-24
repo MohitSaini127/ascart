@@ -2846,3 +2846,44 @@ The user approved replacing examples/image1.png with photo.png in the image comm
 The user requested removal of the standalone Setup and Running tests sections, shorter usage/camera notes, and a final Development section covering both modifying ascart and running tests. Removed the two standalone headings and combined their guidance under Development alongside the existing development-log link. Kept the final --help example. Reduced Usage notes to four short bullets and the camera section to compatibility/local processing, lighting, recording limits, and a reference link. Detailed information remains in docs/usage.md and docs/development.md.
 
 Removing Setup required changing the command-guide introduction's source-setup link to docs/development.md#setup; all command tables, examples, and other guide text are unchanged. Verified that exact exception, retained camera duration/HTML size limits, and checked local documentation links/heading anchors. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Streamline README notes and consolidate development links`. Nothing is pushed.
+
+
+## 92. Add side-by-side comparison for still images
+
+The user approved starting comparison support with images, after planning original-left / ASCII-right PNG and HTML exports. Added `--compare` to the CLI. It requires a still-image path and a new PNG or HTML destination. Text banners, camera modes, GIFs (including single-frame GIF files), animated/multipage images, videos, loop options, and other output formats are rejected. Unsupported modes fail before camera access or output-directory creation. Ordinary commands without the flag retain their existing behaviour.
+
+Added `src/ascart/comparison.py`. `_layout` calculates two panels and label space and rejects a combined layout above 20 million pixels before allocating comparison pictures. `_source_panel` scales the source without cropping, centres it, composites transparency on the selected background, and produces a fresh RGB image without copied source metadata. `comparison_to_png` labels and combines that source panel with the existing ASCII PNG renderer. `comparison_to_html` embeds a scaled PNG copy as a data URL and reuses the existing escaped, selectable ASCII markup in an offline two-column layout. No JavaScript or extra dependencies are required. Source files are opened for reading; the source path is not embedded. PNG/HTML fonts can differ.
+
+Updated `src/ascart/cli.py` to validate the flag, reject unsupported media, convert the same opened still image through the existing `image_to_ascii` function, and pass the source into the shared save/display helper. Colour, custom characters, backgrounds, width/fit, and borders apply to the ASCII panel; width/fit size that panel, so the combined export is wider. The terminal still prints exactly the ordinary ASCII result and saved location. Exclusive output creation, source-alias rejection, readable errors, and rendering-before-folder-creation are retained. Generated PNG pictures now close explicitly after saving or handled failure.
+
+README adds two comparison commands to the image table, a short feature mention, and a brief note after the export formats. Existing command rows remain unchanged. Added the detailed Image comparison section to docs/usage.md. No sample media, preview assets, ignore rules, dependency declarations, or package version changed.
+
+Added `tests/test_comparison.py` with 11 tests, including 96 PNG/HTML visual combinations. Tests compare terminal output with ordinary conversion and PNG right-panel pixels with the existing renderer, decode the embedded source PNG, verify colours, borders, backgrounds, fitting, transparency, source proportions, ASCII escaping/blank rows, missing source paths/metadata, unchanged source bytes, the combined pixel guard, rejected modes/media/extensions, existing files/symlinks/hardlinks, competing destination creation, rendering failures, write permissions, and help text. Tests use private temporary files and no physical cameras.
+
+Commands run and actual final results:
+
+```bash
+.venv/bin/ascart --help
+.venv/bin/python -B -m unittest discover -s tests -p 'test_comparison.py'
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Help includes: `--compare  Save a still image beside its ASCII art; requires new PNG or HTML output`. The focused check reported:
+
+```text
+Ran 11 tests in 0.837s
+
+OK
+```
+
+The complete regression check reported:
+
+```text
+Ran 228 tests in 43.820s
+
+OK
+```
+
+A real CLI smoke check ran both PNG and HTML exports with the Tux sample, --compare --width 40 --color --border --background dark, and fresh temporary destinations. Both commands printed a successful saved location. PNG readback was `(1080, 628) RGB`; HTML contained an embedded source PNG and selectable ASCII. The PNG was visually inspected with original left, uncropped proportions, labelled panels, and ASCII right. Browser appearance remains a manual check; the page markup/data were checked without browser navigation. README and usage-reference local links and heading anchors resolve. `git diff --check` passed.
+
+Stage the six feature files and commit as `Add side-by-side PNG and HTML image comparison`, following the agreed workflow. Nothing is pushed. The next user check is to export the included image to a new comparison PNG or HTML filename and view the saved result. GIF and video comparison remain future steps.

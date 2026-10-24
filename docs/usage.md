@@ -38,6 +38,23 @@ Brightness values from 0 through 255 are divided into near-equal bands across th
 
 Automatic background selection reads the last field of the `COLORFGBG` environment variable. Conventional color indexes 7 and 15 select light mode; other, missing, or unsupported values fall back to dark. This does not measure the actual screen, and themes can redefine those colors. Use a manual override when needed. Light mode reverses the character palette; it does not invert the image's RGB colors.
 
+## Image comparison
+
+Use `--compare` with a still image and a new `.png` or `.html` output filename:
+
+```bash
+ascart photo.png --compare --color --output output/comparison.png
+ascart photo.png --compare --color --border --output output/comparison.html
+```
+
+The saved comparison labels the original on the left and ASCII artwork on the right. The original is scaled to fit its panel without cropping or changing its proportions; transparent pixels are composited on the chosen light/dark background. The ASCII side uses the existing converter and supports colour, custom palettes, width or fit, backgrounds, and borders. Borders apply to the ASCII side. The terminal continues to display the same ASCII artwork as an ordinary conversion.
+
+`--width` and `--fit` size the ASCII artwork, not the combined comparison. The saved layout is wider because it includes both panels. PNG draws the ASCII characters; HTML keeps them selectable and embeds a scaled PNG copy of the source for offline viewing. HTML needs no JavaScript, does not reference the source path, and uses horizontal scrolling when the comparison is wider than the browser. Embedded images are re-encoded without the source metadata. Fonts may differ between PNG, HTML, and the terminal.
+
+The combined layout is limited to 20 million pixels, checked before allocating comparison panels or creating the output directory. Use a smaller width if this limit is reached. Existing output files and source aliases are rejected; there is no overwrite or automatic numbering. As with ordinary exports, a write failure may leave a partial newly created file.
+
+This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. `--compare` requires an output filename; TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No additional dependencies are needed.
+
 ## Saving a PNG picture
 
 The output filename chooses the format: `.txt` saves characters you can open in a text editor; `.png` saves a picture of those characters. After a successful save, ascart also displays the artwork in the terminal, followed by the saved-file location. PNG saving works for photos and all text-banner styles, without extra dependencies.

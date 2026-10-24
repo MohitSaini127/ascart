@@ -106,7 +106,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Text banners and ASCII conversion for images, GIFs, and videos.
+- Text banners, side-by-side image comparisons, and ASCII conversion for images, GIFs, and videos.
 - Experimental live camera, snapshots, and timed recording.
 - Colour, custom characters, borders, width control, and terminal fitting.
 - TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
@@ -153,6 +153,8 @@ After [installation](#installation), run these commands from any folder using yo
 | `ascart photo.png --output output/image.txt` | Saves plain-text artwork and displays it. |
 | `ascart photo.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
 | `ascart photo.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
+| `ascart photo.png --compare --color --output output/comparison.png` | Saves the original beside its ASCII version as a PNG. |
+| `ascart photo.png --compare --color --output output/comparison.html` | Saves an offline comparison webpage with selectable ASCII text. |
 
 ### GIF commands
 
@@ -222,6 +224,8 @@ Keep these rules in mind:
 | Camera recording | GIF, MP4, HTML |
 
 Choose the output format using the filename extension, such as `--output art.png`.
+
+For still images, add `--compare` with PNG or HTML output to put the original on the left and ASCII on the right. The terminal shows ASCII only. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 
