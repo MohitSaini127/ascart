@@ -8,11 +8,11 @@
 </pre>
 </div>
 
-ascart is a Python command-line learning project that creates text banners and converts photos, GIFs, and videos into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image or frame.
+ascart is a Python command-line learning project that creates text banners and converts photos, GIFs, videos, and a live camera into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image or frame.
 
 The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
 
-[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [License and credits](#license-and-credits)
+[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands) · [License and credits](#license-and-credits)
 
 ## Preview
 
@@ -75,6 +75,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 - Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
 - Animated, selectable HTML export for GIFs and videos, with Play, Pause, and Replay controls.
+- Live local-camera ASCII in the terminal, with camera selection, access checking, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
 - Readable messages for common input, decoding, and file-saving errors.
 
 ## Setup
@@ -119,7 +120,7 @@ After [setup](#setup), activate your environment and run these commands from the
 
 For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. Use a capital `V`; lowercase `-v` is not an option. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.
 
-[Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands)
+[Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands) · [Camera commands](#camera-commands)
 
 ### Text commands
 
@@ -176,6 +177,21 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
 | `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
 
+### Camera commands
+
+| Command | What it does |
+| --- | --- |
+| `ascart --list-cameras` | Tests local camera access and prints readable IDs; cameras may activate briefly. |
+| `ascart --camera` | Opens camera 0 with the default horizontally flipped view in the same terminal. |
+| `ascart --camera-mirrored` | Opens camera 0 with the alternative view, preserving the camera-supplied orientation. |
+| `ascart --camera-mirrored 1 --color` | Opens camera 1 with the alternative orientation and colour. |
+| `ascart --camera 1` | Opens camera ID 1 instead. |
+| `ascart --camera --color --fit --border` | Shows coloured, bordered live ASCII fitted to the terminal. |
+| `ascart --camera --width 60 --chars " .:*#@"` | Uses a fixed width and custom character palette. |
+| `ascart --camera --background light` | Maps brightness for a light terminal theme. |
+
+Press **Ctrl+C** to stop and release the camera. This version supports live viewing only; output and loop options are rejected. See [live camera details](#live-camera) for access and listing limitations.
+
 Keep these rules in mind:
 
 - Use a new output filename each time. Existing files are never overwritten, and output folders are created as needed. TXT output stays plain; PNG/HTML/GIF/MP4 output supports photo or frame colors.
@@ -185,7 +201,7 @@ Keep these rules in mind:
 
 ## Text banners
 
-Choose exactly one text-input option or a photo/GIF/video path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
+Choose one input mode: text, a photo/GIF/video path, camera viewing, or camera listing. For a banner, choose exactly one text-input option. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
 
 `-t` is a short form of `--text`: `ascart -t "Hello"` produces the same standard banner. Both forms support width, borders, and TXT/PNG/HTML saving, for example `ascart -t "Hi" --border --output output/hi.png`. Use `--text-slant` or `--text-bold` directly for those styles; they are separate text-input choices.
 
@@ -358,6 +374,24 @@ OpenCV writes into a private temporary folder beside the requested destination. 
 
 MP4 encoding requires an available `mp4v` encoder in OpenCV; ascart reports an error if it cannot open one. Readback verification detects missing encoded frames, but cannot prove that a damaged source was decoded completely: OpenCV can report a failed read for both the end of a video and a damaged tail. Source video timestamps are approximated using one FPS, so variable-frame-rate timing is not preserved exactly. No extra dependencies or command-line recording limits were added.
 
+## Live camera
+
+Run `ascart --camera` in an interactive terminal. Camera 0 is the default; choose another nonnegative ID with `ascart --camera 1`. Camera IDs can change after reconnecting devices. There is no extra window. Width (default 60), fit, colour, custom palettes, background mapping, and borders work like video playback. Choose either width or fit. Terminal fitting is calculated once at startup.
+
+The default `--camera` view horizontally flips each incoming frame before ASCII conversion. Use `--camera-mirrored` instead to keep the camera-supplied orientation. Both commands accept an optional camera ID and the same visual options, for example `ascart --camera-mirrored 1 --color --width 120`. Choose one camera command; combining them is rejected. The camera/driver may already transform its frames, so these settings describe how ascart treats the supplied image rather than guaranteeing a physical orientation for every device. Photo, GIF, and video orientation is unchanged.
+
+Lighting and camera placement strongly affect the visible detail and colours. Light the subject well and try `--width 120` for more detail if your terminal is wide enough. A dense palette such as `ascart --camera --color --width 120 --chars '@'` gives source colours more visible character strokes. You can also experiment with `--chars '@%&#$8BMWQ'`; single quotes keep `$` literal in the shell. These are optional palettes: the existing colour default remains `#%@`, and no automatic brightness or saturation enhancement is applied.
+
+A camera opens only when you explicitly request camera viewing or camera listing. Ordinary text, photo, GIF, video, version, and help commands do not access cameras. OpenCV asks the operating system to open the local device; it reads one frame at a time, uses the existing video-to-ASCII conversion, and updates the terminal with up to 30 redraws per second. Processing or capture can make it slower. Frames stay in memory and are neither recorded nor uploaded. No new runtime dependency is needed.
+
+`--list-cameras` briefly opens candidates and tries to read one frame, then releases them. On Linux it checks the IDs in `/dev/video*`; on other systems it probes IDs 0–9. It reports accessible capture IDs rather than a complete inventory or friendly hardware names. One physical webcam may expose multiple device IDs; some devices are metadata-only or cannot supply images. A failed probe may mean missing hardware, permission restrictions, an unsupported driver, or a camera used by another application. You can explicitly try an ID outside the non-Linux listing range. Listing also works without an interactive terminal. Devices are checked in sequence; driver opening/reading can be slow, and OpenCV provides no universal camera timeout for these operations.
+
+Press Ctrl+C to stop. Cleanup releases the active camera, resets terminal colours, and restores cursor visibility after display begins. A missing first frame or a later disconnected camera produces a readable error. Native camera drivers can block while opening/reading, which can delay interruption; a forced kill or terminal failure cannot guarantee terminal cleanup. If access is blocked, check operating-system camera settings or close other camera applications. ascart does not change permissions or require sudo.
+
+Camera mode currently rejects `--output`, `--loop`, `--loop-4`, and `--loop-count`. A live stream already runs until stopped. It also rejects combining camera selection, listing, text input, or a media path. Invalid options and non-interactive playback are rejected before opening a device. Use visual options with --camera; listing rejects settings such as colour, borders, custom palettes, and fitting. Saved snapshots and timed recordings are planned separately.
+
+Automated camera tests use simulated devices and never access real cameras. Check actual compatibility, colours, responsiveness, and camera release on your own hardware before relying on this feature.
+
 ## File errors
 
 Common file and decoding failures produce a message containing the operation, file path, and reason. For example:
@@ -403,9 +437,11 @@ Input/output aliases, existing files, directories, and existing symbolic links a
 5. For color output, a resized RGB copy supplies each character's foreground color.
 6. Rows are joined into text, then printed, saved, or displayed as animation frames.
 
-Photos, GIFs, and videos share the same image conversion function.
+Photos, GIFs, videos, and camera frames share the same image conversion function.
 
 ## Current limitations and future work
+
+- Camera mode is live terminal viewing only; snapshots and timed recordings are not implemented. Camera access depends on the operating system, permissions, drivers, and hardware.
 
 - Video playback and saved MP4s have no audio. Codec availability depends on the OpenCV installation; export currently uses `mp4v` only.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
@@ -446,6 +482,8 @@ MP4 export tests add 32 saved-video rendering combinations, reopen real encoded 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
 
 Animated HTML tests add 96 GIF/video option combinations, check exact converted frames and timings, escaping, initial-frame fallback, size/frame limits, exclusive creation, reader cleanup, FPS fallback, and independent terminal loops. An optional Node.js test runs the actual player code with a simulated clock and document to verify Play/Pause/resume/Replay and stopping after one pass; Node.js is not a runtime dependency. Browser appearance is checked manually.
+
+Camera tests use mock capture handles and controlled image arrays, covering 96 rendering combinations across both camera orientations, default/explicit camera IDs, listing discovery, inaccessible/empty devices, read/conversion failures, disconnects, Ctrl+C, redraw pacing, cursor restoration, and handle release. An asymmetric colour-frame test checks that the default flips left/right before conversion while the mirrored option preserves source pixels, without modifying the source array. Invalid modes/output/loops, non-interactive playback, and malformed IDs must fail before camera access or file creation. Existing command checks verify that help, version, text, and photo commands do not open cameras. Real webcam compatibility remains a manual check.
 
 ## License and credits
 

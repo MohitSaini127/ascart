@@ -2231,3 +2231,136 @@ OK
 ```
 
 All tests passed, including the JavaScript control tests. git diff --check passed. Per the agreed workflow, stage the five changed files and commit as `Add optional loop control to GIF HTML exports`. Nothing is pushed.
+
+
+## 66. First live-camera implementation, awaiting hardware check
+
+The user approved the first implementation step and asked for an explanation of the added code. The agreed sequence is implementation, automated regression checks, the user's actual webcam check, documentation, then staging and committing. Existing progress was already committed through 5306229; this new camera milestone remains unstaged and uncommitted pending the hardware check. Nothing is pushed.
+
+### Added code and how it works
+
+Added src/ascart/camera_art.py with four small pieces:
+
+1. camera_capture(index) is a context manager. It validates a nonnegative ID that fits OpenCV's signed integer parameter, calls cv2.VideoCapture(index), checks isOpened(), and yields the handle. Its finally block calls release() when the caller finishes, encounters an error, or receives Ctrl+C. Importing this module never opens a camera.
+2. camera_candidates() reads numeric /dev/video* IDs on Linux and sorts/deduplicates them. Other platforms return the bounded candidate range 0 through 9. This is candidate discovery, not a promise of complete camera enumeration or friendly hardware names.
+3. list_cameras() opens each candidate in sequence, reads one frame, and reports only IDs that return a non-empty picture. Failed probes are skipped because absence, permissions, busy hardware, unsupported drivers, and non-capture nodes cannot always be distinguished. Every acquired handle is released, including the handle active during Ctrl+C. Probing can briefly activate camera indicators.
+4. play_camera() opens one selected device, then repeatedly reads one frame, calls the existing video_frame_to_ascii converter, optionally adds a border, and prints it using the same ANSI screen/cursor controls as current animation playback. It caps terminal redraws at 30 FPS, subtracting read/conversion/printing time before sleeping. It does not build a recording or store past frames. A missing first frame or later failed read stops with a readable error rather than retrying forever. An outer finally block resets terminal colours and restores cursor visibility after display has begun.
+
+Updated src/ascart/cli.py to add --camera [ID] (default 0) and --list-cameras. Exactly one input mode is required: path, text, camera, or listing. Camera mode rejects saving and loop options before hardware access; invalid IDs, width/palette errors, conflicting input modes, tiny fit+border terminals, and non-interactive camera playback also fail before opening a camera. Camera mode reuses existing palette defaults, automatic/manual background mapping, width/fit calculations, colour selection, and border options. Text, photo, GIF, video, and export conversion implementations did not need changes. Ctrl+C prints Camera stopped after cleanup. Listing can run without an interactive terminal and warns before probing.
+
+No new runtime dependency was installed. The existing opencv-python-headless package supplies capture APIs; no GUI window is used. No file is saved, no microphone is used, and no camera frame is uploaded. Camera access remains subject to operating-system permissions and driver support. Native open/read calls can block, so there is no universal timeout or guarantee of instant interruption. Forced termination cannot guarantee cursor restoration. No camera permission, device configuration, or user data was changed.
+
+Updated README.md with camera command-guide rows, navigation, supported controls, architecture, privacy behaviour, listing limits, error/cleanup behaviour, deferred output, and manual-testing instructions. Existing .gitignore already covers generated output and the environment, so no ignore change was required.
+
+### Automated verification
+
+Added tests/test_camera_art.py with 15 methods. All camera handles are mocks and all picture frames are controlled NumPy arrays; automated tests never open a real device. Tests exercise 48 visual-option combinations, selected/default IDs, sorted Linux candidates and fallback IDs, readable/unavailable/empty devices, read/conversion/sleep failures, disconnects, Ctrl+C, decoder release, cursor restoration, redraw pacing, non-interactive rejection, invalid/conflicting arguments, source-file protection, and unchanged ordinary command behaviour. The real existing converter is used for rendered-frame comparisons. Unexpected programming errors still propagate. An initial test-fixture syntax typo was corrected before passing runs.
+
+Focused command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_camera_art.py -v
+```
+
+Actual output ended with:
+
+```text
+Ran 15 tests in 1.642s
+
+OK
+```
+
+Full regression command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 162 tests in 26.095s
+
+OK
+```
+
+Added an upper-bound check afterward to prevent oversized numeric IDs overflowing OpenCV's native integer argument, and extended the invalid-command test. The focused suite was rerun against the final code:
+
+```text
+Ran 15 tests in 0.325s
+
+OK
+```
+
+Also ran these real, non-capturing module commands:
+
+```bash
+.venv/bin/python -B -m ascart --help
+.venv/bin/python -B -m ascart --camera --output output/camera.mp4
+```
+
+Help exited 0 and included --camera [ID] and --list-cameras with access/cleanup guidance. The invalid output command exited 2 with:
+
+```text
+python -m ascart: error: Camera mode supports live viewing only; --output is not supported yet
+```
+
+The output command was rejected before device access or file creation. No real --camera or --list-cameras command has been run by the agent. git diff --check passed.
+
+### Next manual check
+
+From the project terminal with the environment active, run ascart --camera, inspect the live output, and stop with Ctrl+C. Then try ascart --camera --color --fit --border and check both the image and camera release. Use ascart --list-cameras if device selection is needed; this explicitly probes devices and may activate them briefly. Actual camera compatibility and responsiveness remain unverified until the user runs these checks. After feedback and any required fixes, finish the documentation and stage/commit the feature separately.
+
+
+## 67. Camera orientation chosen after manual comparison
+
+During the first hardware check, the user reported OpenCV warnings during listing and a No such device warning when opening camera 0. Read-only kernel log checks showed a webcam USB disconnect/reconnect around the reported test time; the cause was not established. No device settings or system configuration were changed. The user subsequently confirmed that live ASCII did appear, but its low-detail appearance and orientation needed review. The default width remains 60; larger-width commands were offered for comparison rather than changing global defaults.
+
+Created a standalone temporary comparison tool at /tmp/ascart-camera-orientation-ohRLrZ/compare.py, outside the project. It offered current and horizontally flipped previews at width 120. Its conversions were checked using an asymmetric synthetic frame, without opening a camera. Added optional colour at the user's request. The user then selected the flipped preview as the default --camera view and requested the prior view under the standalone command --camera-mirrored.
+
+Updated camera_art.play_camera with a mirrored=False parameter. Default mode calls cv2.flip(frame, 1) before shared ASCII conversion. Mirrored mode skips this flip, retaining the source orientation. This exactly matches the two tested preview choices; it does not assume all camera drivers supply the same physical orientation. Source arrays are not modified, and camera listing has no orientation transformation. Existing photo/GIF/video conversion functions were not changed.
+
+Updated cli.py to put --camera [ID] and --camera-mirrored [ID] in a mutually exclusive group. Both default to camera ID 0 and accept the same visual options. The mirrored ID is normalized into the existing camera validation and dispatch flow, so output/loop restrictions, conflicting modes, invalid IDs, and non-interactive rejection still apply before capture. The selected orientation is passed explicitly to play_camera.
+
+README.md now documents both standalone camera commands, optional IDs, colour examples, the exact orientation transformations, and unchanged file-media orientation. The temporary comparison tool was kept consistent with the new default by explicitly retaining source orientation before its own optional flip; it remains outside Git.
+
+Extended test_camera_art.py to 16 methods. Camera rendering combinations now cover both orientations (96 cases). Added an asymmetric colour-picture check comparing actual ASCII with the expected flipped/original frame, including borders and unchanged input pixels. Selection tests cover default and explicit IDs for both commands; invalid-mode tests cover conflicting camera options, mirrored IDs, listing/text conflicts, output, and loops. Tests still use mocked camera handles and never activate actual hardware.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_camera_art.py
+```
+
+```text
+Ran 16 tests in 1.844s
+
+OK
+```
+
+The camera milestone remains unstaged and uncommitted until the user confirms these final commands and cleanup on their webcam, following the agreed manual-check-before-commit sequence. No files are pushed.
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 163 tests in 26.519s
+
+OK
+```
+
+All tests passed. git diff --check also passed. Actual webcam orientation remains for the user's final check; no camera was opened by the agent.
+
+
+## 68. Finish the live-camera milestone after manual feedback
+
+The user confirmed that camera ASCII was working, selected the flipped default with the previous source view available as --camera-mirrored, and tested coloured output. When colours initially looked dull, a command using --chars '@' improved the visible colour coverage. The user then identified lighting at the camera's position as the main factor. Also supplied the requested custom-palette command with literal single quotes around '@%&#$8BMWQ', so the shell does not expand the dollar sign.
+
+Kept width 60 and the existing #%@ coloured-camera palette as defaults. A proposed change to a single-character default was not implemented. No brightness/saturation enhancement or camera-device setting was changed. README.md now includes practical lighting/placement guidance and optional width/palette examples. These observations establish basic live viewing on the user's device; they do not establish universal driver compatibility or an exhaustive manual check of every option.
+
+The last full automated verification remains 163 passing tests in 26.519s, recorded in milestone 67. Since that run, only documentation and a source comment changed; no executable code or dependency changed, so the full suite was not repeated. git diff --check passed. All camera access in automated tests was simulated, and the agent never opened the real camera. Temporary orientation-comparison code remains outside the repository and is not staged.
+
+Per the agreed per-feature workflow, stage README.md, docs/development-log.md, src/ascart/cli.py, src/ascart/camera_art.py, and tests/test_camera_art.py, then commit as `Add live camera ASCII with orientation selection`. No generated media, environment files, or output files are included. Nothing is pushed. The next planned feature is camera snapshots (TXT/PNG/HTML), followed by separately considered timed recording and side-by-side comparison.

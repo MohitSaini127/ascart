@@ -12,6 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 from ascart import __version__
 from ascart.border import add_border
+from ascart.camera_art import list_cameras, play_camera
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
 from ascart.html_art import art_to_html, save_animated_html
@@ -94,9 +95,13 @@ def detect_background():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create text banners, convert photos, or play GIFs and videos as ASCII art.")
+    parser = argparse.ArgumentParser(description="Create text banners or convert photos, GIFs, videos, and a live camera to ASCII art.")
     parser.add_argument("-V", "--version", action="version", version=f"ascart {__version__}", help="Show the installed version and exit")
     parser.add_argument("path", nargs="?", help="Path to a local image, GIF, or video file")
+    camera_inputs = parser.add_mutually_exclusive_group()
+    camera_inputs.add_argument("--camera", nargs="?", const=0, type=int, metavar="ID", help="Live camera with the default horizontally flipped view; default ID 0; Ctrl+C stops")
+    camera_inputs.add_argument("--camera-mirrored", nargs="?", const=0, type=int, metavar="ID", help="Live camera using the previous, source orientation; default ID 0; use instead of --camera")
+    parser.add_argument("--list-cameras", action="store_true", help="Test local camera access (may briefly activate cameras); Linux video devices, otherwise IDs 0-9")
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("-t", "--text", type=lambda value: (value, "standard"), help="Standard text banner")
     text_inputs.add_argument("--text-slant", dest="text", type=lambda value: (value, "slant"), help="Slanted text banner")
@@ -154,8 +159,36 @@ def main():
         arguments.append("--loop-count=" + match.group(1) if match else argument)
         value_expected = argument in ("-t", "--text", "--text-slant", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count") or (font_match is not None and "=" not in argument)
     args = parser.parse_args(arguments)
-    if (args.path is None) == (args.text is None):
-        parser.error("Provide either a media path or --text, but not both")
+    if args.camera_mirrored is not None:
+        args.camera = args.camera_mirrored
+    if sum((args.path is not None, args.text is not None, args.camera is not None, args.list_cameras)) != 1:
+        parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
+    if args.camera is not None or args.list_cameras:
+        if args.output is not None:
+            parser.error("Camera mode supports live viewing only; --output is not supported yet")
+        if args.loop or args.loop_count is not None:
+            parser.error("Camera mode already runs until Ctrl+C; loop options do not apply")
+        if args.camera is not None and args.camera < 0:
+            parser.error("Camera ID must be 0 or greater")
+        if args.camera is not None and args.camera > 2147483647:
+            parser.error("Camera ID is too large; maximum is 2147483647")
+    if args.list_cameras:
+        if args.color or args.border or args.fit or args.chars is not None or args.background != "auto" or args.width != 60:
+            parser.error("--list-cameras checks devices only; visual options apply to --camera")
+        print("Checking local camera access; cameras may briefly activate.", flush=True)
+        try:
+            cameras = list_cameras()
+        except KeyboardInterrupt:
+            print("Camera check stopped.")
+            return
+        except (OSError, ValueError, cv2.error) as error:
+            parser.error(f"Cannot list cameras: {error}")
+        if cameras:
+            for index in cameras:
+                print(f"Camera {index}: readable (use ascart --camera {index})")
+        else:
+            print("No readable cameras found in the checked devices; cameras may be unavailable, busy, or blocked by permissions.")
+        return
     validate_output(args.output, args.path, parser)
     output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
     if args.text is not None:
@@ -204,6 +237,21 @@ def main():
                 parser.error("Terminal is too small for --fit --border; need at least 4 columns and 5 rows")
             width -= 2
             max_height -= 2
+    if args.camera is not None:
+        if not sys.stdout.isatty():
+            parser.error("Camera playback requires an interactive terminal")
+        try:
+            print(f"Starting camera {args.camera}; press Ctrl+C to stop.", flush=True)
+            play_camera(
+                args.camera, width=width, palette=args.chars, background=background,
+                max_height=max_height, color=color, border=args.border,
+                mirrored=args.camera_mirrored is not None,
+            )
+        except KeyboardInterrupt:
+            print("Camera stopped.")
+        except (OSError, ValueError, cv2.error) as error:
+            parser.error(f"Cannot use camera {args.camera}: {error}")
+        return
     try:
         mode = Path(args.path).stat().st_mode
     except (OSError, ValueError) as error:
