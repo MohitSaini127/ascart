@@ -71,7 +71,8 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual(code, 0, errors)
                 code, compared, errors = self.run_cli(self.source, *settings, "--compare", "--output", target)
                 self.assertEqual(code, 0, errors)
-                self.assertEqual(compared, plain + f"Saved ASCII art to {target}\n")
+                self.assertEqual(compared, f"Saved ASCII art to {target}\n")
+                self.assertIn("open the saved comparison", errors)
                 art = plain.removesuffix("\n")
                 resolved = "dark" if background == "dark" else "light"
                 if suffix == "png":
@@ -136,7 +137,7 @@ class ComparisonTests(unittest.TestCase):
 
     def test_requires_still_image_mode_and_png_or_html_output(self):
         cases = [
-            [self.source], [self.source, "--output", self.root / "new" / "bad.txt"],
+            [self.source, "--output", self.root / "new" / "bad.txt"],
             [self.source, "--output", self.root / "new" / "bad.gif"],
             [self.source, "--output", self.root / "new" / "bad.mp4"],
             ["-t", "Hi", "--output", self.root / "new" / "text.png"],
@@ -239,4 +240,4 @@ class ComparisonTests(unittest.TestCase):
         code, output, errors = self.run_cli("--help")
         self.assertEqual(code, 0)
         self.assertIn("--compare", output)
-        self.assertIn("PNG or HTML output", " ".join(output.split()))
+        self.assertIn("optionally save PNG or HTML", " ".join(output.split()))

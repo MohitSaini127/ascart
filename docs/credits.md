@@ -19,6 +19,8 @@ The bundled Tux image and its ASCII preview are based on the credited [CC0 sampl
 
 Dependencies are installed separately. These credits acknowledge their authors; they do not replace the license texts and notices required when redistributing third-party software. A future bundled executable must retain the applicable library, font, and bundled-component notices.
 
+Optional direct terminal previews use [Kitty's `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/), installed separately. Kitty is not bundled with ascart.
+
 ## Sample image
 
 The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](https://github.com/garrett/Tux). Its embedded metadata and the [source README](https://github.com/garrett/Tux/blob/main/README.md) state [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Original illustration by Larry Ewing using GIMP; redrawn in Inkscape by Garrett LeSage, with refinement and cleanup credited upstream to IFo Hancroft. Only this PNG is bundled; supply your own files for GIF and video playback.

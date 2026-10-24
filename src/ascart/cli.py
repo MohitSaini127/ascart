@@ -3,6 +3,7 @@ import math
 import os
 import re
 import shutil
+import subprocess
 import sys
 from contextlib import closing
 from pathlib import Path
@@ -22,6 +23,7 @@ from ascart.html_art import MAX_ANIMATION_FRAMES, art_to_html, save_animated_htm
 from ascart.image_art import image_to_ascii, inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
+from ascart.terminal_preview import PREVIEW_UNAVAILABLE, image_preview_backend, preview_comparison
 from ascart.video_art import inspect_video, play_video, save_ascii_video, video_ascii_frames
 
 
@@ -58,7 +60,7 @@ def validate_output(output, input_path, parser):
         parser.error("--output supports .txt/.png/.html for photos/banners, .gif/.html for GIF input, or .mp4/.html for video input")
 
 
-def display_art(art, output, parser, background="dark", refresh_terminal=False, comparison=None):
+def display_art(art, output, parser, background="dark", refresh_terminal=False, comparison=None, show_art=True):
     if output is not None:
         output_path = Path(output)
         picture = None
@@ -92,7 +94,8 @@ def display_art(art, output, parser, background="dark", refresh_terminal=False, 
                 picture.close()
         if refresh_terminal:
             print("\033[H\033[J", end="")
-        print(art)
+        if show_art:
+            print(art)
         print("Saved ASCII art to", output_path)
     else:
         print(art)
@@ -132,7 +135,7 @@ def main():
     )
     parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4/.gif/.html with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
-    parser.add_argument("--compare", action="store_true", help="Save a still image beside its ASCII art; requires new PNG or HTML output")
+    parser.add_argument("--compare", action="store_true", help="Preview a still image beside its ASCII art in a supported terminal; optionally save PNG or HTML with --output")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
@@ -190,8 +193,8 @@ def main():
     if args.compare:
         if args.path is None:
             parser.error("--compare supports still images only; not text, camera, GIF, or video input")
-        if args.output is None or Path(args.output).suffix.lower() not in (".png", ".html"):
-            parser.error("--compare requires --output with a new .png or .html filename")
+        if args.output is not None and Path(args.output).suffix.lower() not in (".png", ".html"):
+            parser.error("--compare output requires a new .png or .html filename")
         if args.loop or args.loop_count is not None:
             parser.error("--compare does not accept loop options")
     if args.camera is not None or args.list_cameras:
@@ -438,7 +441,23 @@ def main():
                 art = image_to_ascii(image, width, args.chars, background, max_height, color)
                 if args.border:
                     art = add_border(art)
-                display_art(art, args.output, parser, background, comparison=image)
+                if args.output is not None:
+                    display_art(art, args.output, parser, background, comparison=image, show_art=False)
+                try:
+                    backend = image_preview_backend()
+                    if backend is None:
+                        if args.output is None:
+                            parser.error(PREVIEW_UNAVAILABLE)
+                        print("Direct image preview is unavailable in this terminal; open the saved comparison to view it.", file=sys.stderr)
+                    else:
+                        preview_comparison(image, art, background, backend)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    if args.output is None:
+                        parser.error(str(error) if isinstance(error, ValueError) else PREVIEW_UNAVAILABLE)
+                    print("Direct image preview failed; the saved comparison is intact. Open it to view it.", file=sys.stderr)
+                except KeyboardInterrupt:
+                    message = "Preview cancelled; the comparison is already saved." if args.output else "Comparison preview cancelled."
+                    print(message, file=sys.stderr)
         except IMAGE_READ_ERRORS as error:
             report_file_error(parser, "Cannot convert photo", args.path, error)
         return

@@ -153,6 +153,7 @@ After [installation](#installation), run these commands from any folder using yo
 | `ascart photo.png --output output/image.txt` | Saves plain-text artwork and displays it. |
 | `ascart photo.png --color --border --output output/image.png` | Saves a colored, bordered PNG and displays the artwork. |
 | `ascart photo.png --color --border --output output/image.html` | Saves colored, selectable ASCII artwork as a webpage and displays it. |
+| `ascart photo.png --compare --color` | Previews the original beside ASCII in a supported terminal; otherwise shows an export hint. |
 | `ascart photo.png --compare --color --output output/comparison.png` | Saves the original beside its ASCII version as a PNG. |
 | `ascart photo.png --compare --color --output output/comparison.html` | Saves an offline comparison webpage with selectable ASCII text. |
 
@@ -225,7 +226,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-For still images, add `--compare` with PNG or HTML output to put the original on the left and ASCII on the right. The terminal shows ASCII only. See the [comparison guide](docs/usage.md#image-comparison) for details.
+For still images, `--compare` previews the original on the left and ASCII on the right in a Kitty-compatible terminal with the `icat` helper. Add `--output` to save PNG or HTML; saving works even when preview is unavailable. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

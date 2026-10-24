@@ -2887,3 +2887,42 @@ OK
 A real CLI smoke check ran both PNG and HTML exports with the Tux sample, --compare --width 40 --color --border --background dark, and fresh temporary destinations. Both commands printed a successful saved location. PNG readback was `(1080, 628) RGB`; HTML contained an embedded source PNG and selectable ASCII. The PNG was visually inspected with original left, uncropped proportions, labelled panels, and ASCII right. Browser appearance remains a manual check; the page markup/data were checked without browser navigation. README and usage-reference local links and heading anchors resolve. `git diff --check` passed.
 
 Stage the six feature files and commit as `Add side-by-side PNG and HTML image comparison`, following the agreed workflow. Nothing is pushed. The next user check is to export the included image to a new comparison PNG or HTML filename and view the saved result. GIF and video comparison remain future steps.
+
+
+## 93. Preview image comparisons in supported terminals with export fallback
+
+The user approved direct terminal preview for --compare alone, an export hint when preview is unavailable, and saving with --output even if preview fails. Added src/ascart/terminal_preview.py with an optional Kitty-compatible icat backend. It requires interactive stdin/stdout, looks for kitten or the legacy kitty +kitten helper, and probes the actual terminal with --detect-support and a one-second detection window plus a three-second process timeout. Missing helpers, unsupported terminals, probe failures, and timeouts report preview as unavailable. It does not infer support from environment variables. The protocol and helper options were checked against [Kitty's official icat documentation](https://sw.kovidgoyal.net/kitty/kittens/icat/).
+
+The preview composes the same labelled PNG in memory and streams it to icat with --stdin=yes, --transfer-mode=stream, --fit=both, and left alignment. This displays the original and rasterized ASCII together without creating a requested comparison file or opening another application. A ten-second display timeout bounds helper failures. POSIX terminal settings are captured and restored even after cancellation or timeout; systems without termios use the helper without that POSIX-specific safeguard. Other image protocols remain unimplemented, and actual Kitty display is a manual check because no Kitty helper/display is available in this executor. No new Python package dependency is added; export works without the optional terminal helper.
+
+Updated cli.py so --compare no longer requires output. Export format restrictions still apply when output is supplied. Preview-only commands show a readable export hint and exit 2 when preview is unavailable. With output, the PNG/HTML is completely saved and its location printed before probing/display; unavailable, failed, timed-out, or cancelled preview does not turn the successful export into an error or alter its file. Comparison mode no longer prints a duplicate plain ASCII panel. Other commands keep their normal terminal output. Rendering size errors keep their useful smaller-width message rather than being misreported as missing terminal support.
+
+Updated README with a preview-only example and a concise backend/fallback note. Updated docs/usage.md with supported-terminal requirements, in-memory raster preview versus selectable HTML text, optional output, and saving-first failure behaviour. Added an optional-helper acknowledgment to docs/credits.md. Updated existing comparison tests for the new terminal behaviour and added tests/test_terminal_preview.py with thirteen tests covering redirected streams, both helper commands, actual capability-check arguments, missing/failed/timed-out helpers, real PNG payload decoding, preview-only success/error/cancellation, exporting before preview, preserved PNG/HTML exports after display failures, no probing after failed saves or unrelated commands, and actual POSIX PTY terminal-state restoration after a simulated timeout. No physical camera or user's terminal was accessed by tests.
+
+Commands and actual results:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_comparison.py'
+.venv/bin/python -B -m unittest discover -s tests -p 'test_terminal_preview.py'
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 11 tests in 1.003s
+
+OK
+
+Ran 13 tests in 0.860s
+
+OK
+
+Ran 241 tests in 36.533s
+
+OK
+```
+
+After refining the preview-only rendering-error message, the focused terminal-preview checks were rerun: `Ran 13 tests in 0.370s`, `OK`. README and usage-reference local links and heading anchors resolve. `git diff --check` passed.
+
+Real CLI checks used the Tux source and private temporary outputs with non-interactive stdout. Preview-only exited 2 with: `Direct image preview is unavailable in this terminal. Use --output comparison.png or --output comparison.html, then open the saved file.` PNG and HTML export each exited 0, printed the saved location and an unavailable-preview notice, and reopened successfully. The PNG was 552 by 320 RGB; HTML contained its embedded comparison image. A SHA-256 comparison verified the user's existing untracked comparison.png remained unchanged. It is not staged or committed.
+
+Stage only the eight feature/documentation files and commit as `Add direct comparison preview with safe export fallback`. Nothing is pushed. The next manual check is --compare alone in a Kitty-compatible terminal with its helper available, or a PNG/HTML export in any terminal to confirm the readable fallback.

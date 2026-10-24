@@ -40,20 +40,25 @@ Automatic background selection reads the last field of the `COLORFGBG` environme
 
 ## Image comparison
 
-Use `--compare` with a still image and a new `.png` or `.html` output filename:
+Use `--compare` to preview a still image beside its ASCII artwork. Add a new `.png` or `.html` output filename to save it too:
 
 ```bash
+ascart photo.png --compare --color
 ascart photo.png --compare --color --output output/comparison.png
 ascart photo.png --compare --color --border --output output/comparison.html
 ```
 
-The saved comparison labels the original on the left and ASCII artwork on the right. The original is scaled to fit its panel without cropping or changing its proportions; transparent pixels are composited on the chosen light/dark background. The ASCII side uses the existing converter and supports colour, custom palettes, width or fit, backgrounds, and borders. Borders apply to the ASCII side. The terminal continues to display the same ASCII artwork as an ordinary conversion.
+The comparison labels the original on the left and ASCII artwork on the right. The original is scaled to fit its panel without cropping or changing its proportions; transparent pixels are composited on the chosen light/dark background. The ASCII side uses the existing converter and supports colour, custom palettes, width or fit, backgrounds, and borders. Borders apply to the ASCII side.
+
+Direct terminal preview currently uses [Kitty's `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/). Both terminal input and output must be interactive, and `kitten` (or the legacy `kitty +kitten` command) must be available. A bounded capability probe checks the active terminal instead of assuming support from its name. The helper displays the complete comparison as a PNG fitted to the terminal; its ASCII panel is an image, not selectable terminal text. Other image protocols are not implemented. Physical-terminal compatibility remains a manual check.
+
+With `--compare` alone, unavailable or failed preview exits with a readable error asking for `--output comparison.png` or `--output comparison.html`. No comparison output file is created. With `--output`, the file is saved first; unsupported terminals, redirected output, helper failure, timeout, or cancelled preview leave that file intact. The CLI prints its saved location and an explanatory message if preview cannot be shown, without treating a successful export as a failure. It does not substitute a coloured-block approximation or launch another application.
 
 `--width` and `--fit` size the ASCII artwork, not the combined comparison. The saved layout is wider because it includes both panels. PNG draws the ASCII characters; HTML keeps them selectable and embeds a scaled PNG copy of the source for offline viewing. HTML needs no JavaScript, does not reference the source path, and uses horizontal scrolling when the comparison is wider than the browser. Embedded images are re-encoded without the source metadata. Fonts may differ between PNG, HTML, and the terminal.
 
 The combined layout is limited to 20 million pixels, checked before allocating comparison panels or creating the output directory. Use a smaller width if this limit is reached. Existing output files and source aliases are rejected; there is no overwrite or automatic numbering. As with ordinary exports, a write failure may leave a partial newly created file.
 
-This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. `--compare` requires an output filename; TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No additional dependencies are needed.
+This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed; the optional terminal helper is only required for direct preview, not export.
 
 ## Saving a PNG picture
 
