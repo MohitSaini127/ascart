@@ -4,7 +4,7 @@
 
 This setup is for working on the source code. For everyday use without manual environment activation, follow [Installation](../README.md#installation).
 
-The project declares Python 3.10 or newer and these dependencies:
+The project declares Python 3.11 or newer and these dependencies:
 
 | Package | Purpose | Declared version |
 | --- | --- | --- |
@@ -72,6 +72,12 @@ Snapshot tests add 288 format/visual combinations and a simulated countdown cloc
 Camera-recording tests use a simulated clock/camera with real MP4 encoding and readback. They cover 96 visual combinations, both orientations, reported FPS/dimensions/frame count, fractional durations, slow capture, repeated-frame timing, non-interactive saving, limits and invalid modes, existing files/links, competing creation, cancellation, decoder/encoder cleanup, changed dimensions, verification failure, permission/render errors, and partial copying. They do not establish physical-webcam timing or hardware compatibility.
 
 Camera GIF/HTML tests add 192 visual-option combinations, format timing/readback, orientation/colour checks, selectable escaped frames and player controls, slow-capture timing, limits and early HTML-duration rejection, cancellation, camera cleanup, dimension changes, GIF timing verification, existing files/links, competing creation, permission errors, and partial-copy safety. Simulated cameras are used throughout.
+
+## Comparison checks
+
+Comparison tests cover image PNG/HTML, GIF GIF/HTML, and video MP4/HTML exports; exact selectable markup, embedded originals, frame colours/counts/timing, option combinations, format limits, unchanged sources, exclusive writes, and cleanup. Native terminal checks cover probing with private pseudo-terminals, bounded PNG transfers, single-axis aspect-preserving placement, measured/fallback cell sizes, counted/continuous playback, cursor restoration, and completed exports surviving preview failures. An optional Node.js check exercises synchronized HTML controls. Real terminal compatibility still needs manual checks; Ghostty was confirmed by the user.
+
+Transparency tests cover RGBA, grayscale alpha, partial opacity, paletted images, and GIF conversion against both backgrounds. GIF comparison output checks the GIF89a header needed by frame timing extensions.
 
 ## Version information
 

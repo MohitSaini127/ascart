@@ -16,7 +16,7 @@ Text mode supports `--width`, `--output`, and `--border`. Photo/GIF/video option
 
 ## Photo conversion
 
-The [image command guide](../README.md#image-commands) uses the included sample. Replace its path to convert your own photo.
+The [image command guide](../README.md#image-commands) uses `photo.png` as a placeholder for your own image. From a repository checkout, try `ascart examples/image1.png` for the included sample.
 
 The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](https://github.com/garrett/Tux). Its embedded metadata and the [source README](https://github.com/garrett/Tux/blob/main/README.md) state [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Original illustration by Larry Ewing using GIMP; redrawn in Inkscape by Garrett LeSage, with refinement and cleanup credited upstream to IFo Hancroft. Only this PNG is bundled; supply your own files for GIF and video playback.
 
@@ -31,6 +31,8 @@ The included sample is Tux, the Linux penguin, downloaded from [garrett/Tux](htt
 | `--background auto` | Default: use a limited terminal background hint, with a dark fallback. |
 | `--background light` or `--background dark` | Manually choose brightness mapping. |
 | `--output PATH` | Show the artwork in the terminal and save it as UTF-8 plain text (`.txt`), a PNG picture (`.png`), or a webpage (`.html`), creating parent folders as needed. Existing destinations and input-file aliases are rejected. |
+
+Transparent source pixels are composited against the selected light/dark background before brightness and colour conversion, including GIF frames. Partially transparent edges blend into that background.
 
 Monochrome uses the palette ` .:-=+*#%@`, including a leading space. Colored terminal, PNG, HTML, GIF, and MP4 output defaults to `#%@` so more character strokes show color. An explicit `--chars` overrides either default. With `.txt` output, color formatting is disabled and the monochrome default is used unless a custom palette is supplied. Generated files in `output/` are ignored by Git.
 
@@ -139,7 +141,7 @@ Open the saved file in a web browser. Its ASCII characters stay selectable and c
 
 HTML uses a fixed-width browser font rather than pixels, so its appearance can differ slightly from your terminal or PNG output. Source RGB foreground colors are converted to inline color styles, and color resets keep borders neutral. Dark photo mode uses white text on black; light mode uses black text on white. Automatic mode uses the same terminal hint as other photo output. Image colors themselves are not inverted.
 
-Each file includes its own styles and needs no internet connection, external fonts, or additional Python packages. Photo/banner pages need no JavaScript; animated pages include a small JavaScript player. Characters such as `<`, `>`, quotes, and `&` are escaped so they display as artwork rather than HTML markup. The output contains the ASCII artwork, not the original photo or its source path.
+Each file includes its own styles and needs no internet connection, external fonts, or additional Python packages. Photo/banner pages need no JavaScript; animated pages include a small JavaScript player. Characters such as `<`, `>`, quotes, and `&` are escaped so they display as artwork rather than HTML markup. Ordinary output contains ASCII artwork without the source photo or its path; `--compare` additionally embeds scaled original pictures.
 
 After saving a photo or banner, the artwork is also printed in the terminal, followed by the output location. GIFs and videos get a terminal preview when an interactive terminal is available. Existing files and input aliases are rejected, including files appearing during saving. Parent folders are created as needed. `.HTML` also works; `.htm` is not currently supported. A write failure may leave a partial new file, as with other text exports.
 
@@ -151,9 +153,9 @@ GIF and camera-recording HTML pages also have a **Loop** checkbox, off by defaul
 
 The file contains one complete sequence, regardless of `--loop`, `--loop-4`, or `--loop-count`. Those options control only the terminal preview, which starts after saving when a terminal is available. Without an interactive terminal, saving works and skips that preview. GIF delays are preserved (missing/zero delays use 100 ms). Video uses its reported FPS, or a warned 30 FPS fallback, and contains no audio. Variable-frame-rate timing is approximated; browser scheduling and background-tab throttling can slow playback.
 
-Color, border, custom characters, width/fit, and background selection apply to every frame. HTML stores text and RGB styles rather than embedded GIF/MP4 pictures. All frames are bundled for offline playback, so exports are limited to **3,000 frames and 20 MiB per HTML file**. Either limit rejects the whole save before creating an output file or its folders; it never silently truncates the animation. Use a shorter source or smaller width if needed. At 30 FPS, 3,000 frames is about 100 seconds; the size limit may be reached sooner, especially with color. Conversion collects bounded frame markup in memory; large individual frames can still require substantial memory. No automatic frame dropping or time-limit option is added.
+Color, border, custom characters, width/fit, and background selection apply to every frame. Ordinary ASCII HTML stores text and RGB styles; comparison HTML additionally embeds a scaled PNG original for each frame. All frames are bundled for offline playback, so exports are limited to **3,000 frames and 20 MiB per HTML file**. Either limit rejects the whole save before creating an output file or its folders; it never silently truncates the animation. Use a shorter source or smaller width if needed. At 30 FPS, 3,000 frames is about 100 seconds; the size limit may be reached sooner, especially with color. Conversion collects bounded frame markup in memory; large individual frames can still require substantial memory. No automatic frame dropping or time-limit option is added.
 
-Artwork is escaped before display, and the embedded frame data is encoded to prevent characters such as `</script>` from becoming page instructions. The player uses no network resources and contains no source path or original media. OpenCV can report a damaged video tail as end-of-file, the same decoding limitation as MP4 export.
+Artwork is escaped before display, and the embedded frame data is encoded to prevent characters such as `</script>` from becoming page instructions. The player uses no network resources and contains no source path; comparison pages also contain scaled copies of the original frames. OpenCV can report a damaged video tail as end-of-file, the same decoding limitation as MP4 export.
 
 ## Optional border
 
@@ -355,8 +357,8 @@ Photos, GIFs, videos, and camera frames share the same image conversion function
 
 - Video playback and saved MP4s have no audio. Codec availability depends on the OpenCV installation; export currently uses `mp4v` only.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
-- GIF-file playback converts frames into memory, and GIF-file export also holds rendered picture frames in memory. Large input animations can consume substantial memory. Camera GIF recording writes frames incrementally instead.
-- GIF playback does not compensate for terminal rendering overhead.
+- Ordinary GIF playback converts frames into memory, and ordinary GIF export also holds rendered picture frames in memory. Large input animations can consume substantial memory. GIF comparison preview/export and camera GIF recording stream pictures instead; animated HTML keeps bounded frame data in memory.
+- Ordinary GIF playback does not compensate for terminal rendering overhead; comparison previews subtract PNG rendering/transfer time from frame waits but can still run slower.
 - Terminal fitting reads dimensions once per command. Resize the terminal and rerun to recalculate. If size detection is unavailable, fitting uses an 80-column by 24-row fallback before margins.
 - A fixed width can exceed a small terminal. Use `--fit` when needed.
 - Color strength depends on the chosen characters, terminal background, and font. Spaces have no visible foreground strokes.

@@ -46,7 +46,7 @@ def save_comparison_gif(frames, output, background="dark"):
                         destination = Path(output)
                         destination.parent.mkdir(parents=True, exist_ok=True)
                         file = resources.enter_context(destination.open("xb"))
-                        header, _ = GifImagePlugin.getheader(indexed, info={"optimize": False})
+                        header, _ = GifImagePlugin.getheader(indexed, info={"duration": duration, "optimize": False})
                         file.writelines(header)
                     file.writelines(GifImagePlugin.getdata(
                         indexed, duration=duration, disposal=2, include_color_table=True,

@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ascart"
 version = "0.1.0"
-description = "A learning project for converting images to ASCII art."
+description = "Create ASCII text banners and convert images, GIFs, videos, and camera feeds."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = ["Pillow>=13.0.0", "pyfiglet>=1.0.2,<2", "opencv-python-headless>=4.12,<5"]
 
 [project.scripts]

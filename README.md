@@ -18,7 +18,7 @@ A learning project built with Python.
 
 You need Python 3.11+, Git, and [pipx](https://pipx.pypa.io/stable/how-to/install-pipx.html).
 
-On Ubuntu/Debian:
+On Ubuntu/Debian with Python 3.11+:
 
 ```bash
 sudo apt update
@@ -95,7 +95,7 @@ ascart --text-slant "ascart"
 The included [Tux sample](#photo-conversion), converted into colored ASCII characters:
 
 ```bash
-ascart examples/image1.png --width 40 --color --border --background dark
+ascart examples/image1.png --width 40 --color --border --background light
 ```
 
 <p align="center">
@@ -212,7 +212,7 @@ Video comparison plays once by default; `--loop` or `--loop-4` repeats terminal 
 | `ascart --camera --color --width 120 --border --output output/snapshot.png` | Saves one coloured, bordered ASCII picture after the countdown. |
 | `ascart --camera-mirrored --color --output output/snapshot.html` | Saves one selectable HTML snapshot in the alternative camera orientation. |
 | `ascart --camera --color --camera-duration 10 --output output/camera.mp4` | Records 10 seconds of silent ASCII MP4 with a live terminal preview. |
-| `ascart --camera --color --camera-duration 10 --output output/camera.gif` | Records one ASCII GIF animation; format memory limits apply. |
+| `ascart --camera --color --camera-duration 10 --output output/camera.gif` | Records one ASCII GIF animation; frame-size and duration limits apply. |
 | `ascart --camera --color --camera-duration 10 --output output/camera.html` | Records selectable animated HTML with Play, Pause, Replay, and Loop controls. |
 | `ascart --camera-mirrored 1 --fit --border --camera-duration 5 --output output/camera-alt.mp4` | Records camera 1 in the alternative orientation for 5 seconds. |
 
@@ -221,7 +221,7 @@ Press **Ctrl+C** to stop and release the camera. Add --output with a new .txt, .
 Keep these rules in mind:
 
 - Use a new output filename each time. Existing files are never overwritten, and output folders are created as needed. TXT output stays plain; PNG/HTML/GIF/MP4 output supports photo or frame colors.
-- GIF and MP4 files store one complete animation. `--loop`, `--loop-4`, and `--loop-count 4` affect only terminal playback. Saved GIFs request one playback; video players control their own repeat settings.
+- GIF and MP4 files store one complete animation. `--loop`, `--loop-4`, and `--loop-count 4` affect only terminal playback. Saved GIFs omit repeat metadata; some viewers may still repeat them, and video players control their own repeat settings.
 - Terminal animation previews need an interactive terminal. Saving still works without one and skips playback. MP4 output has no audio.
 - Use either `--width` or `--fit`. GIFs and videos also accept the image options for width, fitting, custom characters, and backgrounds. Text banners support width, border, and output, but reject media-only options such as color and fit.
 
@@ -236,7 +236,7 @@ Keep these rules in mind:
 | Camera snapshot | TXT, PNG, HTML |
 | Camera recording | GIF, MP4, HTML |
 
-Choose the output format using the filename extension, such as `--output art.png`.
+Choose the output format using the filename extension, such as `--output art.png`. With `--compare`, images export PNG/HTML, GIFs export GIF/HTML, and videos export MP4/HTML.
 
 **Experimental terminal preview:** for still images, GIFs, and videos, `--compare` shows the original on the left and ASCII on the right. Native preview keeps image proportions and may leave empty space. Support depends on your terminal; Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG/HTML for images, GIF/HTML for GIFs, or MP4/HTML for videos; export does not require terminal image support. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
@@ -244,6 +244,7 @@ Choose the output format using the filename extension, such as `--output art.png
 
 - Text banners use printable ASCII; width controls wrapping.
 - Custom palettes go from least to most dense. Use `--chars=-+@` for palettes starting with `-`.
+- Transparent image pixels blend with the selected light/dark background.
 - `--width` excludes the border; rerun `--fit` after resizing your terminal.
 - Saved artwork may look different from your terminal. Animated HTML works offline and is limited to 3,000 frames and 20 MiB.
 

@@ -58,5 +58,45 @@ class BrightnessMappingTests(unittest.TestCase):
                         self.assertEqual(image.tobytes(), original)
 
 
+class TransparentImageTests(unittest.TestCase):
+    def test_hidden_pixels_match_canvas_and_do_not_modify_source(self):
+        for mode, pixel in (("RGBA", (255, 0, 0, 0)), ("LA", (255, 0))):
+            with Image.new(mode, (4, 2), pixel) as image:
+                original = image.tobytes()
+                for background, rgb in (("dark", "0;0;0"), ("light", "255;255;255")):
+                    self.assertEqual(image_to_ascii(image, width=4, background=background), "    ")
+                    art = image_to_ascii(image, width=4, background=background, color=True, palette="@")
+                    self.assertEqual(art.count(f"\033[38;2;{rgb}m@"), 4)
+                self.assertEqual(image.tobytes(), original)
+
+    def test_partial_alpha_blends_with_selected_background(self):
+        with Image.new("RGBA", (4, 2), (255, 0, 0, 128)) as image:
+            for background, rgb in (("dark", "128;0;0"), ("light", "255;127;127")):
+                art = image_to_ascii(image, width=4, palette="@", background=background, color=True)
+                self.assertEqual(art.count(f"\033[38;2;{rgb}m@"), 4)
+
+    def test_paletted_gif_transparency_is_preserved_until_conversion(self):
+        import tempfile
+        from pathlib import Path
+        from ascart.gif_art import gif_to_ascii
+        from ascart.gif_comparison import comparison_frames
+        with tempfile.TemporaryDirectory() as folder, Image.new("P", (4, 2), 0) as image:
+            image.putpalette([255, 0, 0] + [0, 0, 0] * 255)
+            image.info["transparency"] = 0
+            self.assertEqual(image_to_ascii(image, width=4), "    ")
+            source = Path(folder) / "transparent.gif"
+            image.save(source, transparency=0)
+            original = source.read_bytes()
+            for background in ("dark", "light"):
+                self.assertEqual(gif_to_ascii(source, width=4, background=background)[0][0], "    ")
+                frames = comparison_frames(source, width=4, palette=" .@", background=background,
+                                           max_height=None, color=False, border=False)
+                try:
+                    self.assertEqual(next(frames)[1], "    ")
+                finally:
+                    frames.close()
+            self.assertEqual(source.read_bytes(), original)
+
+
 if __name__ == "__main__":
     unittest.main()

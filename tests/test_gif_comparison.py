@@ -108,6 +108,7 @@ class GifComparisonTests(unittest.TestCase):
         destination = self.root / "repeated.gif"
         with Image.new("RGB", (16, 12), "red") as source:
             save_comparison_gif(((source, "@@", 40) for _ in range(3)), destination)
+        self.assertEqual(destination.read_bytes()[:6], b"GIF89a")
         with Image.open(destination) as result:
             self.assertEqual(result.n_frames, 3)
             for index in range(3):

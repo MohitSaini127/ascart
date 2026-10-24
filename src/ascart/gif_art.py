@@ -150,7 +150,7 @@ def gif_ascii_frames(
         for frame_index in range(gif.n_frames):
             gif.seek(frame_index)
             duration = gif.info.get("duration", 0)
-            with gif.convert("RGB") as frame:
+            with gif.convert("RGBA") as frame:
                 art = image_to_ascii(frame, width, palette, background, max_height, color)
             yield art, duration
 

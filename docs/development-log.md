@@ -2,7 +2,7 @@
 
 This log explains how ascart is being built and what we learn along the way. It complements Git history by recording setup commands and the reasons behind our decisions.
 
-The entries below reconstruct the steps completed before this log was written, using our discussion and the first commit. They are not separate commits. Future entries will be added as we work.
+The earliest entries reconstruct steps completed before this log was written; later entries record work as it happened. Entries describe the project at that time and do not each represent a separate commit. For current commands, use the [README](../README.md) and [usage reference](usage.md); Git history records the actual commits.
 
 ## 1. Project idea and structure
 
@@ -3074,3 +3074,28 @@ The physical-terminal result still needs user confirmation. Nothing is pushed; t
 Full command: `.venv/bin/python -B -m unittest discover -s tests`
 Output: `Ran 284 tests in 48.995s ... OK`. `git diff --check` passed.
 Stage the seven fix/test/documentation files and commit as `Preserve aspect ratios in native comparison previews`.
+
+
+## 101. Review the complete project before publishing comparison work
+
+Reviewed current source, CLI validation, media encoders/players, package metadata, README, usage/development/credits guides, Git tracking/ignore rules, and test coverage. The user confirmed comparison preview/export and the aspect-ratio fix before requesting this review. Historical learning entries are retained; the introduction now distinguishes them from current documentation and actual commits.
+
+Corrections:
+
+- Raised declared Python support from 3.10 to 3.11 to match Pillow >=13.0.0, whose installed metadata requires Python >=3.11. README already required 3.11; aligned the development guide and expanded the package description beyond images.
+- Comparison GIF encoding now selects a GIF89a header because frame timing/disposal use its control extensions. A regression assertion checks the actual header; existing timing/colour/readback tests pass.
+- Fixed transparent input conversion: composite RGBA/grayscale-alpha/palette transparency against the chosen background before resizing and mapping brightness/colour. Preserve GIF alpha until this step, rather than dropping it with RGB conversion. Close conversion images using ExitStack without closing or modifying caller-owned source images. Added tests for fully transparent hidden RGB values, partial opacity, paletted GIFs, both backgrounds, and unchanged sources.
+- Corrected the usage guide's obsolete claim that the README image-command table uses the bundled sample. Clarified comparison HTML embeds original frames, comparison GIF streaming differs from ordinary buffered GIF export, and the optional helper is for still previews only.
+- Added comparison export formats and transparency notes to README, made GIF repeat wording viewer-aware, clarified camera GIF per-frame/duration limits, and regenerated the existing Tux preview with the documented width/palette/border settings. Chose a light background so the black penguin outline is visible; visually inspected the preview and verified exact pixel agreement with the command's rendering settings. The source image remains unchanged.
+- Documented comparison/terminal/aspect/transparency checks in the development guide. Added build/ and dist/ to .gitignore so Python build artifacts stay out of Git; no blanket rule was added for user media.
+
+Validation:
+
+- `.venv/bin/python -B -m unittest discover -s tests`: `Ran 287 tests in 43.791s ... OK`.
+- Ran 49 non-camera commands parsed from the actual README command table against temporary PNG/GIF/AVI fixtures. Real output files were created; animation playback/native display were simulated to avoid endless loops and terminal control traffic. All passed. The 15 camera commands were excluded from physical-device execution and checked against existing simulated-camera tests. Source hashes, including the user's comparison.png, stayed unchanged.
+- Checked 36 local Markdown/image links and heading anchors across the README and docs: all resolve. Verified the Git remote matches the documented GitHub install URL. Checked pipx commands against https://pipx.pypa.io/stable/how-to/install-pipx.html and sample credits against https://github.com/garrett/Tux/blob/main/README.md. No operating-system installation commands were executed.
+- `.venv/bin/python -m pip check`: `No broken requirements found` (pip also reported its unavailable cache, without affecting the check).
+- Built and installed a wheel in an automatically cleaned temporary directory. The initial offline build found no setuptools backend in the project environment; downloaded build tools into a separate temporary target and repeated successfully, without changing .venv. Verified Python >=3.11 metadata, bundled LICENSE, command entry point, and comparison modules. The installed wheel's --version, -t HI, and --help worked from outside the repository using current installed runtime dependencies. No virtual environment or cache files were bundled.
+- Tracked-file audit found no .venv, .env, __pycache__, egg-info, or temporary encoding folders committed. The user-created root comparison.png remains untracked and excluded. Generated output/ is ignored. `git diff --check` passed.
+
+No new unaddressed blocking issue was found in these checks. Physical camera behaviour, Windows/macOS execution, every media codec, and every terminal implementation remain outside automated verification; the existing experimental labels and limitations stay in place. Nothing is pushed. Commit the review fixes as `Fix metadata, transparency and documentation found in project review`.
