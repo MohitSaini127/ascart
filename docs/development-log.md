@@ -2839,3 +2839,10 @@ The user explicitly approved moving the paragraph below the general commands tab
 ## 90. Use personal-image placeholders in the command guide
 
 The user approved replacing examples/image1.png with photo.png in the image command table so pipx users can supply their own files. Updated all ten image examples and the first row's description, and adjusted the command-guide introduction to explain all personal-media placeholders. Kept the actual Tux image path in the preview. All other README content remains unchanged. Verified the ten replacements and exact preservation of the remaining content; `git diff --check` passed. Documentation only; commands use the same previously reviewed options and application tests were not rerun. Commit as `Use personal image paths in README command examples`. Nothing is pushed.
+
+
+## 91. Consolidate development links and shorten README notes
+
+The user requested removal of the standalone Setup and Running tests sections, shorter usage/camera notes, and a final Development section covering both modifying ascart and running tests. Removed the two standalone headings and combined their guidance under Development alongside the existing development-log link. Kept the final --help example. Reduced Usage notes to four short bullets and the camera section to compatibility/local processing, lighting, recording limits, and a reference link. Detailed information remains in docs/usage.md and docs/development.md.
+
+Removing Setup required changing the command-guide introduction's source-setup link to docs/development.md#setup; all command tables, examples, and other guide text are unchanged. Verified that exact exception, retained camera duration/HTML size limits, and checked local documentation links/heading anchors. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Streamline README notes and consolidate development links`. Nothing is pushed.

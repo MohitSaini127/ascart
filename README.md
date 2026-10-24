@@ -112,13 +112,9 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 - TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
 - Animation playback with continuous or counted loops.
 
-## Setup
-
-Want to modify ascart? See the [development guide](docs/development.md#setup).
-
 ## Command guide
 
-After [installation](#installation), run these commands from any folder using your own media paths. Replace `photo.png`, `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Quote paths containing spaces. If using the [source setup](#setup) instead, activate that environment before running commands.
+After [installation](#installation), run these commands from any folder using your own media paths. Replace `photo.png`, `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Quote paths containing spaces. If using the [source setup](docs/development.md#setup) instead, activate that environment before running commands.
 
 | General command | What it does |
 | --- | --- |
@@ -229,14 +225,12 @@ Choose the output format using the filename extension, such as `--output art.png
 
 ## Usage notes
 
-- Text banners accept printable ASCII text. Their width controls wrapping, not the size of individual letters; bold and slant are character designs that also survive plain-text saving.
-- Custom palettes run from least to most visually dense. Defaults are ` .:-=+*#%@` for monochrome and `#%@` for colour. Light background mode reverses the character mapping, not the source colours; automatic detection is only a terminal hint.
-- `--width` counts characters inside the border. Adding a border adds two columns and two rows. `--fit` reads the terminal size once; rerun after resizing.
-- Saved artwork may look different from your terminal. GIF supports up to 256 colours per frame.
-- HTML files work offline and keep the characters selectable. Animated pages open paused with Play, Pause, and Replay controls. GIF and camera-recording pages also have an optional Loop checkbox. Animated HTML requires JavaScript and is limited to 3,000 frames and 20 MiB.
-- For values beginning with `-`, use the equals form: `--chars=-+@` or `--text=--loop-4`.
+- Text banners use printable ASCII; width controls wrapping.
+- Custom palettes go from least to most dense. Use `--chars=-+@` for palettes starting with `-`.
+- `--width` excludes the border; rerun `--fit` after resizing your terminal.
+- Saved artwork may look different from your terminal. Animated HTML works offline and is limited to 3,000 frames and 20 MiB.
 
-For output formats, playback details, size limits, and file errors, see the [usage reference](docs/usage.md).
+See the [usage reference](docs/usage.md) for details and troubleshooting.
 
 ## Photo conversion
 
@@ -244,17 +238,11 @@ The Tux sample is from [garrett/Tux](https://github.com/garrett/Tux), under CC0.
 
 ## Live camera (experimental)
 
-Camera access and performance depend on hardware, drivers, and permissions. Broad compatibility, including Windows and macOS, has not been verified. `--list-cameras` reports readable IDs, not device names; Linux checks `/dev/video*`, while other systems probe IDs 0–9. Cameras may activate briefly during listing.
+Compatibility depends on your camera, drivers, and permissions; Windows and macOS are unverified. Processing is local. Good lighting improves detail.
 
-Good lighting and camera placement improve detail. All processing is local; camera frames are not uploaded. Device delays can extend the snapshot countdown or recording, and can delay Ctrl+C.
+GIF/MP4 recordings allow up to **300 seconds**; HTML allows up to **200 seconds** and **20 MiB**. Saving may continue after the countdown ends.
 
-Camera GIF/MP4 recordings allow up to **300 seconds**. Camera HTML allows up to **200 seconds**, and its 20 MiB limit may be reached sooner. Saving and checking can continue after the countdown reaches zero; GIF exports show Encoding, Checking, and Copying progress.
-
-For camera access, snapshot behaviour, and recording details, see the [camera reference](docs/usage.md#live-camera-experimental).
-
-## Running tests
-
-For development setup and testing, see the [development guide](docs/development.md).
+See the [camera reference](docs/usage.md#live-camera-experimental) for details.
 
 ## License and credits
 
@@ -262,7 +250,9 @@ Licensed under the [MIT License](LICENSE), copyright (c) 2026 Mohit Saini.
 
 Built with [Pillow](https://github.com/python-pillow/Pillow), [pyfiglet](https://github.com/pwaller/pyfiglet), [OpenCV](https://github.com/opencv/opencv-python), and [NumPy](https://numpy.org/). See [full credits and third-party license information](docs/credits.md).
 
-## Development history
+## Development
+
+Want to modify ascart or run tests? See the [development guide](docs/development.md).
 
 See the [development log](docs/development-log.md) for explanations, setup steps, checks, and commit milestones. Git history records the committed changes.
 
