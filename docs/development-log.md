@@ -2779,3 +2779,12 @@ A read-only Python check confirmed platform order, the Windows command pair, the
 ## 80. Link directly to Windows installation help
 
 Linked the Windows label in the README installation section directly to the official pipx guide's Windows anchor, beside the existing PowerShell commands. The user can now open platform-specific help without searching the general page. Reviewed the anchor against the previously checked official guide; `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Link Windows setup to platform-specific pipx instructions`. Nothing is pushed.
+
+
+## 81. Remove repeated explanations below the command guide
+
+The user requested that the command guide remain unchanged while repeated explanations below it were removed. Kept the complete command-guide block byte-for-byte identical, including its camera tables and notes. Installation, previews, features, source setup, test instructions, and license/credits were also left unchanged.
+
+Replaced the long post-guide explanations with short usage notes, the existing Tux attribution, and concise camera compatibility, timing, and saving notes. Moved the original detailed material into `docs/usage.md`, including format behaviour, limits, troubleshooting, conversion explanations, and limitations, so useful information remains accessible without repeating it on the main page. Fixed cross-file command-guide links in the reference and retained the README Photo conversion and Live camera anchors used by existing links.
+
+README decreased from 619 lines / 9,549 words to 350 lines / 3,730 words. Validation compared the command guide against `git show HEAD:README.md` and confirmed an exact match. Checked all local links, heading anchors, and images in both documents; all resolved. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Remove repeated README explanations and link usage reference`. Nothing is pushed.
