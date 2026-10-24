@@ -2774,3 +2774,8 @@ The user requested copyable Windows commands and this order: Ubuntu/Debian, Fedo
 Checked Linux/macOS commands, current Python requirements, terminal restart, and Git-based installation against the [official pipx guide](https://pipx.pypa.io/stable/how-to/install-pipx.html). Checked the Windows module invocation against the [Python Packaging User Guide](https://packaging.python.org/en/latest/guides/installing-stand-alone-command-line-tools/). This verifies documented syntax and prerequisites, not execution on each operating system.
 
 A read-only Python check confirmed platform order, the Windows command pair, the installation URL matching `git remote get-url origin`, and balanced code fences. Actual output: `Checked platform order, Windows commands, GitHub URL, and paired code fences.` `git diff --check` passed without output. No packages were installed or application code changed; application tests were not rerun. Commit as `Add Windows pipx setup and reorder installation guide`. Nothing is pushed.
+
+
+## 80. Link directly to Windows installation help
+
+Linked the Windows label in the README installation section directly to the official pipx guide's Windows anchor, beside the existing PowerShell commands. The user can now open platform-specific help without searching the general page. Reviewed the anchor against the previously checked official guide; `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Link Windows setup to platform-specific pipx instructions`. Nothing is pushed.

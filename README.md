@@ -40,7 +40,7 @@ brew install pipx
 pipx ensurepath
 ```
 
-On Windows (PowerShell, with Python's `py` launcher installed):
+On [Windows](https://pipx.pypa.io/stable/how-to/install-pipx.html#windows) (PowerShell, with Python's `py` launcher installed):
 
 ```powershell
 py -m pip install --user pipx
