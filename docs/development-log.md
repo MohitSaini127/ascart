@@ -2970,3 +2970,23 @@ README, usage, and credits local links/heading anchors resolve. `git diff --chec
 The user confirmed native comparison preview works in Ghostty, then requested an experimental label because support varies by terminal. Added the label to the README feature summary, preview command description, comparison note, usage reference, and --compare CLI help. Clearly separated experimental direct terminal display from PNG/HTML export, which does not require terminal image support. No rendering or saving behaviour changed.
 
 Validation: checked CLI help text and reran the focused comparison tests after the help wording change. `git diff --check` passed. The user's untracked comparison.png remains excluded. Commit as `Mark terminal comparison preview as experimental`. Nothing is pushed; the user wants to push once the comparison work is complete.
+
+
+## 96. Export GIF side-by-side comparisons
+
+Added `--compare --output comparison.gif` and `--compare --output comparison.html` for GIF input. Each composited source frame is converted once, then displayed original-left / ASCII-right using the existing comparison layout. Width, fit, colour, custom palettes, backgrounds, and ASCII borders apply. Animated terminal comparison preview is the next step; GIF comparison currently requires output and rejects loop flags.
+
+`src/ascart/gif_comparison.py` owns the frame reader and two exporters. GIF pictures are encoded one at a time rather than buffered as a complete animation. Identical frames keep their individual delays; the output contains one pass without loop metadata. HTML embeds re-encoded original PNG frames and selectable, escaped ASCII markup, updating both panels with the existing player clock. Play, Pause, Replay, and the optional Loop checkbox work together. HTML starts paused and enforces 3,000 frames / 20 MiB for the entire document. Both formats retain the combined 20-million-pixel layout limit, and GIF checks its dimension limit. Missing/zero source delays become 100 ms.
+
+`src/ascart/cli.py` permits GIF comparison exports while retaining format-specific errors and exclusive output creation. Existing files, links, and input aliases remain protected. GIF output can leave a partial newly created file after a write error or cancellation; existing data is never replaced. HTML frame/size checks happen before destination creation. No new dependency is needed.
+
+Updated the README GIF command table and detailed usage guide. Added eight GIF comparison tests, including a 32-combination visual option matrix, decoded source colours and delays, separate identical frames, one-pass metadata, HTML escaping, frame/byte/layout limits, existing files/links/source protection, exclusive writes, and a Node.js fake-clock check of synchronized player controls. Updated the existing comparison rejection test to accept the newly supported GIF format. Initial test runs found mistakes in the new test harness (passing arguments directly to main, combining mutually exclusive width/fit, and omitting initial static DOM contents); those were corrected.
+
+Focused command: `.venv/bin/python -B -m unittest discover -s tests -p 'test_*comparison.py'`
+Output: `Ran 19 tests ... OK`.
+
+No push: the user wants all comparison work completed before publishing. The user's untracked `comparison.png` is preserved and excluded from the commit.
+
+Full command: `.venv/bin/python -B -m unittest discover -s tests`
+Output: `Ran 257 tests in 42.156s ... OK`. `git diff --check` passed.
+Stage the seven feature/documentation files and commit as `Add synchronized GIF and HTML comparison exports`.

@@ -106,7 +106,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Text banners, side-by-side image exports with experimental terminal preview, and ASCII conversion for images, GIFs, and videos.
+- Text banners, side-by-side image/GIF exports with experimental terminal preview, and ASCII conversion for images, GIFs, and videos.
 - Experimental live camera, snapshots, and timed recording.
 - Colour, custom characters, borders, width control, and terminal fitting.
 - TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
@@ -168,6 +168,10 @@ After [installation](#installation), run these commands from any folder using yo
 | `ascart animation.gif --color --border --output output/animation.html` | Saves one ASCII animation as an offline webpage with playback controls and an optional Loop checkbox. |
 | `ascart animation.gif --color --output output/ascii.gif` | Saves one colored ASCII animation, then previews it. |
 | `ascart animation.gif --loop-4 --output output/ascii-four.gif` | Saves one animation and previews it four times. |
+| `ascart animation.gif --compare --color --output output/comparison.gif` | Saves one animation with the original beside its ASCII version. |
+| `ascart animation.gif --compare --color --output output/comparison.html` | Saves a synchronized comparison webpage with playback and Loop controls. |
+
+GIF comparison currently requires `--output`; animated terminal comparison preview and loop flags are not supported yet.
 
 ### Video commands
 

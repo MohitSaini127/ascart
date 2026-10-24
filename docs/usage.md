@@ -64,7 +64,20 @@ With `--compare` alone, unavailable or failed preview exits with a readable erro
 
 The combined layout is limited to 20 million pixels, checked before allocating comparison panels or creating the output directory. Use a smaller width if this limit is reached. Existing output files and source aliases are rejected; there is no overwrite or automatic numbering. As with ordinary exports, a write failure may leave a partial newly created file.
 
-This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed. The native preview does not require an external helper; the optional fallback helper is never required for export.
+Still-image comparison rejects animated or multipage images other than GIFs, videos, text banners, camera inputs, and loop options. Still images export PNG/HTML only. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed. The native preview does not require an external helper; the optional fallback helper is never required for export.
+
+## GIF comparison
+
+```bash
+ascart animation.gif --compare --color --output output/comparison.gif
+ascart animation.gif --compare --color --border --output output/comparison.html
+```
+
+Each decoded frame appears as original-left / ASCII-right, with its source delay (missing/zero delay becomes 100 ms). Both panels use the same composited GIF frame, so they stay synchronized. Colour, palettes, backgrounds, borders, width, and fit work as for image comparisons. The original remains coloured; borders apply only to ASCII.
+
+GIF saves one pass, without loop metadata, and streams pictures instead of collecting them in memory. Identical frames retain their separate delays. GIF supports at most 256 colours per frame, so shades can be approximated; some viewers may repeat the file anyway. The combined frame has the existing 20-million-pixel and GIF dimension limits. HTML embeds each scaled original alongside selectable ASCII, has Play/Pause/Replay and an optional Loop checkbox, and starts paused. It is limited to 3,000 frames and 20 MiB for the complete page.
+
+This stage requires a new `.gif` or `.html` output filename. Animated terminal comparison preview is not implemented yet; loop flags are rejected rather than changing the saved animation. Existing files and links are protected. A write error or cancellation may leave a partial newly created GIF; HTML checks frame/size limits before creating the destination. No source media is modified or uploaded.
 
 ## Saving a PNG picture
 

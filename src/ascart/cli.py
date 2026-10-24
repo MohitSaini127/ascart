@@ -18,6 +18,7 @@ from ascart.camera_art import list_cameras, play_camera, snapshot_camera
 from ascart.camera_recording import MAX_CAMERA_DURATION, RECORDING_FPS, record_camera
 from ascart.comparison import comparison_to_html, comparison_to_png
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
+from ascart.gif_comparison import comparison_frames, save_comparison_gif, save_comparison_html
 from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
 from ascart.html_art import MAX_ANIMATION_FRAMES, art_to_html, save_animated_html
 from ascart.image_art import image_to_ascii, inspect_image
@@ -135,7 +136,7 @@ def main():
     )
     parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4/.gif/.html with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
-    parser.add_argument("--compare", action="store_true", help="Experimental terminal preview of a still image beside ASCII art; optionally save PNG or HTML with --output (export needs no terminal image support)")
+    parser.add_argument("--compare", action="store_true", help="Experimental terminal preview of a still image beside ASCII art; optionally save PNG or HTML with --output (export needs no terminal image support); GIF comparison exports GIF or HTML")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
@@ -192,9 +193,9 @@ def main():
         parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
     if args.compare:
         if args.path is None:
-            parser.error("--compare supports still images only; not text, camera, GIF, or video input")
-        if args.output is not None and Path(args.output).suffix.lower() not in (".png", ".html"):
-            parser.error("--compare output requires a new .png or .html filename")
+            parser.error("--compare supports still images or GIF files; not text, camera, or video input")
+        if args.output is not None and Path(args.output).suffix.lower() not in (".png", ".gif", ".html"):
+            parser.error("--compare output requires a new .png, .gif, or .html filename")
         if args.loop or args.loop_count is not None:
             parser.error("--compare does not accept loop options")
     if args.camera is not None or args.list_cameras:
@@ -321,15 +322,15 @@ def main():
             is_gif = image.format == "GIF"
             # Pillow recognizes MPEG headers but cannot decode their video frames.
             is_video = image.format == "MPEG"
-            if args.compare and getattr(image, "n_frames", 1) != 1:
+            if args.compare and not is_gif and getattr(image, "n_frames", 1) != 1:
                 parser.error("--compare supports still images only; animated images are not supported yet")
     except UnidentifiedImageError:
         is_video = True
         is_gif = False
     except IMAGE_READ_ERRORS as error:
         report_file_error(parser, "Cannot read input", args.path, error)
-    if args.compare and (is_gif or is_video):
-        parser.error("--compare supports still images only; GIF and video comparison are not supported yet")
+    if args.compare and is_video:
+        parser.error("--compare supports still images and GIF files; video comparison is not supported yet")
     if is_video:
         # Confirm that unrecognized image content really contains a video frame.
         try:
@@ -376,6 +377,26 @@ def main():
             report_file_error(parser, "Cannot play video", args.path, error)
         if args.output:
             print("Saved ASCII video to", args.output)
+        return
+    if is_gif and args.compare:
+        if not args.output or output_suffix not in (".gif", ".html"):
+            parser.error("GIF --compare requires --output with a new .gif or .html filename; animated terminal comparison preview is not available yet")
+        try:
+            with closing(comparison_frames(
+                args.path, width=width, palette=args.chars, background=background,
+                max_height=max_height, color=color, border=args.border,
+            )) as frames:
+                saver = save_comparison_gif if output_suffix == ".gif" else save_comparison_html
+                saver(frames, args.output, background)
+        except FileExistsError:
+            parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
+        except IMAGE_READ_ERRORS as error:
+            report_file_error(parser, "Cannot save artwork to", args.output, error)
+        except KeyboardInterrupt:
+            print("Comparison export cancelled.", file=sys.stderr)
+            return
+        print("Saved ASCII GIF comparison to", args.output)
+        print("Open the saved comparison to view it; animated terminal comparison preview is not available yet.", file=sys.stderr)
         return
     if is_gif:
         if args.output and output_suffix not in (".gif", ".html"):

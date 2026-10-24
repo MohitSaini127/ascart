@@ -156,7 +156,7 @@ class ComparisonTests(unittest.TestCase):
 
     def test_animated_images_gifs_and_video_are_rejected_without_output(self):
         with Image.new("RGB", (16, 12), "red") as first, Image.new("RGB", (16, 12), "blue") as second:
-            for suffix in ("gif", "png", "webp"):
+            for suffix in ("png", "webp"):
                 source = self.root / ("animated." + suffix)
                 first.save(source, save_all=True, append_images=[second], duration=60)
                 code, output, errors = self.run_cli(source, "--compare", "--output", self.root / "new" / "bad.html")
@@ -171,7 +171,7 @@ class ComparisonTests(unittest.TestCase):
             with patch("ascart.cli.inspect_video") as decode:
                 code, output, errors = self.run_cli(source, "--compare", "--output", self.root / "new" / "bad.png")
                 self.assertEqual(code, 2)
-                self.assertIn("still images only", errors)
+                self.assertIn("--compare", errors)
                 decode.assert_not_called()
         self.assertFalse((self.root / "new").exists())
 
