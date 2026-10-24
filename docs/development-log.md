@@ -2117,3 +2117,76 @@ Source unchanged: True
 The script compared the source image's SHA-256 before and after. No project preview asset was created. A browser visual check could not be completed: local Firefox's help command exited 139, and the browser tool explicitly blocked file:// navigation because only HTTP/HTTPS URLs were allowed. No workaround was attempted. The saved document structure and exact selectable text/colors were verified through parsing; actual browser appearance remains for user review by opening an exported file locally.
 
 Whitespace and README internal-link checks passed. Per the agreed workflow, the six milestone files are staged and committed with `Add HTML export for photo and text ASCII art`. Nothing is pushed. Live webcam ASCII is the next planned feature.
+
+
+## 64. Animated HTML export for GIFs and videos
+
+The user requested HTML export for both animation inputs before proceeding to the planned camera feature. Added one shared offline player: a page opens paused on its first frame, Play plays one pass, Pause preserves the remaining delay in the current frame, Play resumes, and Replay restarts immediately. After the last frame's delay, playback stops on that frame. Play after finishing starts over. The first frame remains visible when JavaScript is disabled. Saved characters remain selectable, and browser rendering uses the same fixed-width font and colors as static HTML.
+
+### Files and implementation
+
+- src/ascart/html_art.py: extracted art_to_markup so static and animated output share ANSI-to-RGB-span conversion and HTML escaping. Added save_animated_html, which accepts one iterable of (artwork, milliseconds), bundles escaped frames as JSON, and adds Play/Pause/Replay controls. JSON also escapes angle brackets and ampersands so artwork cannot close the data script element. The only innerHTML input is generated, escaped character markup. There are no external scripts, assets, network requests, original media, or source paths in the page.
+- The HTML saver counts frames and complete UTF-8 document bytes, including styles, player, JSON, and the initial-frame copy. Limits are 3,000 frames and 20 MiB; excess input raises a readable error before creating output folders or files. This never silently drops frames. Reducing width helps the byte limit; shorter input helps either limit. These are fixed HTML-export safeguards, not terminal recording limits. Invalid/nonpositive frame delays use 100 ms; delays beyond the browser's timer range are rejected.
+- Animated HTML is opened with exclusive text mode x, UTF-8, and explicit LF newlines so byte counting is consistent across platforms. Existing destinations and files created by another program during conversion are protected. Disk/write failures can leave a partial newly created file, but do not delete existing files or print a success message.
+- src/ascart/gif_art.py: introduced gif_ascii_frames to decode and yield a frame at a time. The existing gif_to_ascii wrapper still returns a list for existing GIF conversion/playback callers. Temporary RGB pictures are closed after conversion. HTML consumes the generator so oversized animations stop conversion at a bound instead of first collecting the entire GIF.
+- src/ascart/video_art.py: introduced video_ascii_frames, which yields shared ASCII conversion with optional borders and timing from reported FPS. Unknown FPS warns and falls back to 30. A finally block releases the decoder after completion, errors, interruption, or explicit generator closure. Video remains silent and uses constant-FPS timing; a damaged tail may look like normal EOF to OpenCV.
+- src/ascart/cli.py: GIF input now accepts .gif or .html, and video input accepts .mp4 or .html. Existing color, border, palette, background, width, and terminal-fitting options apply. Generator context managers explicitly close readers on early failures. HTML is saved once before optional terminal preview; --loop/--loop-4/--loop-count affect only terminal playback. Non-interactive output saves without preview. Static photo/banner HTML behavior is preserved.
+- README.md: added GIF/video HTML commands to the grouped guide, documented the player, limits, timings, JavaScript requirement, standalone behavior, supported formats and combinations, file safety, and error messages.
+- tests/test_animated_html.py: added 13 methods, including 96 GIF/video rendering combinations compared against the actual shared converters, source-byte preservation, GIF and video timing, initial-frame content, literal markup, color, and whitespace. Other cases cover exact file-size boundaries, frame limits, invalid timing, empty input, read errors, generator cleanup, FPS fallback, interruptions, destination races, existing files/links, permissions, and partial writes with no preview/success. An optional Node.js test runs the actual JavaScript player against a minimal simulated document and clock; it verifies play/pause/resume, replay, stopping, and no duplicate timers. Node.js is used only for development testing and is not a Python/runtime dependency.
+- tests/test_html_art.py: replaced obsolete animation-rejection expectations with successful one-frame exports for both media types and loop options. Each fixture uses a distinct output filename. tests/test_cli_errors.py now checks the supported extensions without depending on the former error-message wording.
+
+No runtime dependencies, version declaration, ignore rules, tracked example media, or preview assets changed. Existing .gitignore rules already exclude generated output and virtual-environment files. All new automated fixtures and outputs use temporary directories.
+
+### Verification
+
+Initial test runs exposed the obsolete rejection assertions, a test-fixture filename collision, and an indentation mistake while updating an error assertion. Those test issues were corrected before the final full run. The focused HTML command passed:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test*html*.py'
+```
+
+```text
+Ran 26 tests in 2.905s
+
+OK
+```
+
+The separate error suite also passed: 20 tests in 0.437s.
+
+A temporary verification script created three-frame GIF and MP4 sources, then ran real CLI processes:
+
+```bash
+.venv/bin/python -B -m ascart /tmp/ascart-animated-html-review-vblaulu5/sample.gif --width 12 --color --border --loop-4 --output /tmp/ascart-animated-html-review-vblaulu5/gif-review.html
+.venv/bin/python -B -m ascart /tmp/ascart-animated-html-review-vblaulu5/sample.mp4 --width 12 --color --border --loop-4 --output /tmp/ascart-animated-html-review-vblaulu5/mp4-review.html
+```
+
+Actual output summaries:
+
+```text
+Saved ASCII GIF to /tmp/ascart-animated-html-review-vblaulu5/gif-review.html
+Frames: 3 | Delays (ms): [100, 200, 300] | Bytes: 13816
+Source unchanged: True
+Saved ASCII video to /tmp/ascart-animated-html-review-vblaulu5/mp4-review.html
+Frames: 3 | Delays (ms): [100.0, 100.0, 100.0] | Bytes: 13822
+Source unchanged: True
+```
+
+These commands used --loop-4, but both saved documents contained only three frames: terminal looping never multiplies saved animation data. Original source bytes were hashed before/after and matched. No test media was added to the project.
+
+Browser appearance remains a manual review step. The earlier browser security restriction on local-file navigation was respected; no bypass was attempted. The actual player JavaScript was tested with simulated document/timer objects, not a rendered browser.
+
+Final full-suite command:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+Actual output:
+
+```text
+Ran 146 tests in 32.622s
+
+OK
+```
+
+All 146 tests passed, including the optional JavaScript player test (Node.js was available). git diff --check passed. Per the agreed workflow, stage these feature files and commit as `Add animated HTML export for GIFs and videos`; do not push. Live webcam ASCII and then side-by-side comparison remain the planned next features.

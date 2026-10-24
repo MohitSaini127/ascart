@@ -155,7 +155,7 @@ class HtmlCliTests(unittest.TestCase):
                 self.assertEqual(output, preview + f"\nSaved ASCII art to {target}\n")
                 self.assertEqual("".join(ArtworkParser(target.read_text()).text), preview)
 
-    def test_animation_html_is_rejected_without_creating_output_folders(self):
+    def test_animation_html_saves_even_with_terminal_loop_options(self):
         gif = self.root / "source.gif"
         with Image.new("RGB", (20, 12), "red") as image:
             image.save(gif)
@@ -168,12 +168,11 @@ class HtmlCliTests(unittest.TestCase):
             writer.release()
         for source, loop in itertools.product((gif, video), ((), ("--loop",), ("--loop-4",))):
             with self.subTest(source=source, loop=loop):
-                target = self.root / "not-created" / "art.html"
+                target = self.root / "new folder" / f"{source.name}-{len(loop)}-{loop}.html"
                 code, output, errors = self.run_cli(source, *loop, "--output", target)
-                self.assertEqual(code, 2)
-                self.assertEqual(output, "")
-                self.assertIn("not supported yet", errors)
-                self.assertFalse(target.parent.exists())
+                self.assertEqual(code, 0, errors)
+                self.assertIn("Saved ASCII", output)
+                self.assertIn('id="frames"', target.read_text())
 
     def test_existing_files_input_links_and_directories_preserved(self):
         original = self.photo.read_bytes()

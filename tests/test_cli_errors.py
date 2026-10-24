@@ -186,7 +186,9 @@ class CliFileErrorTests(unittest.TestCase):
                     code, output, errors = self.run_cli(*inputs, "--output", target)
                     self.assertEqual(code, 2)
                     self.assertEqual(output, "")
-                    self.assertIn("only .txt", errors)
+                    self.assertIn(".txt", errors)
+                    self.assertIn(".png", errors)
+                    self.assertIn(".html", errors)
                     self.assertFalse(target.parent.exists())
 
     def test_missing_output_value_and_terminal_default(self):

@@ -74,6 +74,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 - Saving GIF input as an animated ASCII GIF containing one complete animation, set to play once.
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 - Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
+- Animated, selectable HTML export for GIFs and videos, with Play, Pause, and Replay controls.
 - Readable messages for common input, decoding, and file-saving errors.
 
 ## Setup
@@ -158,6 +159,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart animation.gif --fit --color --border` | Plays colored, bordered artwork fitted to the terminal. |
 | `ascart animation.gif --loop` | Repeats terminal playback until Ctrl+C. |
 | `ascart animation.gif --loop-4` | Plays four times in the terminal. |
+| `ascart animation.gif --color --border --output output/animation.html` | Saves one ASCII animation as an offline webpage with playback controls. |
 | `ascart animation.gif --color --output output/ascii.gif` | Saves one colored ASCII animation, then previews it. |
 | `ascart animation.gif --loop-4 --output output/ascii-four.gif` | Saves one animation and previews it four times. |
 
@@ -169,6 +171,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart video.mp4 --fit --color --border` | Plays colored, bordered artwork fitted to the terminal. |
 | `ascart video.mp4 --loop` | Repeats terminal playback until Ctrl+C. |
 | `ascart video.mp4 --loop-4` | Plays four times in the terminal. |
+| `ascart video.mp4 --color --border --output output/video.html` | Saves one silent ASCII animation as an offline webpage with playback controls. |
 | `ascart video.mp4 --color --output output/ascii.mp4` | Saves one silent ASCII video, then previews it. |
 | `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
 | `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
@@ -235,7 +238,7 @@ PNG pictures larger than 20 million pixels are rejected before allocation; reduc
 
 ## HTML export
 
-Save photos and text banners as standalone webpages using a new `.html` filename:
+Save photos, text banners, GIFs, and videos as standalone webpages using a new `.html` filename:
 
 ```bash
 ascart examples/image1.png --color --border --output output/penguin.html
@@ -243,15 +246,27 @@ ascart examples/image1.png --background light --output output/penguin-light.html
 ascart examples/image1.png --fit --chars " .:*#@" --output output/penguin-custom.html
 ascart -t "Hello" --border --output output/hello.html
 ascart --text-slant "Hello" --output output/slanted.html
+ascart animation.gif --color --border --output output/animation.html
+ascart video.mp4 --color --border --output output/video.html
 ```
 
 Open the saved file in a web browser. Its ASCII characters stay selectable and copyable, with spaces, blank rows, and optional borders preserved. Photos support the existing width/fit, character palette, color, and background options. Banner styles and wrapping are preserved; banners keep their existing restrictions on media-only options and use white text on black.
 
 HTML uses a fixed-width browser font rather than pixels, so its appearance can differ slightly from your terminal or PNG output. Source RGB foreground colors are converted to inline color styles, and color resets keep borders neutral. Dark photo mode uses white text on black; light mode uses black text on white. Automatic mode uses the same terminal hint as other photo output. Image colors themselves are not inverted.
 
-Each file includes its own styles and needs no internet connection, JavaScript, external fonts, or additional Python packages. Characters such as `<`, `>`, quotes, and `&` are escaped so they display as artwork rather than HTML markup. The output contains the ASCII artwork, not the original photo or its source path.
+Each file includes its own styles and needs no internet connection, external fonts, or additional Python packages. Photo/banner pages need no JavaScript; animated pages include a small JavaScript player. Characters such as `<`, `>`, quotes, and `&` are escaped so they display as artwork rather than HTML markup. The output contains the ASCII artwork, not the original photo or its source path.
 
-After saving, the artwork is also printed in the terminal, followed by the output location. Existing files and input aliases are rejected, including files appearing during saving. Parent folders are created as needed. `.HTML` also works; `.htm` is not currently supported. GIF/video input cannot save as HTML yet. A write failure may leave a partial new file, as with other text exports.
+After saving a photo or banner, the artwork is also printed in the terminal, followed by the output location. GIFs and videos get a terminal preview when an interactive terminal is available. Existing files and input aliases are rejected, including files appearing during saving. Parent folders are created as needed. `.HTML` also works; `.htm` is not currently supported. A write failure may leave a partial new file, as with other text exports.
+
+### Animated HTML (GIF and video)
+
+The page opens paused on its first frame. Click **Play** to play once, **Pause** to stop on the current frame, and **Play** again to resume. **Replay** starts over immediately. Playback ends on the last frame; Play after finishing starts a new pass. Characters remain selectable. With JavaScript disabled, the first frame is still visible.
+
+The file contains one complete sequence, regardless of `--loop`, `--loop-4`, or `--loop-count`. Those options control only the terminal preview, which starts after saving when a terminal is available. Without an interactive terminal, saving works and skips that preview. GIF delays are preserved (missing/zero delays use 100 ms). Video uses its reported FPS, or a warned 30 FPS fallback, and contains no audio. Variable-frame-rate timing is approximated; browser scheduling and background-tab throttling can slow playback.
+
+Color, border, custom characters, width/fit, and background selection apply to every frame. HTML stores text and RGB styles rather than embedded GIF/MP4 pictures. All frames are bundled for offline playback, so exports are limited to **3,000 frames and 20 MiB per HTML file**. Either limit rejects the whole save before creating an output file or its folders; it never silently truncates the animation. Use a shorter source or smaller width if needed. At 30 FPS, 3,000 frames is about 100 seconds; the size limit may be reached sooner, especially with color. Conversion collects bounded frame markup in memory; large individual frames can still require substantial memory. No automatic frame dropping or time-limit option is added.
+
+Artwork is escaped before display, and the embedded frame data is encoded to prevent characters such as `</script>` from becoming page instructions. The player uses no network resources and contains no source path or original media. OpenCV can report a damaged video tail as end-of-file, the same decoding limitation as MP4 export.
 
 ## Optional border
 
@@ -264,7 +279,7 @@ Add `--border` to a photo, text, GIF, or video command to frame the artwork with
 +-----+
 ```
 
-Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner TXT/PNG/HTML output and saved GIF/MP4 frames include the border.
+Rows of different lengths are padded to align the right edge. RGB color codes do not count toward the visible width, and color is reset before the right edge so the frame uses the normal terminal foreground. Photo and banner TXT/PNG/HTML output, animated HTML, and saved GIF/MP4 frames include the border.
 
 `--width` describes the artwork inside the frame; a 60-column image becomes 62 columns wide with the border. Banner width still controls wrapping, and its frame surrounds the longest rendered row. The border adds two rows as well. For photos/GIFs/videos, `--fit --border` reserves those extra dimensions within the existing terminal margins. A terminal smaller than four columns by five rows is rejected in this mode. Text banners still do not support `--fit`.
 
@@ -283,7 +298,7 @@ Playback requires an interactive terminal supporting ANSI screen and cursor cont
 
 Frame durations come from the GIF in milliseconds. Missing or zero timing uses a 100 ms fallback. Terminal playback follows the command-line loop choice rather than the GIF's loop metadata.
 
-Use a new `.gif` output filename to save the complete converted animation. Existing files, input-file aliases, and symbolic links are rejected. Parent folders are created as needed. `.GIF` also works. GIF input does not currently save as `.txt`, `.png`, or `.html`; photo/banner input does not save as `.gif`.
+Use a new `.gif` output filename to save the complete converted animation. Existing files, input-file aliases, and symbolic links are rejected. Parent folders are created as needed. `.GIF` also works. GIF input also supports animated `.html` output; it does not save as `.txt` or `.png`; photo/banner input does not save as `.gif`.
 
 The output stores one pass of the source frames with their timings. It omits GIF repeat metadata, requesting one playback even if the source repeats forever. `--loop`, `--loop-4`, and `--loop-count` control only the terminal preview; they never duplicate saved frames or change the saved GIF's repeat behavior. No saved-loop setting is offered yet. External viewers can override a GIF's playback behavior.
 
@@ -303,8 +318,8 @@ GIF also limits each picture dimension to 65,535 pixels. Oversized rendered fram
 | --- | --- |
 | Photo: color + border + custom characters + width or fit + PNG or HTML output | Supported; the saved artwork and terminal preview use the selected options. |
 | Photo: color + text-file output | Supported, but the saved text and preview are plain characters. |
-| GIF: color + border + custom characters + width or fit + GIF output + terminal loop count | Supported; the file stores one animation, independently of terminal repeats. |
-| Video: color + border + custom characters + width or fit + MP4 output + terminal loops | Supported; the saved video contains one pass without audio. |
+| GIF: color + border + custom characters + width or fit + GIF or HTML output + terminal loop count | Supported; the file stores one animation, independently of terminal repeats. |
+| Video: color + border + custom characters + width or fit + MP4 or HTML output + terminal loops | Supported; the saved video contains one pass without audio. |
 | Text: banner style + width + border + TXT, PNG, or HTML output | Supported. |
 | Width + fit, or continuous loop + counted loop | Rejected: choose one sizing method and one loop mode. |
 | Text banners + color, fit, custom characters, manual background, or looping | Rejected: those options apply to media conversion. |
@@ -331,7 +346,7 @@ For each repeat, the previous video reader is closed and a new one opens the fil
 
 For inspection from Python, `ascart.video_art.inspect_video(path)` returns dimensions, reported FPS/frame count, and estimated duration. Unknown metadata is returned as `None`. Duration is estimated from frame count divided by FPS.
 
-Use a new `.mp4` output filename to save one complete ASCII video without audio. `.MP4` also works. Any decodable video input, including supported AVI files, can produce MP4 output. Video input does not save as `.gif`, `.txt`, `.png`, or `.html`; GIF input does not save as MP4.
+Use a new `.mp4` output filename to save one complete ASCII video without audio. `.MP4` also works. Any decodable video input, including supported AVI files, can produce MP4 output. Video input also supports animated `.html` output; it does not save as `.gif`, `.txt`, or `.png`; GIF input does not save as MP4.
 
 Each decoded frame becomes ASCII text and then a picture using the same fixed-width font, padding, backgrounds, and optional colors/borders as PNG saving. OpenCV encodes those pictures with `mp4v` at the source's reported FPS. Missing or invalid FPS produces a warning and uses 30 FPS. The rendered pixel dimensions are even, as required by the encoder. Frames are processed one at a time, and every saved frame must have the same dimensions. Lossy video compression may slightly change character edges and RGB colors. MP4 viewers choose their own repeat behavior; the file contains no duplicated terminal playback passes.
 
@@ -362,11 +377,12 @@ The CLI prints usage and the error to standard error, then exits with status 2. 
 | File exists while creating an output folder | Check whether a normal file is blocking one of the parent folders. |
 | Destination already exists | Choose a new output filename; ascart does not overwrite or automatically number files. |
 | Output must not point to the input file | Use a different destination, not the source or a link to it. |
-| Output supports only .txt/.png/.html for photos/banners, .gif for GIF input, or .mp4 for video input | Match the output format to the input. |
-| GIF output supports only .gif files | Use a new `.gif` filename for GIF input. |
-| Video output supports only .mp4 files | Use a new `.mp4` filename for video input. |
+| Output supports .txt/.png/.html for photos/banners, .gif/.html for GIF input, or .mp4/.html for video input | Match the output format to the input. |
+| GIF output supports only .gif and .html files | Use a new `.gif` or `.html` filename for GIF input. |
+| Video output supports only .mp4 and .html files | Use a new `.mp4` or `.html` filename for video input. |
 | MP4 encoding is unavailable | The OpenCV installation needs an available `mp4v` encoder. |
 | Incomplete MP4 encoding | The temporary encoding failed verification; the final destination was not created. |
+| HTML animation exceeds 3000 frames / 20 MiB | Use a shorter source or smaller width. No output is created. |
 | PNG would exceed 20 million pixels | Reduce `--width` or shorten the banner text. |
 | No space left on device | Free storage space or choose another output location. |
 
@@ -421,11 +437,13 @@ The combination suite exercises 1,344 option combinations: 216 photo cases, 864 
 
 Short-text alias tests compare `-t` with `--text` across widths, borders, and terminal/TXT/PNG output, including identical saved contents. They also check help text, literal option-like text, invalid values, and incompatible input modes.
 
-HTML tests parse exported pages to check selectable characters, escaping, whitespace/blank rows, colors and resets, neutral borders, and standalone markup. They include 48 photo-option combinations and 20 banner combinations, including -t, width, fitting, borders, backgrounds, and custom palettes with HTML-special characters. Other checks cover animation rejection, uppercase extensions, existing destinations/links, competing creation, rendering failures, permissions, partial writes, and unchanged source media.
+HTML tests parse exported pages to check selectable characters, escaping, whitespace/blank rows, colors and resets, neutral borders, and standalone markup. They include 48 photo-option combinations and 20 banner combinations, including -t, width, fitting, borders, backgrounds, and custom palettes with HTML-special characters. Other checks cover animated exports with terminal loop options, uppercase extensions, existing destinations/links, competing creation, rendering failures, permissions, partial writes, and unchanged source media.
 
 MP4 export tests add 32 saved-video rendering combinations, reopen real encoded MP4s, and check dimensions, frame count, FPS, color order, source preservation, and temporary-file cleanup. They cover AVI input, terminal-loop independence, interrupted playback, non-interactive saving, unsupported format combinations, existing files and links, competing destination creation, unavailable/failing encoders, incomplete encoding, missing FPS, permission failures, source interruption, and partial-copy errors.
 
 File-error tests use real truncated PNG/GIF data and invalid save paths, plus simulated permission and disk-space failures. They verify successful saving, rejection of existing destinations and source aliases, exclusive creation when another file appears during saving, and partial-new-file behavior. They also ensure unexpected programming errors are not hidden by a catch-all exception handler. Test media and outputs are created in temporary directories.
+
+Animated HTML tests add 96 GIF/video option combinations, check exact converted frames and timings, escaping, initial-frame fallback, size/frame limits, exclusive creation, reader cleanup, FPS fallback, and independent terminal loops. An optional Node.js test runs the actual player code with a simulated clock and document to verify Play/Pause/resume/Replay and stopping after one pass; Node.js is not a runtime dependency. Browser appearance is checked manually.
 
 ## License and credits
 

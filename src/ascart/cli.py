@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+from contextlib import closing
 from pathlib import Path
 from stat import S_ISREG
 
@@ -12,12 +13,12 @@ from PIL import Image, UnidentifiedImageError
 from ascart import __version__
 from ascart.border import add_border
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
-from ascart.gif_art import gif_to_ascii, play_gif, save_ascii_gif
-from ascart.html_art import art_to_html
+from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
+from ascart.html_art import art_to_html, save_animated_html
 from ascart.image_art import inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
-from ascart.video_art import inspect_video, play_video, save_ascii_video
+from ascart.video_art import inspect_video, play_video, save_ascii_video, video_ascii_frames
 
 
 IMAGE_READ_ERRORS = (OSError, ValueError, EOFError, SyntaxError, Image.DecompressionBombError)
@@ -50,7 +51,7 @@ def validate_output(output, input_path, parser):
     except (OSError, ValueError) as error:
         report_file_error(parser, "Cannot validate output", output, error)
     if output_path.suffix.lower() not in (".txt", ".png", ".html", ".gif", ".mp4"):
-        parser.error("--output supports only .txt/.png/.html for photos/banners, .gif for GIF input, or .mp4 for video input")
+        parser.error("--output supports .txt/.png/.html for photos/banners, .gif/.html for GIF input, or .mp4/.html for video input")
 
 
 def display_art(art, output, parser, background="dark"):
@@ -108,7 +109,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos or banners, .gif for GIF input, .mp4 for videos; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos or banners, .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -230,17 +231,24 @@ def main():
             parser.error(f"Cannot decode input {args.path!r}: unsupported or damaged media")
         except KeyboardInterrupt:
             return
-        if args.output and output_suffix != ".mp4":
-            parser.error("Video output supports only .mp4 files; other video output formats are not supported yet")
+        if args.output and output_suffix not in (".mp4", ".html"):
+            parser.error("Video output supports only .mp4 and .html files; other video output formats are not supported yet")
         interactive = sys.stdout.isatty()
         if not interactive and not args.output:
             parser.error("Video playback requires an interactive terminal")
         if args.output:
             try:
-                save_ascii_video(
-                    args.path, args.output, width=width, palette=args.chars, background=background,
-                    max_height=max_height, color=color, border=args.border,
-                )
+                if output_suffix == ".html":
+                    with closing(video_ascii_frames(
+                        args.path, width=width, palette=args.chars, background=background,
+                        max_height=max_height, color=color, border=args.border,
+                    )) as frames:
+                        save_animated_html(frames, args.output, background)
+                else:
+                    save_ascii_video(
+                        args.path, args.output, width=width, palette=args.chars, background=background,
+                        max_height=max_height, color=color, border=args.border,
+                    )
             except FileExistsError:
                 parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
             except (OSError, ValueError, cv2.error) as error:
@@ -261,11 +269,30 @@ def main():
             print("Saved ASCII video to", args.output)
         return
     if is_gif:
-        if args.output and output_suffix != ".gif":
-            parser.error("GIF output supports only .gif files; other GIF output formats are not supported yet")
+        if args.output and output_suffix not in (".gif", ".html"):
+            parser.error("GIF output supports only .gif and .html files; other GIF output formats are not supported yet")
         interactive = sys.stdout.isatty()
         if not interactive and not args.output:
             parser.error("GIF playback requires an interactive terminal")
+        if output_suffix == ".html":
+            try:
+                with closing(gif_ascii_frames(
+                    args.path, width=width, palette=args.chars, background=background,
+                    max_height=max_height, color=color,
+                )) as source_frames:
+                    frames = ((add_border(art) if args.border else art, duration)
+                              for art, duration in source_frames)
+                    save_animated_html(frames, args.output, background)
+            except FileExistsError:
+                parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
+            except IMAGE_READ_ERRORS as error:
+                report_file_error(parser, "Cannot save artwork to", args.output, error)
+            except KeyboardInterrupt:
+                return
+            # Decode a fresh pass only when a terminal preview is needed.
+            if not interactive:
+                print("Saved ASCII GIF to", args.output)
+                return
         try:
             frames = gif_to_ascii(
                 args.path, width=width, palette=args.chars, background=background,
@@ -277,7 +304,7 @@ def main():
             report_file_error(parser, "Cannot decode GIF", args.path, error)
         except KeyboardInterrupt:
             return
-        if args.output:
+        if args.output and output_suffix != ".html":
             try:
                 save_ascii_gif(frames, args.output, background)
             except FileExistsError:

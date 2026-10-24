@@ -68,6 +68,31 @@ def video_frame_to_picture(frame, width, palette, background, max_height, color,
         return cv2.cvtColor(np.asarray(picture), cv2.COLOR_RGB2BGR)
 
 
+def video_ascii_frames(
+    path, width=60, palette=DEFAULT_PALETTE, background="dark", max_height=None,
+    color=False, border=False,
+):
+    """Yield one pass of ASCII frames and millisecond timings for HTML export."""
+    capture = open_video(path)
+    try:
+        fps = positive_property(capture, cv2.CAP_PROP_FPS)
+        if fps is None:
+            fps = 30.0
+            print("Video frame rate unavailable; using 30 FPS for saving.", file=sys.stderr)
+        count = 0
+        while True:
+            success, frame = capture.read()
+            if not success:
+                if not count:
+                    raise ValueError("Video opened, but no frame could be decoded")
+                break
+            art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
+            yield (add_border(art) if border else art), 1000 / fps
+            count += 1
+    finally:
+        capture.release()
+
+
 def verify_video(path, expected_frames, expected_size):
     """Read back every encoded frame because VideoWriter.write has no status."""
     capture = open_video(path)

@@ -69,7 +69,13 @@ def play_gif(frames, loops=1):
 def gif_to_ascii(
     path, width=80, palette=DEFAULT_PALETTE, background="dark", max_height=None, color=False
 ):
-    frames = []
+    return list(gif_ascii_frames(path, width, palette, background, max_height, color))
+
+
+def gif_ascii_frames(
+    path, width=80, palette=DEFAULT_PALETTE, background="dark", max_height=None, color=False
+):
+    """Yield decoded ASCII frames without collecting an unbounded animation."""
     with Image.open(path) as gif:
         if gif.format != "GIF":
             raise ValueError("Expected a GIF file")
@@ -77,11 +83,9 @@ def gif_to_ascii(
         for frame_index in range(gif.n_frames):
             gif.seek(frame_index)
             duration = gif.info.get("duration", 0)
-            frame = gif.convert("RGB")
-            art = image_to_ascii(frame, width, palette, background, max_height, color)
-            frames.append((art, duration))
-
-    return frames
+            with gif.convert("RGB") as frame:
+                art = image_to_ascii(frame, width, palette, background, max_height, color)
+            yield art, duration
 
 
 def inspect_gif(path):
