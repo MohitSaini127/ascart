@@ -12,7 +12,51 @@ ascart is a Python command-line learning project that creates text banners and c
 
 The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
 
-[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands-experimental) · [License and credits](#license-and-credits)
+[Installation](#installation) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands-experimental) · [License and credits](#license-and-credits)
+
+## Installation
+
+Install once with **pipx**, then run `ascart` from any folder. Pipx installs the dependencies and manages a separate Python environment automatically; you do not need to create or activate one yourself. No separate repository clone is needed.
+
+For this installation method, have **Python 3.11 or newer**, **Git**, and an internet connection available. First install pipx for your system:
+
+| System | Install pipx |
+| --- | --- |
+| Fedora | `sudo dnf install pipx` |
+| Ubuntu/Debian | Run `sudo apt update`, then `sudo apt install pipx` |
+| macOS (with Homebrew installed) | `brew install pipx` |
+| Windows (with Python's `py` launcher installed) | `py -m pip install --user pipx` |
+
+On Linux/macOS, run:
+
+```bash
+pipx ensurepath
+```
+
+On Windows, run:
+
+```powershell
+py -m pipx ensurepath
+```
+
+This makes installed commands discoverable by your terminal. **Close and reopen your terminal**, then install ascart:
+
+```bash
+pipx install git+https://github.com/MohitSaini127/ascart.git
+```
+
+This installs the code currently pushed to GitHub. Check the installation and create your first banner:
+
+```bash
+ascart --version
+ascart -t "Hello"
+```
+
+In future terminals, just run `ascart`; no environment activation is needed. If you already activated a project `.venv`, run `deactivate` before trying the pipx-installed command. Use your own image/video paths: relative paths are resolved from your current folder, and the repository's example images are not installed beside the command.
+
+To update from GitHub, run `pipx upgrade ascart`. To remove the application, run `pipx uninstall ascart`.
+
+For other systems or pipx setup help, see the [official pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html). To edit ascart's source, the existing [source setup instructions](#setup) are available below.
 
 ## Preview
 
@@ -80,6 +124,8 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Setup
 
+This setup is for working on the source code. For everyday use without manual environment activation, follow [Installation](#installation).
+
 The project declares Python 3.10 or newer and these dependencies:
 
 | Package | Purpose | Declared version |
@@ -110,7 +156,7 @@ Use `deactivate` to leave the environment. The `.venv/` folder stays on your com
 
 ## Command guide
 
-After [setup](#setup), activate your environment and run these commands from the project folder. Replace `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Image examples use the bundled `examples/image1.png`; replace that path to convert another image. Quote paths containing spaces.
+After [installation](#installation), run these commands from any folder using your own media paths. Replace `animation.gif`, `video.mp4`, and `video.avi` with your own file paths. Image examples use `examples/image1.png`, which is available in a repository clone; pipx users should replace it with a path to their own image. Quote paths containing spaces. If using the [source setup](#setup) instead, activate that environment before running commands.
 
 | General command | What it does |
 | --- | --- |

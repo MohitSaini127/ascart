@@ -2747,3 +2747,14 @@ OK
 ```
 
 `git diff --check` passed without output. Stage the six milestone files and commit as `Speed up repeated camera GIF frames and report saving progress`, following the agreed workflow. Nothing is pushed. The next manual check is a short width-140 GIF using a new filename; if it still stalls, the last progress line will identify the stage to investigate.
+
+
+## 77. Put pipx installation at the start of the README
+
+The user requested an installation section near the beginning of README.md, using pipx so everyday users do not manually create or activate a virtual environment. Added the section after the introduction and navigation, before previews. It includes prerequisites, pipx installation for Fedora, Ubuntu/Debian, macOS with Homebrew, and Windows with the Python launcher; terminal path setup and reopening; the real GitHub repository installation command; version and text-banner checks; updating and uninstalling.
+
+Checked the commands against the [official pipx installation guide](https://pipx.pypa.io/stable/how-to/install-pipx.html) and checked the local repository URL and existing console-script configuration. This guide recommends Python 3.11 or newer for current pipx; the existing source section still states ascart's declared Python requirement. Explained that pipx manages its environment automatically, GitHub installation uses pushed code, an active development environment can select the development command instead, and relative media paths refer to the user's current folder. Repository example images are not installed beside the command.
+
+Updated the main navigation to link Installation and changed the command-guide introduction to support running the pipx-installed command from any folder. Kept the existing Setup section and marked it as source development instructions, with a link back to Installation. Removing or relocating that section is a separate next step: move useful source setup and testing instructions to a development document and leave a small README link.
+
+Validation: `git diff --check` passed without output. Reviewed the new Installation and existing Setup heading links and matched the repository URL to `git remote -v`. This is documentation only: no packages were installed, no user environment changed, and the application test suite was not rerun. Stage README.md and docs/development-log.md and commit as `Add pipx installation guide near the start of README`, following the agreed workflow. Nothing is pushed.
