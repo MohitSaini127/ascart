@@ -160,7 +160,7 @@ class CameraRecordingTests(unittest.TestCase):
                   ["examples/image1.png", "--camera-duration=1", "--output", self.target],
                   ["--camera", "--camera-duration=1", "--loop", "--output", self.target],
                   ["--camera-mirrored", "--camera-duration=1", "--loop-4", "--output", self.target]]
-        cases += [["--camera", "--camera-duration=1", "--output", self.target.with_suffix(suffix)] for suffix in (".txt", ".png", ".html", ".gif", ".avi")]
+        cases += [["--camera", "--camera-duration=1", "--output", self.target.with_suffix(suffix)] for suffix in (".txt", ".png", ".avi")]
         for args in cases:
             with self.subTest(args=args), patch("ascart.camera_art.cv2.VideoCapture") as hardware:
                 code, output, errors = self.run_cli(*args)

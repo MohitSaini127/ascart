@@ -2581,3 +2581,65 @@ Bytes: 52165
 ```
 
 This verifies the CLI dispatch and real MP4 file with synthetic input; it does not establish physical-webcam timing or appearance. The temporary verification video is outside the repository. All 197 tests and git diff --check passed. Stage the five milestone files and commit as `Add timed camera MP4 recording`, following the agreed workflow. Nothing is pushed. The next user check is a short real webcam recording with a new destination filename.
+
+
+## 74. GIF and animated HTML camera recording
+
+The user confirmed timed camera MP4 recording worked and approved extending the same --camera-duration workflow to GIF and animated HTML. Both formats now use the selected camera, orientation, colours, palettes, background, width/fit, border, live preview, and finite recording interval. Existing live viewing, snapshots, and MP4 behaviour remain covered by regression tests. Camera HTML without duration is still a static snapshot; adding duration makes it an animation.
+
+### Implementation
+
+Extended camera_recording.record_camera to dispatch .gif and .html into a bounded animation path while retaining the existing MP4 path. Added a timed ASCII-frame generator that targets 15 output slots per second, repeats the latest processed artwork for missed slots, checks grid dimensions, displays the remaining time, and closes the capture on completion/error/interruption. A closing context explicitly closes the generator when an export limit or writer error stops consumption early, releasing the camera and restoring the cursor. Only the current camera frame is held by capture; the GIF/HTML writers buffer their format-specific data within limits.
+
+GIF timing is generated from rounded cumulative 10-ms boundaries: 60/70-ms frame delays average 15 FPS instead of truncating every frame to 60 ms. The existing GIF saver now accepts keyword-only smooth and pixel_limit controls; defaults retain previous GIF-file conversion behaviour. Camera GIFs use smooth PNG glyphs and a 64-million-pixel aggregate rendered-frame budget, counted before Pillow merges identical frames. This bounds buffered paletted picture data, with additional memory needed for Pillow and encoding. Budget failure aborts rather than truncating. GIF colour remains limited to 256 shades per frame, and output omits loop metadata to request one playback. Consecutive identical pictures may merge while preserving their total delay.
+
+Camera HTML reuses save_animated_html with Loop enabled in the player. Pages include selectable escaped artwork, colours, offline Play/Pause/Replay controls, and an unchecked Loop checkbox. Browser repeats reuse one stored sequence and do not extend camera capture. Existing 3,000-frame and 20 MiB complete-page limits apply. The 15-FPS frame limit means durations above 200 seconds are rejected before hardware access. Width/colour-dependent byte limits may stop capture earlier; a readable error asks for smaller dimensions or shorter input, and the destination is not published.
+
+Both new formats save into an owned .ascart-* temporary directory. GIF output is decoded to verify dimensions and aggregate duration before publication; checking frame count would be incorrect because Pillow may merge identical frames. After capture completion and successful saving, the temporary result is copied to an exclusively created destination. Existing files/links, including a file appearing during recording, remain protected. Cancellation/read/export errors clean up private files and publish no completed output. A failed final copy can leave a partial newly created destination, consistently with existing MP4 behaviour; no existing user file is removed. Empty output folders may remain after failure. No real camera was opened by the agent.
+
+Updated cli.py help and recording-format validation to accept .mp4, .gif, and .html with duration. Camera GIF/MP4 without duration still fails; TXT/PNG duration output is rejected. Case-insensitive suffixes work. Updated one obsolete MP4-only test expectation to stop treating GIF/HTML as unsupported; new positive tests cover those formats.
+
+README.md now includes GIF/HTML recording commands in the experimental camera guide, format timing/storage differences, resource limits, HTML controls, safe output, cancellation, and static-versus-animated HTML selection. No dependency, version, ignore rule, source media, or preview image changed.
+
+### Tests and checks
+
+Added tests/test_camera_animation.py with 11 methods and 192 GIF/HTML visual combinations. Coverage includes both orientations, colours/backgrounds, border, width/fit, palettes with HTML-special characters, uppercase extensions, spaces in paths, GIF durations/readback/colours, exact HTML markup from the shared converter, player/Loop controls, slow-capture timing, frame/byte/pixel limits, preflight HTML-duration rejection, cancellation, read failures, changing dimensions, injected GIF timing-verification failure, handle cleanup, existing destinations/links, competing creation, permission errors, and partial copying. Controlled frames and clocks are used; source arrays remain unchanged. Existing HTML-player JavaScript tests and all MP4/snapshot tests still pass.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_camera_animation.py
+```
+
+```text
+Ran 11 tests in 3.169s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 208 tests in 51.329s
+
+OK
+```
+
+A separate simulated CLI check used changing red/blue camera frames and a fake clock with real GIF/HTML exports. Each command used --camera --camera-duration 0.4 --width 12 --color --border --chars=@ --output PATH. Actual output summaries:
+
+```text
+Saved ASCII camera recording to /tmp/ascart-camera-animation-check-ph75xnof/camera.gif
+GIF encoded frames: 2 | Duration (ms): 400 | Loop metadata: False
+Bytes: 6916 | Camera released: True | Temporary folders: 0
+Saved ASCII camera recording to /tmp/ascart-camera-animation-check-ph75xnof/camera.html
+HTML frames: 6 | Duration (ms): 400 | Loop checkbox: True
+Bytes: 23280 | Camera released: True | Temporary folders: 0
+```
+
+GIF merges repeated red/blue pictures into two encoded frames; HTML retains all six slots. Both preserve the 400 ms sequence. The files are outside the repository, and no webcam, user media, or browser navigation was used. Browser appearance and physical-camera behaviour remain manual checks.
+
+All 208 tests and git diff --check passed. Stage the seven milestone files and commit as `Add GIF and HTML camera recording`, following the agreed workflow. Nothing is pushed. The next user check is a short webcam GIF and HTML export using new filenames; side-by-side comparison remains the next planned feature after camera exports.

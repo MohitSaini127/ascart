@@ -14,10 +14,10 @@ from PIL import Image, UnidentifiedImageError
 from ascart import __version__
 from ascart.border import add_border
 from ascart.camera_art import list_cameras, play_camera, snapshot_camera
-from ascart.camera_recording import MAX_CAMERA_DURATION, record_camera
+from ascart.camera_recording import MAX_CAMERA_DURATION, RECORDING_FPS, record_camera
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
-from ascart.html_art import art_to_html, save_animated_html
+from ascart.html_art import MAX_ANIMATION_FRAMES, art_to_html, save_animated_html
 from ascart.image_art import inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
@@ -106,7 +106,7 @@ def main():
     camera_inputs.add_argument("--camera", nargs="?", const=0, type=int, metavar="ID", help="Live camera with the default horizontally flipped view; default ID 0; Ctrl+C stops")
     camera_inputs.add_argument("--camera-mirrored", nargs="?", const=0, type=int, metavar="ID", help="Live camera using the previous, source orientation; default ID 0; use instead of --camera")
     parser.add_argument("--list-cameras", action="store_true", help="Test local camera access (may briefly activate cameras); Linux video devices, otherwise IDs 0-9")
-    parser.add_argument("--camera-duration", type=float, metavar="SECONDS", help="Record camera ASCII for 0 < SECONDS <= 300; requires --camera or --camera-mirrored and a new .mp4 output; silent 15 FPS")
+    parser.add_argument("--camera-duration", type=float, metavar="SECONDS", help="Record camera ASCII for 0 < SECONDS <= 300; requires a camera and new .mp4/.gif/.html output; 15 FPS, format limits apply")
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("-t", "--text", type=lambda value: (value, "standard"), help="Standard text banner")
     text_inputs.add_argument("--text-slant", dest="text", type=lambda value: (value, "slant"), help="Slanted text banner")
@@ -119,7 +119,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4 with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4/.gif/.html with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -172,7 +172,7 @@ def main():
         if not math.isfinite(args.camera_duration) or not 0 < args.camera_duration <= MAX_CAMERA_DURATION:
             parser.error("Camera duration must be greater than 0 and at most 300 seconds")
         if args.output is None:
-            parser.error("--camera-duration requires --output with a new .mp4 filename")
+            parser.error("--camera-duration requires --output with a new .mp4, .gif, or .html filename")
     if sum((args.path is not None, args.text is not None, args.camera is not None, args.list_cameras)) != 1:
         parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
     if args.camera is not None or args.list_cameras:
@@ -203,10 +203,12 @@ def main():
         return
     validate_output(args.output, args.path, parser)
     output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
-    if args.camera_duration is not None and output_suffix != ".mp4":
-        parser.error("Camera recording supports only .mp4 output; omit --camera-duration for a TXT/PNG/HTML snapshot")
+    if args.camera_duration is not None and output_suffix not in (".mp4", ".gif", ".html"):
+        parser.error("Camera recording supports only .mp4, .gif, and .html output; omit --camera-duration for a TXT/PNG snapshot")
+    if args.camera_duration is not None and output_suffix == ".html" and math.ceil(args.camera_duration * RECORDING_FPS) > MAX_ANIMATION_FRAMES:
+        parser.error("HTML animation exceeds 3000 frames; use a duration of at most 200 seconds")
     if args.camera is not None and args.camera_duration is None and output_suffix in (".gif", ".mp4"):
-        parser.error("Camera snapshots support only .txt, .png, and .html files; use --camera-duration SECONDS with .mp4 for recording")
+        parser.error("Camera snapshots support only .txt, .png, and .html files; use --camera-duration SECONDS with .mp4 or .gif for recording")
     if args.text is not None:
         if output_suffix in (".gif", ".mp4"):
             parser.error("Photo and text output supports only .txt, .png, and .html files")

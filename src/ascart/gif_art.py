@@ -8,15 +8,19 @@ from ascart.image_art import image_to_ascii
 from ascart.png_art import art_to_png
 
 
-def save_ascii_gif(frames, path, background="dark"):
+def save_ascii_gif(frames, path, background="dark", *, smooth=False, pixel_limit=None):
     """Save one pass of ASCII frames, without adding GIF repeat metadata."""
     if not frames:
         raise ValueError("No frames to save")
     pictures = []
     durations = []
+    total_pixels = 0
     try:
         for art, duration in frames:
-            with art_to_png(art, background, smooth=False) as picture:
+            with art_to_png(art, background, smooth=smooth) as picture:
+                total_pixels += picture.width * picture.height
+                if pixel_limit is not None and total_pixels > pixel_limit:
+                    raise ValueError("Camera GIF exceeds its 64-million-pixel frame budget; use a smaller --width or shorter duration")
                 # GIF allows up to 256 colors per frame. Avoid dithering so
                 # plain character strokes do not acquire speckled patterns.
                 pictures.append(picture.convert(
