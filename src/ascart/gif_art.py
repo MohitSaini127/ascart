@@ -1,26 +1,67 @@
+import math
 import time
+from contextlib import ExitStack, closing
 from pathlib import Path
 
-from PIL import Image
+from PIL import GifImagePlugin, Image
 
 from ascart.converter import DEFAULT_PALETTE
 from ascart.image_art import image_to_ascii
 from ascart.png_art import art_to_png
 
 
-def save_ascii_gif(frames, path, background="dark", *, smooth=False, pixel_limit=None):
+def save_streaming_ascii_gif(frames, path, background="dark", *, smooth=True):
+    """Encode full frames incrementally into a new GIF, without repeat metadata.
+
+    Camera callers supply a private temporary path and verify the completed
+    file before publishing it. Only the current picture is retained here.
+    """
+    size = None
+    output = None
+    with ExitStack() as resources:
+        for art, duration in frames:
+            if not math.isfinite(duration) or not 10 <= duration <= 655350:
+                raise ValueError("GIF frame duration must be between 10 and 655350 milliseconds")
+            with closing(art_to_png(art, background, smooth=smooth)) as picture:
+                if any(side > 65535 for side in picture.size):
+                    raise ValueError("GIF dimensions must not exceed 65535 pixels per side; use a smaller --width")
+                if size is not None and picture.size != size:
+                    raise ValueError("GIF frames must have matching dimensions")
+                with closing(picture.convert(
+                    "P", palette=Image.Palette.ADAPTIVE, colors=256,
+                    dither=Image.Dither.NONE,
+                )) as paletted:
+                    if output is None:
+                        size = picture.size
+                        output_path = Path(path)
+                        output_path.parent.mkdir(parents=True, exist_ok=True)
+                        output = resources.enter_context(output_path.open("xb"))
+                        # A duration selects the GIF89a header. No loop field
+                        # means the exported animation requests one playback.
+                        header, _ = GifImagePlugin.getheader(
+                            paletted, info={"duration": duration, "optimize": False},
+                        )
+                        output.writelines(header)
+                    # Each frame has its own palette and fills the whole
+                    # canvas, including repeated frames and their delays.
+                    output.writelines(GifImagePlugin.getdata(
+                        paletted, duration=duration, disposal=2,
+                        include_color_table=True,
+                    ))
+        if output is None:
+            raise ValueError("No frames to save")
+        output.write(b";")  # GIF trailer, written only after every frame succeeds.
+
+
+def save_ascii_gif(frames, path, background="dark", *, smooth=False):
     """Save one pass of ASCII frames, without adding GIF repeat metadata."""
     if not frames:
         raise ValueError("No frames to save")
     pictures = []
     durations = []
-    total_pixels = 0
     try:
         for art, duration in frames:
             with art_to_png(art, background, smooth=smooth) as picture:
-                total_pixels += picture.width * picture.height
-                if pixel_limit is not None and total_pixels > pixel_limit:
-                    raise ValueError("Camera GIF exceeds its 64-million-pixel frame budget; use a smaller --width or shorter duration")
                 # GIF allows up to 256 colors per frame. Avoid dithering so
                 # plain character strokes do not acquire speckled patterns.
                 pictures.append(picture.convert(

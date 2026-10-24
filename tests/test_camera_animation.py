@@ -170,11 +170,13 @@ class CameraAnimationTests(unittest.TestCase):
         self.assertFalse(target.parent.exists())
 
     def test_format_memory_limits_abort_and_release_without_publishing(self):
-        for suffix, constant in (("gif", "ascart.camera_recording.CAMERA_GIF_PIXEL_LIMIT"), ("html", "ascart.html_art.MAX_ANIMATION_BYTES")):
+        for suffix in ("gif", "html"):
             target = self.root / ("limited." + suffix)
             self.capture.reset_mock()
             self.clock.now = 0
-            with self.simulation(), patch(constant, 1):
+            limit = (patch("ascart.gif_art.art_to_png", side_effect=ValueError("PNG would exceed 20 million pixels"))
+                     if suffix == "gif" else patch("ascart.html_art.MAX_ANIMATION_BYTES", 1))
+            with self.simulation(), limit:
                 code, output, errors = self.run_cli("--camera", "--camera-duration=.2", "--output", target, terminal=True)
             self.assertEqual(code, 2)
             self.assertIn("\033[?25h", output)
@@ -182,6 +184,21 @@ class CameraAnimationTests(unittest.TestCase):
             self.capture.release.assert_called_once()
             self.assertFalse(target.exists())
             self.assertFalse(list(self.root.glob(".ascart-*")))
+
+    def test_width_140_exceeds_old_total_pixel_budget_and_still_saves(self):
+        target = self.root / "wide.gif"
+        with self.simulation():
+            code, output, errors = self.run_cli(
+                "--camera", "--camera-duration=3", "--width=140", "--color", "--output", target,
+            )
+        self.assertEqual(code, 0, errors)
+        with Image.open(target) as saved:
+            self.assertEqual(saved.n_frames, 45)
+            self.assertEqual(saved.width, 140 * 12 + 24)
+            self.assertGreater(saved.width * saved.height * saved.n_frames, 64_000_000)
+        self.assertEqual(self.gif_data(target)[2], 3000)
+        self.capture.release.assert_called_once()
+        self.assertFalse(list(self.root.glob(".ascart-*")))
 
     def test_cancellation_cleans_up_and_restores_cursor_for_both_formats(self):
         for suffix in ("gif", "html"):
@@ -260,7 +277,7 @@ class CameraAnimationTests(unittest.TestCase):
             self.capture.release.assert_called_once()
             with art_to_png(frames[0][0]) as picture:
                 picture.save(path, format="GIF", duration=10)
-        with self.simulation(), patch("ascart.camera_recording.save_ascii_gif", side_effect=wrong_timing):
+        with self.simulation(), patch("ascart.camera_recording.save_streaming_ascii_gif", side_effect=wrong_timing):
             code, output, errors = self.run_cli("--camera", "--camera-duration=.2", "--output", target)
         self.assertEqual(code, 2)
         self.assertIn("timing does not match", errors)

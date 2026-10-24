@@ -15,7 +15,7 @@ from PIL import Image
 from ascart.camera_art import camera_capture, camera_frame_to_ascii, read_camera_frame
 from ascart.converter import DEFAULT_PALETTE
 from ascart.border import COLOR_CODE
-from ascart.gif_art import save_ascii_gif
+from ascart.gif_art import save_streaming_ascii_gif
 from ascart.html_art import MAX_ANIMATION_FRAMES, save_animated_html
 from ascart.png_art import art_to_png
 from ascart.video_art import verify_video
@@ -23,7 +23,6 @@ from ascart.video_art import verify_video
 
 RECORDING_FPS = 15
 MAX_CAMERA_DURATION = 300
-CAMERA_GIF_PIXEL_LIMIT = 64_000_000
 
 
 def _grid_size(art):
@@ -94,8 +93,7 @@ def _record_camera_animation(index, output, duration, preview=False, **settings)
             if suffix == ".html":
                 save_animated_html(entries, temporary, settings["background"], loop_control=True)
             else:
-                save_ascii_gif(entries, temporary, settings["background"], smooth=True,
-                               pixel_limit=CAMERA_GIF_PIXEL_LIMIT)
+                save_streaming_ascii_gif(entries, temporary, settings["background"])
                 total = 0
                 with Image.open(temporary) as saved:
                     for frame_index in range(saved.n_frames):
@@ -104,8 +102,11 @@ def _record_camera_animation(index, output, duration, preview=False, **settings)
                         if saved.size != (max(1, grid[0]) * 12 + 24, grid[1] * 22 + 24):
                             raise ValueError("Encoded GIF dimensions do not match the artwork")
                         total += saved.info.get("duration", 0)
+                    saved_count = saved.n_frames
                 if total != round(count * 100 / RECORDING_FPS) * 10:
                     raise ValueError("Encoded GIF timing does not match the recording")
+                if saved_count != count:
+                    raise ValueError("Encoded GIF frame count does not match the recording")
             with temporary.open("rb") as source, output_path.open("xb") as destination:
                 shutil.copyfileobj(source, destination)
     return count

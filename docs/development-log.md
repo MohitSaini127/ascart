@@ -2643,3 +2643,54 @@ Bytes: 23280 | Camera released: True | Temporary folders: 0
 GIF merges repeated red/blue pictures into two encoded frames; HTML retains all six slots. Both preserve the 400 ms sequence. The files are outside the repository, and no webcam, user media, or browser navigation was used. Browser appearance and physical-camera behaviour remain manual checks.
 
 All 208 tests and git diff --check passed. Stage the seven milestone files and commit as `Add GIF and HTML camera recording`, following the agreed workflow. Nothing is pushed. The next user check is a short webcam GIF and HTML export using new filenames; side-by-side comparison remains the next planned feature after camera exports.
+
+
+## 75. Stream camera GIF frames for larger widths
+
+The user reported that width 140 hit the camera GIF's 64-million-pixel aggregate budget, while smaller widths lost too much detail. That budget counted every rendered frame together because the previous saver buffered the complete animation. Increasing the budget would increase memory use, so camera GIF recording now encodes frames incrementally instead.
+
+Added `save_streaming_ascii_gif` in `src/ascart/gif_art.py`. It renders one ASCII frame, converts it to a 256-colour palette, writes its GIF data, and explicitly closes both pictures before requesting another frame. `ExitStack` closes the output on success or failure; `closing` releases generated Pillow image buffers. The header is written once, each full frame includes its own colour table and 60/70-ms camera delay, and the trailer is written after successful completion. Repeated pictures retain separate frames. No loop metadata is added, so output requests one playback. This uses Pillow's documented legacy [GIF header and frame encoding APIs](https://pillow.readthedocs.io/en/stable/reference/plugins.html#module-PIL.GifImagePlugin), without new dependencies.
+
+Updated `src/ascart/camera_recording.py` to use the streaming saver and removed the aggregate camera pixel budget. Completed GIFs are read back to verify frame count as well as dimensions and total timing before exclusive publication. The existing per-picture 20-million-pixel guard, GIF dimension limit, camera duration limit, private temporary directory, cancellation cleanup, and protection of existing destinations remain. The old budget argument was removed from the buffered GIF-file saver; ordinary GIF-file conversion keeps its existing behaviour. MP4 and HTML paths are unchanged. Larger widths still cost CPU time and disk space; streaming removes the aggregate memory restriction, not processing costs.
+
+Updated README camera recording storage, limits, verification, and general GIF limitations to distinguish streaming camera GIFs from buffered GIF-file conversion. Existing historical milestone entries describe the implementation at that point; this entry supersedes milestone 74's camera GIF budget and merging behaviour.
+
+Updated `tests/test_camera_animation.py` for the new saver and retained per-frame limit failure coverage. A new simulated-camera regression records three seconds at width 140: the saved GIF has 45 frames, width 1704 pixels, a 3000-ms total delay, and over 64 million aggregate rendered pixels. It verifies successful readback, camera release, and temporary-folder cleanup. No real webcam or user media is accessed.
+
+Added `tests/test_streaming_gif.py` covering independent frame palettes, repeated frames, timing, GIF89a header/trailer, absent loop metadata, incremental encoding, picture closure before the next source frame, empty input, invalid delays, changing dimensions, per-picture pixel limits, and preserving an existing destination.
+
+Commands run and actual results:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_streaming_gif.py'
+```
+
+```text
+Ran 6 tests in 0.017s
+
+OK
+```
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_camera_animation.py'
+```
+
+```text
+Ran 12 tests in 14.718s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 215 tests in 53.392s
+
+OK
+```
+
+`git diff --check` also passed without output. Stage these six feature files and commit as `Stream camera GIF frames to support larger widths`, following the agreed workflow. Nothing is pushed. The next manual check is a width-140 camera GIF using a new destination filename; real hardware performance and appearance remain user checks.
