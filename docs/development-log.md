@@ -2364,3 +2364,12 @@ Kept width 60 and the existing #%@ coloured-camera palette as defaults. A propos
 The last full automated verification remains 163 passing tests in 26.519s, recorded in milestone 67. Since that run, only documentation and a source comment changed; no executable code or dependency changed, so the full suite was not repeated. git diff --check passed. All camera access in automated tests was simulated, and the agent never opened the real camera. Temporary orientation-comparison code remains outside the repository and is not staged.
 
 Per the agreed per-feature workflow, stage README.md, docs/development-log.md, src/ascart/cli.py, src/ascart/camera_art.py, and tests/test_camera_art.py, then commit as `Add live camera ASCII with orientation selection`. No generated media, environment files, or output files are included. Nothing is pushed. The next planned feature is camera snapshots (TXT/PNG/HTML), followed by separately considered timed recording and side-by-side comparison.
+
+
+## 69. Label the camera feature experimental
+
+The user asked whether camera commands were included in the README command guide and suggested an experimental label because hardware differs between users. Confirmed the guide already lists camera discovery, both orientation commands, ID selection, colours, fitting, borders, palettes, and backgrounds.
+
+Marked camera viewing as experimental in the working-features list, camera command-guide heading, and detailed live-camera heading. Added short notes describing device/driver/OS/permission dependencies and the limited physical-hardware verification. The detailed note distinguishes simulated automated tests from a single local webcam check and asks issue reports to include system, camera, command, and complete error output. Updated internal camera links for the renamed headings. Existing commands and runtime behaviour are unchanged.
+
+Verified the new headings and internal camera links and ran git diff --check. No runtime tests were repeated for this documentation-only edit; the previous 163-test result still applies to unchanged code. Stage README.md and docs/development-log.md and commit as `Document camera feature as experimental`. Nothing is pushed.

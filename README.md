@@ -12,7 +12,7 @@ ascart is a Python command-line learning project that creates text banners and c
 
 The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
 
-[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands) · [License and credits](#license-and-credits)
+[Setup](#setup) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands-experimental) · [License and credits](#license-and-credits)
 
 ## Preview
 
@@ -75,7 +75,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 - Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
 - Animated, selectable HTML export for GIFs and videos, with Play, Pause, and Replay controls.
-- Live local-camera ASCII in the terminal, with camera selection, access checking, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
+- Experimental live local-camera ASCII in the terminal, with camera selection, access checking, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
 - Readable messages for common input, decoding, and file-saving errors.
 
 ## Setup
@@ -120,7 +120,7 @@ After [setup](#setup), activate your environment and run these commands from the
 
 For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. Use a capital `V`; lowercase `-v` is not an option. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.
 
-[Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands) · [Camera commands](#camera-commands)
+[Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands) · [Camera commands](#camera-commands-experimental)
 
 ### Text commands
 
@@ -177,7 +177,9 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
 | `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
 
-### Camera commands
+### Camera commands (experimental)
+
+**Experimental:** camera access and performance depend on your hardware, drivers, operating system, and permissions. Some devices may fail to open or disconnect.
 
 | Command | What it does |
 | --- | --- |
@@ -190,7 +192,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart --camera --width 60 --chars " .:*#@"` | Uses a fixed width and custom character palette. |
 | `ascart --camera --background light` | Maps brightness for a light terminal theme. |
 
-Press **Ctrl+C** to stop and release the camera. This version supports live viewing only; output and loop options are rejected. See [live camera details](#live-camera) for access and listing limitations.
+Press **Ctrl+C** to stop and release the camera. This version supports live viewing only; output and loop options are rejected. See [live camera details](#live-camera-experimental) for access and listing limitations.
 
 Keep these rules in mind:
 
@@ -374,7 +376,9 @@ OpenCV writes into a private temporary folder beside the requested destination. 
 
 MP4 encoding requires an available `mp4v` encoder in OpenCV; ascart reports an error if it cannot open one. Readback verification detects missing encoded frames, but cannot prove that a damaged source was decoded completely: OpenCV can report a failed read for both the end of a video and a damaged tail. Source video timestamps are approximated using one FPS, so variable-frame-rate timing is not preserved exactly. No extra dependencies or command-line recording limits were added.
 
-## Live camera
+## Live camera (experimental)
+
+**Experimental feature:** basic live viewing has been checked on one local webcam. Automated tests use simulated cameras; broad hardware and operating-system compatibility has not been verified. Expect device-specific issues and report your operating system, camera model, command, and full error output when asking for help.
 
 Run `ascart --camera` in an interactive terminal. Camera 0 is the default; choose another nonnegative ID with `ascart --camera 1`. Camera IDs can change after reconnecting devices. There is no extra window. Width (default 60), fit, colour, custom palettes, background mapping, and borders work like video playback. Choose either width or fit. Terminal fitting is calculated once at startup.
 
