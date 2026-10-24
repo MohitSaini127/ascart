@@ -72,3 +72,7 @@ Snapshot tests add 288 format/visual combinations and a simulated countdown cloc
 Camera-recording tests use a simulated clock/camera with real MP4 encoding and readback. They cover 96 visual combinations, both orientations, reported FPS/dimensions/frame count, fractional durations, slow capture, repeated-frame timing, non-interactive saving, limits and invalid modes, existing files/links, competing creation, cancellation, decoder/encoder cleanup, changed dimensions, verification failure, permission/render errors, and partial copying. They do not establish physical-webcam timing or hardware compatibility.
 
 Camera GIF/HTML tests add 192 visual-option combinations, format timing/readback, orientation/colour checks, selectable escaped frames and player controls, slow-capture timing, limits and early HTML-duration rejection, cancellation, camera cleanup, dimension changes, GIF timing verification, existing files/links, competing creation, permission errors, and partial-copy safety. Simulated cameras are used throughout.
+
+## Version information
+
+For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. Use a capital `V`; lowercase `-v` is not an option. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.

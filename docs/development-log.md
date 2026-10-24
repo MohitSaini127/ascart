@@ -2829,3 +2829,8 @@ The user approved shortening the font explanation. Replaced the long README usag
 The user approved shorter README credits. Kept the MIT license/copyright statement, linked acknowledgments for Pillow, pyfiglet, OpenCV, and NumPy, and a short CC0 Tux attribution. Moved the original full license/credits section and sample-image attribution into docs/credits.md, preserving font authors, upstream image contributors, third-party notices, and source/license links. Adjusted the moved MIT license path and sample-image anchor. All other README content, including the command guide, remains unchanged.
 
 Validation confirmed only the two approved credit passages changed and local file/heading links resolve in README.md and docs/credits.md. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Simplify README credits and preserve full attribution`. Nothing is pushed.
+
+
+## 89. Move the version-information paragraph to the development guide
+
+The user explicitly approved moving the paragraph below the general commands table and above the Text commands heading, as an exception to leaving the command guide unchanged. Moved it under Version information in docs/development.md. Kept the --version and -V table rows, all other command tables, and the final --help example unchanged. The moved Setup link resolves locally in the development guide. Verified the paragraph removal is the only README change and the moved text is preserved. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Move version metadata explanation to development guide`. Nothing is pushed.
