@@ -114,8 +114,9 @@ After [setup](#setup), activate your environment and run these commands from the
 | --- | --- |
 | `ascart --help` | Shows the available options. |
 | `ascart --version` | Prints the installed version and exits; no text or media input is needed. |
+| `ascart -V` | Short form of `--version`; use a capital V. |
 
-For this version, `ascart --version` prints `ascart 0.1.0`. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.
+For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. Use a capital `V`; lowercase `-v` is not an option. The command reads installed package information. If you change the version in `pyproject.toml`, rerun `python -m pip install -e .` to refresh it. An uninstalled source checkout without package metadata reports `ascart unknown`; follow [setup](#setup) to install it.
 
 [Text commands](#text-commands) · [Image commands](#image-commands) · [GIF commands](#gif-commands) · [Video commands](#video-commands)
 

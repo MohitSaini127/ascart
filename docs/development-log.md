@@ -2016,3 +2016,29 @@ git diff --staged --stat
 git commit -m "Add --version command using installed package metadata"
 git status
 ```
+
+## 62. Add the capital -V version shortcut — 24 October 2026
+
+The --version feature was committed as `ce35ad1`. The user requested a shortcut and approved capital `-V`, leaving lowercase `-v` available for possible future verbose output. Implemented it using the agreed per-feature workflow; no push was requested.
+
+In src/ascart/cli.py, added `"-V"` to the existing --version argument registration. Both spellings use argparse's same version action and installed package metadata, print the same result, and exit without requiring text or media. No separate version variable or version-number change was introduced.
+
+README.md now lists `ascart -V` in the general-command table and explicitly notes that the shortcut uses a capital V. The four tests in tests/test_cli_version.py were expanded to exercise both spellings, real module entry points, help output, literal text containing -V, and output-file preservation. Lowercase -v must produce an unrecognized-argument error.
+
+Ran:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_cli_version.py -v
+```
+
+Actual output ended with:
+
+```text
+Ran 4 tests in 0.647s
+
+OK
+```
+
+Ran `.venv/bin/ascart -V`; it printed `ascart 0.1.0` and exited successfully. `git diff --check` passed. The previous full suite passed all 120 tests in section 61; this one-option alias change was verified with the expanded focused version tests rather than repeating all media matrices.
+
+The four changed files are staged and committed as `Add -V shortcut for version reporting`, following the user's workflow. Nothing is pushed; HTML export remains the next planned feature.

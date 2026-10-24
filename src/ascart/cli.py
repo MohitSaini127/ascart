@@ -92,7 +92,7 @@ def detect_background():
 
 def main():
     parser = argparse.ArgumentParser(description="Create text banners, convert photos, or play GIFs and videos as ASCII art.")
-    parser.add_argument("--version", action="version", version=f"ascart {__version__}", help="Show the installed version and exit")
+    parser.add_argument("-V", "--version", action="version", version=f"ascart {__version__}", help="Show the installed version and exit")
     parser.add_argument("path", nargs="?", help="Path to a local image, GIF, or video file")
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("-t", "--text", type=lambda value: (value, "standard"), help="Standard text banner")
