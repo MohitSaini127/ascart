@@ -2793,3 +2793,10 @@ README decreased from 619 lines / 9,549 words to 350 lines / 3,730 words. Valida
 ## 82. Shorten the README introduction
 
 The user approved shortening the introduction to no more than three lines, covering what ascart does and its features. Replaced the two longer paragraphs with three short lines: supported inputs, key features, and the Python learning-project purpose. HTML line breaks keep the lines separate. All content from the navigation onward, including the command guide, remains unchanged. Verified the three-line limit and compared the remaining README content against the previous commit. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Shorten README introduction to three lines`. Nothing is pushed.
+
+
+## 83. Move source setup into the development guide
+
+The user approved moving the existing README Setup instructions to `docs/development.md`. Preserved the dependency table, declared/tested versions, virtual environment and editable installation commands, and activation/deactivation explanations in the new document. Updated its Installation link to point back to the README. Replaced the original setup body with one short development-guide link, retaining the Setup heading so existing links inside the unchanged command guide continue to work.
+
+Validation confirmed everything from the Command guide onward is byte-for-byte unchanged and local file/heading links in README.md and docs/development.md resolve. `git diff --check` passed. Documentation only; no environment changes or application tests. Commit as `Move source setup instructions to development guide`. Nothing is pushed.
