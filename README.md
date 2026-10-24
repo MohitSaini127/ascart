@@ -8,9 +8,9 @@
 </pre>
 </div>
 
-ascart is a Python command-line learning project that creates text banners and converts photos, GIFs, videos, and a live camera into ASCII art. Characters such as `@`, `#`, and `.` represent image brightness, with optional colors taken from the original image or frame.
-
-The main purpose is to understand Python, image processing, code organization, Git, and GitHub by building and explaining one feature at a time.
+ascart creates text banners and turns images, GIFs, videos, and live camera feeds into ASCII art.<br>
+Features include colour, custom characters, terminal fitting, and multiple export formats.<br>
+A learning project built with Python.
 
 [Installation](#installation) · [Preview](#preview) · [Command guide](#command-guide) · [Text](#text-commands) · [Images](#image-commands) · [GIFs](#gif-commands) · [Videos](#video-commands) · [Camera](#camera-commands-experimental) · [License and credits](#license-and-credits)
 

@@ -2788,3 +2788,8 @@ The user requested that the command guide remain unchanged while repeated explan
 Replaced the long post-guide explanations with short usage notes, the existing Tux attribution, and concise camera compatibility, timing, and saving notes. Moved the original detailed material into `docs/usage.md`, including format behaviour, limits, troubleshooting, conversion explanations, and limitations, so useful information remains accessible without repeating it on the main page. Fixed cross-file command-guide links in the reference and retained the README Photo conversion and Live camera anchors used by existing links.
 
 README decreased from 619 lines / 9,549 words to 350 lines / 3,730 words. Validation compared the command guide against `git show HEAD:README.md` and confirmed an exact match. Checked all local links, heading anchors, and images in both documents; all resolved. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Remove repeated README explanations and link usage reference`. Nothing is pushed.
+
+
+## 82. Shorten the README introduction
+
+The user approved shortening the introduction to no more than three lines, covering what ascart does and its features. Replaced the two longer paragraphs with three short lines: supported inputs, key features, and the Python learning-project purpose. HTML line breaks keep the lines separate. All content from the navigation onward, including the command guide, remains unchanged. Verified the three-line limit and compared the remaining README content against the previous commit. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Shorten README introduction to three lines`. Nothing is pushed.
