@@ -2373,3 +2373,64 @@ The user asked whether camera commands were included in the README command guide
 Marked camera viewing as experimental in the working-features list, camera command-guide heading, and detailed live-camera heading. Added short notes describing device/driver/OS/permission dependencies and the limited physical-hardware verification. The detailed note distinguishes simulated automated tests from a single local webcam check and asks issue reports to include system, camera, command, and complete error output. Updated internal camera links for the renamed headings. Existing commands and runtime behaviour are unchanged.
 
 Verified the new headings and internal camera links and ran git diff --check. No runtime tests were repeated for this documentation-only edit; the previous 163-test result still applies to unchanged code. Stage README.md and docs/development-log.md and commit as `Document camera feature as experimental`. Nothing is pushed.
+
+
+## 70. Camera snapshots with a three-second countdown
+
+The user approved the next step: open a camera, count down briefly, capture one ASCII frame, save it as TXT/PNG/HTML, and close the camera. Added this to either camera input command through the existing --output option. Without --output, camera playback continues to work as before. Camera snapshots remain experimental; timed GIF/MP4 recording is not implemented.
+
+### Files and implementation
+
+In src/ascart/camera_art.py, added SNAPSHOT_COUNTDOWN_SECONDS = 3 and snapshot_camera. It opens the chosen device using the existing camera context manager, starts a monotonic-clock deadline after opening, and reports the remaining seconds to standard error. It reads and discards warm-up frames during the countdown, at up to 30 reads per second, rather than waiting three seconds and saving the first buffered image. After the countdown it makes a final frame read, converts that frame to ASCII, returns it, and releases the camera as the with block exits. Driver opening/reading can delay the command beyond three seconds; the countdown is not a hard hardware timeout or a configurable option.
+
+Extracted read_camera_frame and camera_frame_to_ascii so live viewing and snapshots share frame validation, the chosen horizontal orientation, colours, palette, sizing, and borders. Default camera output flips the frame, while --camera-mirrored preserves source orientation. No source array is modified. A missing/empty frame still produces the same readable error and camera cleanup. Existing play_camera behaviour, redraw pacing, and cursor restoration remain covered by tests.
+
+In src/ascart/cli.py, permitted --output with camera input, accepting case-insensitive .txt, .png, and .html only. Output validation, existing-file/link/directory checks, incompatible flags, unsupported recording formats, invalid palettes/sizing, and malformed paths all run before opening the device. Listing still rejects output, and camera looping is still rejected. Snapshots may run without an interactive terminal; unsaved live viewing still requires one. Capture cancellation reports Camera snapshot cancelled on standard error and creates no output. The final ASCII string goes through existing display_art only after the camera closes. TXT saves/previews stay plain even with --color; PNG/HTML retain selected source colours. Successful saving prints the ASCII frame and saved-file location. Existing exclusive x/xb creation protects against files appearing during the countdown. Capture/render failures create no destination; write failures may leave a partial newly created file without replacing any existing data.
+
+README.md now includes snapshot rows in the experimental camera command guide and a dedicated camera-snapshots subsection. It explains the fixed countdown, discarded warm-up frames, both orientations, supported options/formats, static HTML, terminal/non-terminal use, file protections, cancellation, deferred recording, and hardware limitations. No dependency, version, ignore rule, source media, or preview asset changed. The output/ ignore rule already covers generated snapshots.
+
+### Tests
+
+Added tests/test_camera_snapshot.py with ten test methods. A simulated clock verifies countdown messages 3, 2, 1 and requires the saved picture to be the post-countdown frame rather than a warm-up frame. Other tests check release after reading, conversion, sleep, and interruption failures. Integration coverage adds 288 combinations across TXT/PNG/HTML, colour, border, dark/light/automatic backgrounds, palettes including HTML-special characters, width/fit, and both orientations. It compares exact saved text, PNG pixels, parsed HTML characters, and terminal preview against the shared converter. Uppercase extensions and spaces in paths are included. Camera handles must close before destination opening, and original frame arrays stay unchanged.
+
+Safety cases cover unsupported formats, loop/listing conflicts, invalid paths, existing files/directories/symlinks/hardlinks/dangling links, competing creation after capture, cancellation, failed reads, rendering limits, permissions, and partial writes. All capture handles are mocks and frames are controlled arrays. No real webcam was accessed by the agent.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_camera*.py'
+```
+
+```text
+Ran 26 tests in 3.006s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 173 tests in 38.048s
+
+OK
+```
+
+A separate verification script called the actual CLI main function with mocked camera frames and the countdown disabled only inside that test process. It produced these temporary files and output summaries:
+
+```text
+Saved ASCII art to /tmp/ascart-snapshot-check-e8nqrlel/snapshot.txt
+Bytes: 65 | Camera handle released: True
+Saved ASCII art to /tmp/ascart-snapshot-check-e8nqrlel/snapshot.png
+Bytes: 505 | Camera handle released: True
+PNG dimensions: (168, 134)
+Saved ASCII art to /tmp/ascart-snapshot-check-e8nqrlel/snapshot.html
+Bytes: 1851 | Camera handle released: True
+```
+
+Each simulated command used --camera --width 10 --color --border --output PATH. These checks verify real saving with simulated input; they do not establish physical-camera timing or appearance. No test media was added to the repository. The default three-second countdown remains enabled in production and was independently exercised with the fake clock.
+
+All 173 tests and git diff --check passed. Per the agreed workflow, stage the five milestone files and commit as `Add safe camera snapshots with countdown`. Nothing is pushed. The next user check is an actual webcam snapshot, for example ascart --camera --color --width 120 --chars '@' --output output/camera.png, using a new filename. Native driver/hardware compatibility remains experimental. Timed recordings and side-by-side comparison remain future work.

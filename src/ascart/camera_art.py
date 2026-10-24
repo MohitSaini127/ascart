@@ -1,5 +1,6 @@
 """Read local cameras and display live ASCII in the terminal."""
 
+import math
 import re
 import sys
 import time
@@ -11,6 +12,9 @@ import cv2
 from ascart.border import add_border
 from ascart.converter import DEFAULT_PALETTE
 from ascart.video_art import video_frame_to_ascii
+
+
+SNAPSHOT_COUNTDOWN_SECONDS = 3
 
 
 @contextmanager
@@ -55,6 +59,49 @@ def list_cameras():
     return available
 
 
+def read_camera_frame(capture, index):
+    success, frame = capture.read()
+    if not success or frame is None or frame.size == 0:
+        raise ValueError(
+            f"Cannot read a frame from camera {index}; it may have disconnected or stopped sending frames"
+        )
+    return frame
+
+
+def camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored):
+    """Apply the same orientation and visual settings to live and saved frames."""
+    if not mirrored:
+        frame = cv2.flip(frame, 1)
+    art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
+    return add_border(art) if border else art
+
+
+def snapshot_camera(
+    index=0, width=60, palette=DEFAULT_PALETTE, background="dark",
+    max_height=None, color=False, border=False, mirrored=False,
+):
+    """Warm up during a countdown, then convert one frame and release the camera."""
+    with camera_capture(index) as capture:
+        deadline = time.monotonic() + SNAPSHOT_COUNTDOWN_SECONDS
+        previous = None
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            seconds = math.ceil(remaining)
+            if seconds != previous:
+                print(f"Snapshot in {seconds}... (Ctrl+C cancels)", file=sys.stderr, flush=True)
+                previous = seconds
+            # Read and discard warm-up frames to avoid saving the first buffered
+            # picture after waiting. This also allows auto-exposure to settle.
+            read_camera_frame(capture, index)
+            delay = min(1 / 30, max(0, deadline - time.monotonic()))
+            if delay > 0:
+                time.sleep(delay)
+        frame = read_camera_frame(capture, index)
+        return camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored)
+
+
 def play_camera(
     index=0, width=60, palette=DEFAULT_PALETTE, background="dark",
     max_height=None, color=False, border=False, mirrored=False,
@@ -65,17 +112,8 @@ def play_camera(
         with camera_capture(index) as capture:
             while True:
                 started = time.monotonic()
-                success, frame = capture.read()
-                if not success or frame is None or frame.size == 0:
-                    raise ValueError(
-                        f"Cannot read a frame from camera {index}; it may have disconnected or stopped sending frames"
-                    )
-                # Flip the default view; mirrored mode keeps the source orientation.
-                if not mirrored:
-                    frame = cv2.flip(frame, 1)
-                art = video_frame_to_ascii(frame, width, palette, background, max_height, color)
-                if border:
-                    art = add_border(art)
+                frame = read_camera_frame(capture, index)
+                art = camera_frame_to_ascii(frame, width, palette, background, max_height, color, border, mirrored)
                 if not screen_started:
                     screen_started = True
                     print("\033[2J\033[H\033[?25l", end="", flush=True)

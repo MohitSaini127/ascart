@@ -12,7 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 from ascart import __version__
 from ascart.border import add_border
-from ascart.camera_art import list_cameras, play_camera
+from ascart.camera_art import list_cameras, play_camera, snapshot_camera
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
 from ascart.html_art import art_to_html, save_animated_html
@@ -114,7 +114,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos or banners, .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot (3-second countdown); .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -164,8 +164,8 @@ def main():
     if sum((args.path is not None, args.text is not None, args.camera is not None, args.list_cameras)) != 1:
         parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
     if args.camera is not None or args.list_cameras:
-        if args.output is not None:
-            parser.error("Camera mode supports live viewing only; --output is not supported yet")
+        if args.list_cameras and args.output is not None:
+            parser.error("--list-cameras checks devices only; --output does not apply")
         if args.loop or args.loop_count is not None:
             parser.error("Camera mode already runs until Ctrl+C; loop options do not apply")
         if args.camera is not None and args.camera < 0:
@@ -191,6 +191,8 @@ def main():
         return
     validate_output(args.output, args.path, parser)
     output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
+    if args.camera is not None and output_suffix in (".gif", ".mp4"):
+        parser.error("Camera snapshots support only .txt, .png, and .html files; recording is not supported yet")
     if args.text is not None:
         if output_suffix in (".gif", ".mp4"):
             parser.error("Photo and text output supports only .txt, .png, and .html files")
@@ -238,19 +240,27 @@ def main():
             width -= 2
             max_height -= 2
     if args.camera is not None:
-        if not sys.stdout.isatty():
+        if not sys.stdout.isatty() and args.output is None:
             parser.error("Camera playback requires an interactive terminal")
         try:
-            print(f"Starting camera {args.camera}; press Ctrl+C to stop.", flush=True)
-            play_camera(
-                args.camera, width=width, palette=args.chars, background=background,
-                max_height=max_height, color=color, border=args.border,
-                mirrored=args.camera_mirrored is not None,
-            )
+            settings = dict(width=width, palette=args.chars, background=background,
+                            max_height=max_height, color=color, border=args.border,
+                            mirrored=args.camera_mirrored is not None)
+            if args.output is not None:
+                art = snapshot_camera(args.camera, **settings)
+            else:
+                print(f"Starting camera {args.camera}; press Ctrl+C to stop.", flush=True)
+                play_camera(args.camera, **settings)
         except KeyboardInterrupt:
-            print("Camera stopped.")
+            if args.output is not None:
+                print("Camera snapshot cancelled.", file=sys.stderr)
+            else:
+                print("Camera stopped.")
+            return
         except (OSError, ValueError, cv2.error) as error:
             parser.error(f"Cannot use camera {args.camera}: {error}")
+        if args.output is not None:
+            display_art(art, args.output, parser, background)
         return
     try:
         mode = Path(args.path).stat().st_mode

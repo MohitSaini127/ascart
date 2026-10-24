@@ -75,7 +75,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 - Video playback once, continuously, or for a specified number of playbacks, converting one frame at a time with optional color and terminal fitting.
 - Saving video input as a silent ASCII MP4, processing one frame at a time and keeping terminal loops separate.
 - Animated, selectable HTML export for GIFs and videos, with Play, Pause, and Replay controls.
-- Experimental live local-camera ASCII in the terminal, with camera selection, access checking, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
+- Experimental live local-camera ASCII and TXT/PNG/HTML snapshots, with camera selection, access checking, a snapshot countdown, and Ctrl+C cleanup. Hardware compatibility needs checking on your own machine.
 - Readable messages for common input, decoding, and file-saving errors.
 
 ## Setup
@@ -191,8 +191,11 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart --camera --color --fit --border` | Shows coloured, bordered live ASCII fitted to the terminal. |
 | `ascart --camera --width 60 --chars " .:*#@"` | Uses a fixed width and custom character palette. |
 | `ascart --camera --background light` | Maps brightness for a light terminal theme. |
+| `ascart --camera --output output/snapshot.txt` | Counts down three seconds, saves one plain ASCII frame, and closes the camera. |
+| `ascart --camera --color --width 120 --border --output output/snapshot.png` | Saves one coloured, bordered ASCII picture after the countdown. |
+| `ascart --camera-mirrored --color --output output/snapshot.html` | Saves one selectable HTML snapshot in the alternative camera orientation. |
 
-Press **Ctrl+C** to stop and release the camera. This version supports live viewing only; output and loop options are rejected. See [live camera details](#live-camera-experimental) for access and listing limitations.
+Press **Ctrl+C** to stop and release the camera. Add --output with a new .txt, .png, or .html filename to take one snapshot after a three-second countdown. Loop options and camera recording formats are rejected. See [live camera details](#live-camera-experimental) for access and listing limitations.
 
 Keep these rules in mind:
 
@@ -386,13 +389,27 @@ The default `--camera` view horizontally flips each incoming frame before ASCII 
 
 Lighting and camera placement strongly affect the visible detail and colours. Light the subject well and try `--width 120` for more detail if your terminal is wide enough. A dense palette such as `ascart --camera --color --width 120 --chars '@'` gives source colours more visible character strokes. You can also experiment with `--chars '@%&#$8BMWQ'`; single quotes keep `$` literal in the shell. These are optional palettes: the existing colour default remains `#%@`, and no automatic brightness or saturation enhancement is applied.
 
-A camera opens only when you explicitly request camera viewing or camera listing. Ordinary text, photo, GIF, video, version, and help commands do not access cameras. OpenCV asks the operating system to open the local device; it reads one frame at a time, uses the existing video-to-ASCII conversion, and updates the terminal with up to 30 redraws per second. Processing or capture can make it slower. Frames stay in memory and are neither recorded nor uploaded. No new runtime dependency is needed.
+A camera opens only when you explicitly request camera viewing, a snapshot, or camera listing. Ordinary text, photo, GIF, video, version, and help commands do not access cameras. OpenCV asks the operating system to open the local device; it reads one frame at a time, uses the existing video-to-ASCII conversion, and updates the terminal with up to 30 redraws per second. Processing or capture can make it slower. Live frames stay in memory. A snapshot is saved only when --output is supplied; no camera frames are uploaded and continuous recording is not implemented. No new runtime dependency is needed.
 
 `--list-cameras` briefly opens candidates and tries to read one frame, then releases them. On Linux it checks the IDs in `/dev/video*`; on other systems it probes IDs 0–9. It reports accessible capture IDs rather than a complete inventory or friendly hardware names. One physical webcam may expose multiple device IDs; some devices are metadata-only or cannot supply images. A failed probe may mean missing hardware, permission restrictions, an unsupported driver, or a camera used by another application. You can explicitly try an ID outside the non-Linux listing range. Listing also works without an interactive terminal. Devices are checked in sequence; driver opening/reading can be slow, and OpenCV provides no universal camera timeout for these operations.
 
 Press Ctrl+C to stop. Cleanup releases the active camera, resets terminal colours, and restores cursor visibility after display begins. A missing first frame or a later disconnected camera produces a readable error. Native camera drivers can block while opening/reading, which can delay interruption; a forced kill or terminal failure cannot guarantee terminal cleanup. If access is blocked, check operating-system camera settings or close other camera applications. ascart does not change permissions or require sudo.
 
-Camera mode currently rejects `--output`, `--loop`, `--loop-4`, and `--loop-count`. A live stream already runs until stopped. It also rejects combining camera selection, listing, text input, or a media path. Invalid options and non-interactive playback are rejected before opening a device. Use visual options with --camera; listing rejects settings such as colour, borders, custom palettes, and fitting. Saved snapshots and timed recordings are planned separately.
+Camera mode supports one snapshot with `--output`, but rejects `--loop`, `--loop-4`, and `--loop-count`. Without output, a live stream already runs until stopped. It also rejects combining camera selection, listing, text input, or a media path. Invalid options and non-interactive playback are rejected before opening a device. Use visual options with --camera; listing rejects settings such as colour, borders, custom palettes, and fitting. Timed recordings are planned separately.
+
+### Camera snapshots
+
+Use a new `.txt`, `.png`, or `.html` output filename with either camera command. It opens the selected camera, prints a **3 → 2 → 1** countdown to standard error, captures one frame, closes the camera, then saves and displays that ASCII frame. The countdown begins after the camera opens; camera/driver delays can make the total command longer than three seconds. Warm-up frames are read and discarded during the countdown so the final read supplies a recent picture and gives automatic exposure a chance to settle. The countdown does not show a live ASCII preview and is not configurable yet.
+
+```bash
+ascart --camera --color --width 120 --chars '@' --output output/camera.png
+ascart --camera --border --output output/camera.txt
+ascart --camera-mirrored 1 --color --output output/camera.html
+```
+
+Both orientations, width/fit, borders, custom palettes, and background options apply. TXT saves and previews stay plain even with --color; PNG/HTML save and preview colours. HTML contains a static, selectable frame, not an animation. Snapshots also work without an interactive terminal; only live viewing requires one. The camera is released before rendering or writing the output file.
+
+Existing files, directories, and links are rejected before the camera opens. The final save also uses exclusive creation, protecting a file created by another program during the countdown. Parent folders are created only after successful capture and rendering. Ctrl+C during the countdown closes the camera, reports cancellation, and creates no output. A capture or rendering failure also creates no output file. A write failure can leave a partial new file, but never replaces existing data. There is no GIF/MP4 or timed recording in this step. Camera snapshots remain experimental and depend on local hardware/driver compatibility.
 
 Automated camera tests use simulated devices and never access real cameras. Check actual compatibility, colours, responsiveness, and camera release on your own hardware before relying on this feature.
 
@@ -445,7 +462,7 @@ Photos, GIFs, videos, and camera frames share the same image conversion function
 
 ## Current limitations and future work
 
-- Camera mode is live terminal viewing only; snapshots and timed recordings are not implemented. Camera access depends on the operating system, permissions, drivers, and hardware.
+- Camera mode supports live viewing and one-frame TXT/PNG/HTML snapshots; timed recordings are not implemented. Camera access depends on the operating system, permissions, drivers, and hardware.
 
 - Video playback and saved MP4s have no audio. Codec availability depends on the OpenCV installation; export currently uses `mp4v` only.
 - Video timing uses a single reported FPS; variable-frame-rate timing is approximate. Slow processing or terminal output slows playback because frames are not skipped, and small scheduling delays can accumulate.
@@ -488,6 +505,8 @@ File-error tests use real truncated PNG/GIF data and invalid save paths, plus si
 Animated HTML tests add 96 GIF/video option combinations, check exact converted frames and timings, escaping, initial-frame fallback, size/frame limits, exclusive creation, reader cleanup, FPS fallback, and independent terminal loops. An optional Node.js test runs the actual player code with a simulated clock and document to verify Play/Pause/resume/Replay and stopping after one pass; Node.js is not a runtime dependency. Browser appearance is checked manually.
 
 Camera tests use mock capture handles and controlled image arrays, covering 96 rendering combinations across both camera orientations, default/explicit camera IDs, listing discovery, inaccessible/empty devices, read/conversion failures, disconnects, Ctrl+C, redraw pacing, cursor restoration, and handle release. An asymmetric colour-frame test checks that the default flips left/right before conversion while the mirrored option preserves source pixels, without modifying the source array. Invalid modes/output/loops, non-interactive playback, and malformed IDs must fail before camera access or file creation. Existing command checks verify that help, version, text, and photo commands do not open cameras. Real webcam compatibility remains a manual check.
+
+Snapshot tests add 288 format/visual combinations and a simulated countdown clock. They check fresh post-countdown frames, both orientations, plain TXT, exact PNG pixels, selectable HTML, camera release before writing, non-interactive saving, invalid formats/options, existing files and links, competing creation, cancellation, capture/render errors, permissions, and partial-write safety. No automated test accesses physical cameras.
 
 ## License and credits
 
