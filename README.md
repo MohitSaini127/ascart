@@ -216,6 +216,19 @@ Keep these rules in mind:
 - Terminal animation previews need an interactive terminal. Saving still works without one and skips playback. MP4 output has no audio.
 - Use either `--width` or `--fit`. GIFs and videos also accept the image options for width, fitting, custom characters, and backgrounds. Text banners support width, border, and output, but reject media-only options such as color and fit.
 
+## Supported export formats
+
+| Input | Supported exports |
+| --- | --- |
+| Text banner | TXT, PNG, HTML |
+| Image | TXT, PNG, HTML |
+| GIF | GIF, HTML |
+| Video | MP4, HTML |
+| Camera snapshot | TXT, PNG, HTML |
+| Camera recording | GIF, MP4, HTML |
+
+Choose the output format using the filename extension, such as `--output art.png`.
+
 ## Usage notes
 
 - Text banners accept printable ASCII text. Their width controls wrapping, not the size of individual letters; bold and slant are character designs that also survive plain-text saving.

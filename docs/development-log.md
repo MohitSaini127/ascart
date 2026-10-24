@@ -2812,3 +2812,8 @@ Validation confirmed the complete testing section exists in its new location, al
 ## 85. Shorten the working features list
 
 The user approved a crisp feature summary. Replaced the fifteen README feature bullets with five covering supported text/media inputs, experimental camera snapshots/recording, visual controls, input-dependent export formats, and animation looping. All content outside Working features, including the command guide, remains unchanged. Verified exactly five bullets and an unchanged remainder; `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Condense README features into five bullets`. Nothing is pushed.
+
+
+## 86. Add a supported export formats table
+
+The user approved the proposed input/output table and requested an appropriate heading. Added Supported export formats immediately after the unchanged command guide, listing exports for text banners, images, GIFs, videos, camera snapshots, and camera recordings. Added one sentence explaining that the output filename extension selects the format. Verified the six input rows against the previously reviewed CLI format rules and confirmed removing the inserted section reproduces the previous README exactly. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Document supported export formats in README table`. Nothing is pushed.
