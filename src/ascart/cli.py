@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import sys
+import webbrowser
 from contextlib import closing
 from pathlib import Path
 from stat import S_ISREG
@@ -114,9 +115,24 @@ def detect_background():
     return "dark"
 
 
+class AuthorAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        profile = "https://github.com/MohitSaini127"
+        width = max(20, shutil.get_terminal_size(fallback=(80, 24)).columns - 1)
+        print(text_to_ascii(profile, width=width, font="small"), flush=True)
+        try:
+            opened = webbrowser.open(profile, new=2)
+        except (webbrowser.Error, OSError):
+            opened = False
+        if not opened:
+            print(f"Could not open a browser. Visit {profile}", file=sys.stderr)
+        parser.exit()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Create text banners or convert photos, GIFs, videos, and a live camera to ASCII art.")
     parser.add_argument("-V", "--version", action="version", version=f"ascart {__version__}", help="Show the installed version and exit")
+    parser.add_argument("--author", action=AuthorAction, nargs=0, help=argparse.SUPPRESS)
     parser.add_argument("path", nargs="?", help="Path to a local image, GIF, or video file")
     camera_inputs = parser.add_mutually_exclusive_group()
     camera_inputs.add_argument("--camera", nargs="?", const=0, type=int, metavar="ID", help="Live camera with the default horizontally flipped view; default ID 0; Ctrl+C stops")
