@@ -1,4 +1,5 @@
 import argparse
+import math
 import os
 import re
 import shutil
@@ -13,6 +14,7 @@ from PIL import Image, UnidentifiedImageError
 from ascart import __version__
 from ascart.border import add_border
 from ascart.camera_art import list_cameras, play_camera, snapshot_camera
+from ascart.camera_recording import MAX_CAMERA_DURATION, record_camera
 from ascart.converter import COLOR_PALETTE, DEFAULT_PALETTE
 from ascart.gif_art import gif_ascii_frames, gif_to_ascii, play_gif, save_ascii_gif
 from ascart.html_art import art_to_html, save_animated_html
@@ -104,6 +106,7 @@ def main():
     camera_inputs.add_argument("--camera", nargs="?", const=0, type=int, metavar="ID", help="Live camera with the default horizontally flipped view; default ID 0; Ctrl+C stops")
     camera_inputs.add_argument("--camera-mirrored", nargs="?", const=0, type=int, metavar="ID", help="Live camera using the previous, source orientation; default ID 0; use instead of --camera")
     parser.add_argument("--list-cameras", action="store_true", help="Test local camera access (may briefly activate cameras); Linux video devices, otherwise IDs 0-9")
+    parser.add_argument("--camera-duration", type=float, metavar="SECONDS", help="Record camera ASCII for 0 < SECONDS <= 300; requires --camera or --camera-mirrored and a new .mp4 output; silent 15 FPS")
     text_inputs = parser.add_mutually_exclusive_group()
     text_inputs.add_argument("-t", "--text", type=lambda value: (value, "standard"), help="Standard text banner")
     text_inputs.add_argument("--text-slant", dest="text", type=lambda value: (value, "slant"), help="Slanted text banner")
@@ -116,7 +119,7 @@ def main():
     sizing.add_argument(
         "--fit", action="store_true", help="Fit output to the terminal width and height"
     )
-    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot (3-second countdown); .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
+    parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4 with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
@@ -159,17 +162,24 @@ def main():
             registered_fonts.add(font_option)
         match = re.fullmatch(r"--loop-(\d+)", argument)
         arguments.append("--loop-count=" + match.group(1) if match else argument)
-        value_expected = argument in ("-t", "--text", "--text-slant", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count") or (font_match is not None and "=" not in argument)
+        value_expected = argument in ("-t", "--text", "--text-slant", "--text-bold", "--chars", "--output", "--width", "--background", "--loop-count", "--camera-duration") or (font_match is not None and "=" not in argument)
     args = parser.parse_args(arguments)
     if args.camera_mirrored is not None:
         args.camera = args.camera_mirrored
+    if args.camera_duration is not None:
+        if args.camera is None:
+            parser.error("--camera-duration requires --camera or --camera-mirrored")
+        if not math.isfinite(args.camera_duration) or not 0 < args.camera_duration <= MAX_CAMERA_DURATION:
+            parser.error("Camera duration must be greater than 0 and at most 300 seconds")
+        if args.output is None:
+            parser.error("--camera-duration requires --output with a new .mp4 filename")
     if sum((args.path is not None, args.text is not None, args.camera is not None, args.list_cameras)) != 1:
         parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
     if args.camera is not None or args.list_cameras:
         if args.list_cameras and args.output is not None:
             parser.error("--list-cameras checks devices only; --output does not apply")
         if args.loop or args.loop_count is not None:
-            parser.error("Camera mode already runs until Ctrl+C; loop options do not apply")
+            parser.error("Camera viewing, snapshots, and recording do not accept loop options")
         if args.camera is not None and args.camera < 0:
             parser.error("Camera ID must be 0 or greater")
         if args.camera is not None and args.camera > 2147483647:
@@ -193,8 +203,10 @@ def main():
         return
     validate_output(args.output, args.path, parser)
     output_suffix = Path(args.output).suffix.lower() if args.output is not None else None
-    if args.camera is not None and output_suffix in (".gif", ".mp4"):
-        parser.error("Camera snapshots support only .txt, .png, and .html files; recording is not supported yet")
+    if args.camera_duration is not None and output_suffix != ".mp4":
+        parser.error("Camera recording supports only .mp4 output; omit --camera-duration for a TXT/PNG/HTML snapshot")
+    if args.camera is not None and args.camera_duration is None and output_suffix in (".gif", ".mp4"):
+        parser.error("Camera snapshots support only .txt, .png, and .html files; use --camera-duration SECONDS with .mp4 for recording")
     if args.text is not None:
         if output_suffix in (".gif", ".mp4"):
             parser.error("Photo and text output supports only .txt, .png, and .html files")
@@ -248,20 +260,29 @@ def main():
             settings = dict(width=width, palette=args.chars, background=background,
                             max_height=max_height, color=color, border=args.border,
                             mirrored=args.camera_mirrored is not None)
-            if args.output is not None:
+            if args.camera_duration is not None:
+                print(f"Recording camera {args.camera} for {args.camera_duration:g} seconds; Ctrl+C cancels.", file=sys.stderr, flush=True)
+                record_camera(args.camera, args.output, args.camera_duration, preview=sys.stdout.isatty(), **settings)
+            elif args.output is not None:
                 art = snapshot_camera(args.camera, preview=sys.stdout.isatty(), **settings)
             else:
                 print(f"Starting camera {args.camera}; press Ctrl+C to stop.", flush=True)
                 play_camera(args.camera, **settings)
         except KeyboardInterrupt:
-            if args.output is not None:
+            if args.camera_duration is not None:
+                print("Camera recording cancelled.", file=sys.stderr)
+            elif args.output is not None:
                 print("Camera snapshot cancelled.", file=sys.stderr)
             else:
                 print("Camera stopped.")
             return
+        except FileExistsError:
+            parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
         except (OSError, ValueError, cv2.error) as error:
             parser.error(f"Cannot use camera {args.camera}: {error}")
-        if args.output is not None:
+        if args.camera_duration is not None:
+            print("Saved ASCII camera recording to", args.output)
+        elif args.output is not None:
             display_art(art, args.output, parser, background, refresh_terminal=sys.stdout.isatty())
         return
     try:

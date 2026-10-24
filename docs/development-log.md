@@ -2516,3 +2516,68 @@ OK
 ```
 
 All 180 tests and git diff --check passed. Stage the six changed files and commit as `Render PNG exports with smoother regular characters`, following the agreed workflow. Nothing is pushed. User review can use a new PNG snapshot filename; existing saved images are not modified automatically.
+
+
+## 73. Timed silent camera MP4 recording
+
+The user chose the --camera-duration SECONDS name and approved implementation. Recording now requires either camera input, a new .mp4 output, and a finite duration greater than zero and at most 300 seconds. Fractional seconds are accepted. Without duration, snapshot and live-view commands keep their existing behaviours. Camera recordings remain experimental.
+
+### Implementation and files
+
+Added src/ascart/camera_recording.py. record_camera reuses the existing camera context manager, frame validation, orientation, ASCII conversion, and visual options. Frames are drawn with the smoother PNG renderer, converted from RGB to OpenCV's BGR pixels, and written to a silent mp4v video at 15 FPS. Existing video-file exports keep their own previous bitmap rendering and source-FPS behaviour.
+
+The first frame is read/rendered and the encoder opens before the recording clock starts. A monotonic deadline controls the interval. Output contains ceil(seconds * 15) frames. If a captured/rendered frame arrives late, the latest processed picture fills missed fixed-FPS output slots; a slow camera therefore does not produce a short, fast-playing recording. Fractional durations round up by less than one output frame. Frames are streamed rather than stored as a complete list. There is no microphone, audio, upload, indefinite recording, or three-second snapshot countdown. Native camera reads or driver operations can block past the requested cutoff; this is not a hard real-time timeout.
+
+When stdout is interactive, the recorder displays the same ASCII artwork with remaining seconds on a clipped status line, then leaves the final frame visible. Non-interactive recording skips screen-control codes and preview. A finally block restores the terminal cursor and colours after preview starts. Camera input and both orientation choices support the existing colours, palettes, backgrounds, width/fit, and borders.
+
+Output safety follows the existing MP4 approach: encode to a private .ascart-* folder beside the destination, close the camera/encoder before readback, decode every output frame to verify count/dimensions, then copy into a destination opened in exclusive xb mode. Cameras are released before final verification/copying; encoders are released before temporary-directory cleanup. A file created by another program during recording is preserved. Ctrl+C during capture discards the private recording and publishes no completed file. Capture/read/encoding failures clean up the temporary recording. Empty parent folders may remain. Interrupted or failed final copying may leave a partial newly created file, but never replaces existing user data. Hard termination can leave an ignored private folder behind.
+
+Updated src/ascart/cli.py with --camera-duration, finite/range checks, camera/output requirements, MP4-only recording validation, loop rejection, dispatch, cancellation, success, and readable errors. All invalid modes/options, existing destinations, and malformed output paths fail before hardware access. The shorthand preprocessor treats the duration argument as a value. The 300-second upper limit is also enforced in the recording function for direct Python callers.
+
+README.md now includes recording commands in the experimental camera guide, a timed-recording section, required limits/options, preparation versus recording time, fixed FPS/repeated-frame timing, camera orientation, font differences, non-interactive operation, output safety/cancellation, and deferred camera GIF/HTML output. No new runtime dependency, version change, ignore rule, media example, or preview asset was needed. Existing .ascart-*/ and output/ ignore rules cover generated files.
+
+### Automated tests and verification
+
+Added tests/test_camera_recording.py with 17 methods. Camera devices and clock are simulated; MP4 encoding/readback is real. Tests cover 96 visual-option combinations, both orientations, correct red/blue order, fixed 15 FPS, rendered dimensions, exact encoded frame counts, fractional short duration, slow-capture repeated-frame handling, and non-interactive saving. Invalid values include zero, negatives, over-limit values, NaN/infinity, malformed text, missing output, wrong formats, loops, text/file inputs, and camera listing. These fail before device access or file creation. The maximum 300-second value is accepted using a mocked recording call rather than actually recording for five minutes.
+
+Safety tests cover existing files/directories/symlinks/hardlinks/dangling links, competing creation, Ctrl+C and cursor restoration, unreadable/disconnected cameras, dimension changes, unavailable encoders, write errors, camera/encoder release order, readback verification failures, rendering/permission errors, and partial final copying. The original frame arrays must remain unchanged. No real camera was opened by the agent.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_camera_recording.py
+```
+
+```text
+Ran 17 tests in 1.272s
+
+OK
+```
+
+Full regression command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 197 tests in 29.447s
+
+OK
+```
+
+A separate simulated CLI check used a fake clock and camera frames that change from red to blue, with real encoding and output readback:
+
+```text
+Simulated CLI: ascart --camera --camera-duration 1 --width 20 --color --chars=@ --output /tmp/ascart-camera-recording-check-u8tszcvq/camera.mp4
+Recording camera 0 for 1 seconds; Ctrl+C cancels.
+Saved ASCII camera recording to /tmp/ascart-camera-recording-check-u8tszcvq/camera.mp4
+FPS: 15.0
+Frames: 15
+Dimensions: (264, 178)
+Camera released: True
+Temporary recording folders remaining: 0
+Bytes: 52165
+```
+
+This verifies the CLI dispatch and real MP4 file with synthetic input; it does not establish physical-webcam timing or appearance. The temporary verification video is outside the repository. All 197 tests and git diff --check passed. Stage the five milestone files and commit as `Add timed camera MP4 recording`, following the agreed workflow. Nothing is pushed. The next user check is a short real webcam recording with a new destination filename.
