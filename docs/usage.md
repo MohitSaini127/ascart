@@ -50,7 +50,11 @@ ascart photo.png --compare --color --border --output output/comparison.html
 
 The comparison labels the original on the left and ASCII artwork on the right. The original is scaled to fit its panel without cropping or changing its proportions; transparent pixels are composited on the chosen light/dark background. The ASCII side uses the existing converter and supports colour, custom palettes, width or fit, backgrounds, and borders. Borders apply to the ASCII side.
 
-Direct terminal preview currently uses [Kitty's `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/). Both terminal input and output must be interactive, and `kitten` (or the legacy `kitty +kitten` command) must be available. A bounded capability probe checks the active terminal instead of assuming support from its name. The helper displays the complete comparison as a PNG fitted to the terminal; its ASCII panel is an image, not selectable terminal text. Other image protocols are not implemented. Physical-terminal compatibility remains a manual check.
+Direct terminal preview first tries the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) natively on POSIX systems such as Linux/macOS. This supports terminals such as Ghostty and Kitty without installing another terminal or helper. Input and output must be interactive and attached to the same terminal. A bounded query checks support, reads the protocol and device-attributes replies, and restores terminal settings afterward. Terminal names or environment variables are not treated as proof of support.
+
+The native path sends the comparison PNG in base64 chunks of at most 4,096 bytes. The terminal fits it into a rectangle sized from its current columns and rows, preserving proportions. Space is reserved for the preview and the cursor is left below it. Replies are suppressed during image transfer so they do not become shell input. No user output file is created for preview-only commands. Physical Ghostty/Kitty display still needs manual verification; automated checks use private pseudo-terminals.
+
+If native probing is unavailable or fails, an installed [Kitty `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/) remains an optional fallback (`kitten icat` or legacy `kitty +kitten icat`). The preview displays the complete comparison as a PNG; its ASCII panel is an image, not selectable terminal text. Other graphics protocols, including SIXEL, are not implemented.
 
 With `--compare` alone, unavailable or failed preview exits with a readable error asking for `--output comparison.png` or `--output comparison.html`. No comparison output file is created. With `--output`, the file is saved first; unsupported terminals, redirected output, helper failure, timeout, or cancelled preview leave that file intact. The CLI prints its saved location and an explanatory message if preview cannot be shown, without treating a successful export as a failure. It does not substitute a coloured-block approximation or launch another application.
 
@@ -58,7 +62,7 @@ With `--compare` alone, unavailable or failed preview exits with a readable erro
 
 The combined layout is limited to 20 million pixels, checked before allocating comparison panels or creating the output directory. Use a smaller width if this limit is reached. Existing output files and source aliases are rejected; there is no overwrite or automatic numbering. As with ordinary exports, a write failure may leave a partial newly created file.
 
-This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed; the optional terminal helper is only required for direct preview, not export.
+This first version rejects GIFs, animated or multipage images, videos, text banners, camera inputs, and loop options. TXT, GIF, and MP4 comparison output is not supported. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed. The native preview does not require an external helper; the optional fallback helper is never required for export.
 
 ## Saving a PNG picture
 

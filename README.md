@@ -226,7 +226,7 @@ Keep these rules in mind:
 
 Choose the output format using the filename extension, such as `--output art.png`.
 
-For still images, `--compare` previews the original on the left and ASCII on the right in a Kitty-compatible terminal with the `icat` helper. Add `--output` to save PNG or HTML; saving works even when preview is unavailable. See the [comparison guide](docs/usage.md#image-comparison) for details.
+For still images, `--compare` previews the original on the left and ASCII on the right in a supported terminal. Ghostty and Kitty can use native graphics on Linux/macOS without an extra helper. Add `--output` to save PNG or HTML; saving works even when preview is unavailable. See the [comparison guide](docs/usage.md#image-comparison) for details.
 
 ## Usage notes
 

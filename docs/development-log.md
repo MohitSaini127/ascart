@@ -2926,3 +2926,40 @@ After refining the preview-only rendering-error message, the focused terminal-pr
 Real CLI checks used the Tux source and private temporary outputs with non-interactive stdout. Preview-only exited 2 with: `Direct image preview is unavailable in this terminal. Use --output comparison.png or --output comparison.html, then open the saved file.` PNG and HTML export each exited 0, printed the saved location and an unavailable-preview notice, and reopened successfully. The PNG was 552 by 320 RGB; HTML contained its embedded comparison image. A SHA-256 comparison verified the user's existing untracked comparison.png remained unchanged. It is not staged or committed.
 
 Stage only the eight feature/documentation files and commit as `Add direct comparison preview with safe export fallback`. Nothing is pushed. The next manual check is --compare alone in a Kitty-compatible terminal with its helper available, or a PNG/HTML export in any terminal to confirm the readable fallback.
+
+
+## 94. Remove the external-helper requirement for Ghostty previews
+
+The user reported preview unavailable in Ghostty. The local environment has /usr/bin/ghostty but neither kitten nor kitty on PATH. The first preview backend returned unavailable when those helpers were absent, even though Ghostty can render the protocol. Added native Kitty-graphics support in terminal_preview.py so compatible POSIX terminals can preview without another terminal package. The [official graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/) documents capability queries, chunked PNG transmission, cell-based placement, aspect-preserving fitting, and quiet replies.
+
+The native probe requires interactive input/output attached to the same terminal, switches to raw mode inside the existing state-restoration context, sends a random-ID one-pixel query followed by primary device attributes, and reads bounded responses for at most one second. It matches the reply ID and OK status, handles split packets, consumes the following attributes response, and restores terminal settings on success, failure, timeout, or interruption. Names/environment variables do not establish support. If native detection fails, the existing optional helper path remains available. Native probing is POSIX-only; other platforms retain the previous helper/export fallback.
+
+Native preview encodes the existing comparison PNG in memory and sends base64 packets with at most 4,096 payload bytes. The first packet specifies PNG, terminal columns/rows, and no automatic cursor movement; following packets carry continuation flags. Quiet replies prevent display acknowledgments becoming shell input. The terminal fits the image without distortion into the requested rectangle. The code reserves display space without clearing history and moves the cursor below the image afterward. No user output file is needed for preview. Exclusive exports and saving-first failure protection remain unchanged. No new dependencies are introduced.
+
+Added tests/test_native_terminal_preview.py with eight tests. These cover preferring native support without helper lookup, actual PNG encoding/chunk-size and continuation checks, bounded terminal dimensions/cursor placement, non-TTY rejection, and real private POSIX pseudo-terminal exchanges with matching IDs, fragmented responses/additional control fields, unsupported terminals, wrong IDs, negative replies, timeout, and restored terminal settings. Pseudo-terminals simulate the graphics response; they do not establish visual rendering in a physical Ghostty window.
+
+Updated README, usage documentation, and credits for native Ghostty/Kitty support and the optional helper fallback. Existing source media and the user's untracked comparison.png are left untouched and unstaged.
+
+Commands and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p 'test_native_terminal_preview.py'
+.venv/bin/python -B -m unittest discover -s tests -p 'test_terminal_preview.py'
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 8 tests in 0.173s
+
+OK
+
+Ran 13 tests in 0.363s
+
+OK
+
+Ran 249 tests in 50.477s
+
+OK
+```
+
+README, usage, and credits local links/heading anchors resolve. `git diff --check` passed. Commit the six feature/documentation files as `Preview natively in Ghostty without Kitty helpers`. Nothing is pushed. Next manual check: run `.venv/bin/ascart examples/image1.png --compare --color` from the project folder inside Ghostty, ensuring the latest local code is used rather than an older pipx installation. Actual physical-terminal appearance remains a user check.

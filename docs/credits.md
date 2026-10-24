@@ -19,7 +19,7 @@ The bundled Tux image and its ASCII preview are based on the credited [CC0 sampl
 
 Dependencies are installed separately. These credits acknowledge their authors; they do not replace the license texts and notices required when redistributing third-party software. A future bundled executable must retain the applicable library, font, and bundled-component notices.
 
-Optional direct terminal previews use [Kitty's `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/), installed separately. Kitty is not bundled with ascart.
+Native terminal previews implement the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/), also supported by Ghostty. [Kitty's `icat` helper](https://sw.kovidgoyal.net/kitty/kittens/icat/) can be used as an optional, separately installed fallback. Kitty is not bundled with ascart.
 
 ## Sample image
 
