@@ -282,7 +282,7 @@ def main():
                 )) as source_frames:
                     frames = ((add_border(art) if args.border else art, duration)
                               for art, duration in source_frames)
-                    save_animated_html(frames, args.output, background)
+                    save_animated_html(frames, args.output, background, loop_control=True)
             except FileExistsError:
                 parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
             except IMAGE_READ_ERRORS as error:

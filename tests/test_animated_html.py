@@ -85,6 +85,23 @@ class AnimatedHtmlTests(unittest.TestCase):
                 save_animated_html(frames, self.root / "too-big.html")
         self.assertFalse((self.root / "too-big.html").exists())
 
+    def test_loop_checkbox_is_optional_unchecked_and_counted_in_size_limit(self):
+        frames = [("@", 100)]
+        save_animated_html(frames, self.target, loop_control=True)
+        data, document = read_frames(self.target)
+        self.assertIn('<input id="loop" type="checkbox">', document)
+        self.assertNotIn('type="checkbox" checked', document)
+        size = self.target.stat().st_size
+        with patch("ascart.html_art.MAX_ANIMATION_BYTES", size):
+            save_animated_html(frames, self.root / "exact.html", loop_control=True)
+        with patch("ascart.html_art.MAX_ANIMATION_BYTES", size - 1):
+            with self.assertRaisesRegex(ValueError, "20 MiB"):
+                save_animated_html(frames, self.root / "too-big.html", loop_control=True)
+        self.assertFalse((self.root / "too-big.html").exists())
+        save_animated_html(frames, self.root / "video.html")
+        self.assertNotIn('<input id="loop"', (self.root / "video.html").read_text())
+        self.assertEqual(read_frames(self.root / "video.html")[0], data)
+
     def test_exclusive_creation_preserves_competing_file_and_symlink(self):
         self.target.parent.mkdir()
         self.target.write_text("user data")
@@ -98,9 +115,6 @@ class AnimatedHtmlTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("node"), "Optional JavaScript test requires Node.js")
     def test_player_play_pause_resume_replay_and_end_with_fake_clock(self):
-        save_animated_html([("first", 100), ("last", 200)], self.target)
-        frames, document = read_frames(self.target)
-        script = re.search(r'<script>\n(.*?)</script>', document, re.S)[1]
         # A minimal DOM and fake clock test the player without opening a browser.
         harness = r'''
 const assert = require("node:assert/strict");
@@ -114,6 +128,7 @@ for (const id of ["play", "pause", "replay", "status", "artwork", "frames"]) {
         addEventListener(event, callback) {this[event] = callback;}};
 }
 elements.frames.textContent = JSON.stringify(input.frames);
+if (input.loopControl) elements.loop = {checked: false};
 const context = {document: {getElementById: id => elements[id], querySelector: () => elements.artwork},
     performance: {now: () => now},
     setTimeout: (fn, delay) => { const id = next++; timers.set(id, {fn, delay}); return id; },
@@ -146,11 +161,44 @@ assert.equal(elements.artwork.innerHTML, "first");
 assert.equal(timers.size, 1);
 tick(); tick();
 assert.equal(elements.status.textContent, "Finished");
+if (input.loopControl) {
+    assert.equal(elements.loop.checked, false);
+    elements.loop.checked = true;
+    // Enabling loop after completion waits for Play.
+    assert.equal(timers.size, 0);
+    elements.play.click();
+    tick(); tick();
+    assert.equal(elements.artwork.innerHTML, "first");
+    assert.equal(timers.size, 1);
+    tick(); tick();
+    assert.equal(elements.artwork.innerHTML, "first");
+    elements.pause.click();
+    assert.equal(timers.size, 0);
+    elements.play.click();
+    tick();
+    elements.loop.checked = false;
+    assert.equal(elements.artwork.innerHTML, "last");
+    assert.equal(timers.size, 1);
+    tick();
+    assert.equal(timers.size, 0);
+    assert.equal(elements.status.textContent, "Finished");
+    elements.loop.checked = true;
+    elements.replay.click();
+    assert.equal(elements.artwork.innerHTML, "first");
+    assert.equal(timers.size, 1);
+    elements.pause.click();
+}
 console.log("Player controls and one-pass timing passed");
 '''
-        result = subprocess.run([shutil.which("node"), "-e", harness], input=json.dumps({"script": script, "frames": frames}), text=True, capture_output=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("passed", result.stdout)
+        for loop_control in (False, True):
+            with self.subTest(loop_control=loop_control):
+                target = self.root / f"player-{loop_control}.html"
+                save_animated_html([("first", 100), ("last", 200)], target, loop_control=loop_control)
+                frames, document = read_frames(target)
+                script = re.search(r'<script>\n(.*?)</script>', document, re.S)[1]
+                result = subprocess.run([shutil.which("node"), "-e", harness], input=json.dumps({"script": script, "frames": frames, "loopControl": loop_control}), text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("passed", result.stdout)
 
 
 class AnimatedHtmlCliTests(unittest.TestCase):
@@ -208,6 +256,7 @@ class AnimatedHtmlCliTests(unittest.TestCase):
                 self.assertIn(str(target), output)
                 self.assertNotIn("\033", output)
                 frames, document = read_frames(target)
+                self.assertEqual('<input id="loop" type="checkbox">' in document, source == self.gif)
                 palette = '<&>"\'' if custom else ("#%@" if color else " .:-=+*#%@")
                 settings = dict(width=(15 if border else 17) if fitted else 10,
                                 max_height=(6 if border else 8) if fitted else None,

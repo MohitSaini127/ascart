@@ -71,6 +71,7 @@ ANIMATION_PLAYER = '''
 <button id="play" type="button">Play</button>
 <button id="pause" type="button" disabled>Pause</button>
 <button id="replay" type="button">Replay</button>
+<!-- LOOP_CONTROL -->
 <span id="status" role="status">Ready</span>
 </p>
 <noscript>Enable JavaScript to play the animation. The first frame remains visible.</noscript>
@@ -81,6 +82,7 @@ const artwork = document.querySelector("pre code");
 const play = document.getElementById("play");
 const pause = document.getElementById("pause");
 const replay = document.getElementById("replay");
+const loop = document.getElementById("loop");
 const status = document.getElementById("status");
 let index = 0, timer = null, deadline = 0, remaining = frames[0][1], ended = false;
 function show() {
@@ -101,12 +103,17 @@ function schedule() {
     timer = setTimeout(() => {
         timer = null;
         if (index + 1 === frames.length) {
-            ended = true;
-            stop();
-            status.textContent = "Finished";
-            return;
+            if (loop && loop.checked) {
+                index = 0;
+            } else {
+                ended = true;
+                stop();
+                status.textContent = "Finished";
+                return;
+            }
+        } else {
+            index += 1;
         }
-        index += 1;
         remaining = frames[index][1];
         show();
         schedule();
@@ -135,13 +142,15 @@ replay.addEventListener("click", () => {
 '''
 
 
-def save_animated_html(frames, output, background="dark"):
+def save_animated_html(frames, output, background="dark", loop_control=False):
     """Consume one pass of (art, milliseconds) into a bounded, offline player."""
     entries = []
     first = None
+    control = '<label><input id="loop" type="checkbox"> Loop</label>' if loop_control else ""
+    player = ANIMATION_PLAYER.replace("<!-- LOOP_CONTROL -->", control)
     # Count the entire document, including both copies of the initial frame.
     size = len(art_to_html("", background).encode("utf-8"))
-    size += len(ANIMATION_PLAYER.encode("utf-8")) + len('<script id="frames" type="application/json">[]</script>\n')
+    size += len(player.encode("utf-8")) + len('<script id="frames" type="application/json">[]</script>\n')
     for art, duration in frames:
         if len(entries) >= MAX_ANIMATION_FRAMES:
             raise ValueError("HTML animation exceeds 3000 frames; use a shorter source")
@@ -162,7 +171,7 @@ def save_animated_html(frames, output, background="dark"):
     if first is None:
         raise ValueError("No frames to save")
     data = '<script id="frames" type="application/json">[' + ",".join(entries) + ']</script>\n'
-    document = art_to_html(first, background).replace("</body>", data + ANIMATION_PLAYER + "</body>")
+    document = art_to_html(first, background).replace("</body>", data + player + "</body>")
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("x", encoding="utf-8", newline="\n") as file:

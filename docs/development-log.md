@@ -2190,3 +2190,44 @@ OK
 ```
 
 All 146 tests passed, including the optional JavaScript player test (Node.js was available). git diff --check passed. Per the agreed workflow, stage these feature files and commit as `Add animated HTML export for GIFs and videos`; do not push. Live webcam ASCII and then side-by-side comparison remain the planned next features.
+
+
+## 65. Optional looping in GIF HTML pages
+
+The user requested the proposed Loop checkbox for GIF HTML exports. Added a loop_control option to save_animated_html, disabled by default. The GIF branch in cli.py enables this control; video exports keep their existing controls. The saved GIF HTML page includes an unchecked checkbox labelled Loop beside Play, Pause, and Replay. Static HTML and actual GIF-file saving are unchanged.
+
+The player checks the checkbox after the last frame's delay. If checked, it returns to frame zero and schedules another pass using the same saved frame data. If unchecked, it finishes on the last frame. Pause still cancels the active timer and preserves the remaining delay; Play resumes. Unchecking Loop during playback lets the current pass finish. Checking it while paused or finished does not automatically start playback. Replay restarts immediately and keeps the checkbox choice. Terminal --loop options remain independent and never determine the browser checkbox's default.
+
+html_art.py includes the optional control in the same complete-file byte count used by the 20 MiB limit. The number of stored frames never increases when browser looping is enabled. Existing limits, escaping, offline playback, and exclusive file creation are retained; no dependencies, examples, or .gitignore rules needed changes.
+
+README.md now describes the GIF-specific checkbox, default, stopping behaviour, pause/replay interactions, and separation from video pages and terminal loops. The GIF command-guide row also mentions the checkbox.
+
+Extended tests/test_animated_html.py to check that only GIF pages contain the unchecked checkbox across the 96 GIF/video option combinations. A new test checks that the extra control is counted exactly at the byte limit and leaves frame data unchanged. The existing optional Node.js player test now runs both player variants. Its simulated clock verifies the default single pass, repeated wraps, exactly one timer, pause/resume during looping, disabling Loop and finishing the current pass, enabling Loop while stopped, and replay while Loop remains enabled.
+
+Focused command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests -p test_animated_html.py
+```
+
+```text
+Ran 14 tests in 1.282s
+
+OK
+```
+
+Browser appearance remains for manual review; no blocked local-file browser navigation was attempted. All automated sources and output pages stay in temporary folders.
+
+Full-suite command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 147 tests in 36.633s
+
+OK
+```
+
+All tests passed, including the JavaScript control tests. git diff --check passed. Per the agreed workflow, stage the five changed files and commit as `Add optional loop control to GIF HTML exports`. Nothing is pushed.

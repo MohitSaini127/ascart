@@ -159,7 +159,7 @@ For this version, `ascart --version` and `ascart -V` both print `ascart 0.1.0`. 
 | `ascart animation.gif --fit --color --border` | Plays colored, bordered artwork fitted to the terminal. |
 | `ascart animation.gif --loop` | Repeats terminal playback until Ctrl+C. |
 | `ascart animation.gif --loop-4` | Plays four times in the terminal. |
-| `ascart animation.gif --color --border --output output/animation.html` | Saves one ASCII animation as an offline webpage with playback controls. |
+| `ascart animation.gif --color --border --output output/animation.html` | Saves one ASCII animation as an offline webpage with playback controls and an optional Loop checkbox. |
 | `ascart animation.gif --color --output output/ascii.gif` | Saves one colored ASCII animation, then previews it. |
 | `ascart animation.gif --loop-4 --output output/ascii-four.gif` | Saves one animation and previews it four times. |
 
@@ -261,6 +261,8 @@ After saving a photo or banner, the artwork is also printed in the terminal, fol
 ### Animated HTML (GIF and video)
 
 The page opens paused on its first frame. Click **Play** to play once, **Pause** to stop on the current frame, and **Play** again to resume. **Replay** starts over immediately. Playback ends on the last frame; Play after finishing starts a new pass. Characters remain selectable. With JavaScript disabled, the first frame is still visible.
+
+GIF HTML pages also have a **Loop** checkbox, off by default. Check it and click Play to repeat until paused. Uncheck it during playback to finish the current pass and stop. Checking it while paused or finished does not start playback by itself. Looping reuses the saved frames; it never adds extra copies. Video HTML pages keep the Play, Pause, and Replay controls without this checkbox.
 
 The file contains one complete sequence, regardless of `--loop`, `--loop-4`, or `--loop-count`. Those options control only the terminal preview, which starts after saving when a terminal is available. Without an interactive terminal, saving works and skips that preview. GIF delays are preserved (missing/zero delays use 100 ms). Video uses its reported FPS, or a warned 30 FPS fallback, and contains no audio. Variable-frame-rate timing is approximated; browser scheduling and background-tab throttling can slow playback.
 
