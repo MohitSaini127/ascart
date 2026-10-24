@@ -2822,3 +2822,10 @@ The user approved the proposed input/output table and requested an appropriate h
 ## 87. Shorten the saved-artwork appearance note
 
 The user approved shortening the font explanation. Replaced the long README usage-note bullet with: Saved artwork may look different from your terminal. GIF supports up to 256 colours per frame. Technical font details remain in docs/usage.md. Verified this was the only README change, preserving the command guide and all other content. `git diff --check` passed. Documentation only; application tests were not rerun. Commit as `Shorten README artwork appearance note`. Nothing is pushed.
+
+
+## 88. Simplify README credits while preserving full attribution
+
+The user approved shorter README credits. Kept the MIT license/copyright statement, linked acknowledgments for Pillow, pyfiglet, OpenCV, and NumPy, and a short CC0 Tux attribution. Moved the original full license/credits section and sample-image attribution into docs/credits.md, preserving font authors, upstream image contributors, third-party notices, and source/license links. Adjusted the moved MIT license path and sample-image anchor. All other README content, including the command guide, remains unchanged.
+
+Validation confirmed only the two approved credit passages changed and local file/heading links resolve in README.md and docs/credits.md. `git diff --check` passed. Documentation only; no application tests rerun. Commit as `Simplify README credits and preserve full attribution`. Nothing is pushed.
