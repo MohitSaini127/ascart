@@ -1926,3 +1926,33 @@ Added a License and credits section to README.md, linked from its navigation. It
 The installed package metadata and bundled license files were inspected. Relevant results included Pillow 13.0.0 (MIT-CMU), pyfiglet 1.0.4 (MIT for its code), opencv-python-headless 4.14.0.94 (Apache 2.0 metadata, with packaging and bundled-component terms described upstream), and NumPy 2.5.4 (a compound license expression covering its code and bundled components). The README links the full notices rather than implying that every dependency or font has one shared MIT license. The fonts are not copied into this repository. The credits also distinguish separately installed dependencies from a future bundled executable, which would need its applicable third-party notices.
 
 Sources checked include Choose a License's MIT text, the upstream Pillow and pyfiglet licenses, pyfiglet's font notes, OpenCV's licensing section and third-party notices, and NumPy's license documentation. No runtime source, dependency declarations, or ignore rules changed. No runtime tests were added or rerun for this documentation/license change. Checks covered the copyright line, license text, local README links, and Git whitespace. Nothing was staged, committed, or pushed.
+
+## 60. Add the -t shortcut for standard text banners — 24 October 2026
+
+The MIT license and credits were committed by the user as `fe026e3`. The user then suggested a shorter text command. We recommended `ascart -t "TEXT"`, retaining the same executable and the existing --text spelling, and the user approved implementation.
+
+In src/ascart/cli.py, changed the standard banner argument registration to accept both `"-t"` and `"--text"`. Both names populate the same text argument and use the same standard font, validation, rendering, borders, and saving behavior. Added `"-t"` to the argument preprocessor's list of options that expect a value, keeping text input separate from dynamic font and loop-option preprocessing. No separate atxt executable was introduced, and slanted/bold/named fonts remain separate text-input choices.
+
+README.md now includes `ascart -t "Hello"` in the command table, explains equivalence to --text, gives a border/PNG example, and describes the alias tests. No dependencies or ignore rules changed.
+
+Added three test methods in tests/test_feature_combinations.py. They compare the two spellings across 12 combinations of width 20/60, border on/off, and terminal/TXT/PNG output. Printed artwork and saved bytes must be identical. Other checks reject missing/empty/invalid text, a simultaneous media path, media-only options, and simultaneous banner styles. Help must show both spellings; the assertion allows the argument-formatting differences between Python versions. Literal text such as --loop-4 and --text-font-small is checked using the equals syntax for both spellings. Test output files remain in temporary directories.
+
+Ran the real module command:
+
+```bash
+.venv/bin/python -B -m ascart -t "Hi" --border
+```
+
+It printed the standard Hi banner inside an ASCII border and exited successfully. `.venv/bin/python -B -m ascart --help` showed `-t, --text TEXT` with the description `Standard text banner`. Whitespace checks passed. No staging, commit, or push was performed.
+
+Full-suite command and actual output:
+
+```bash
+.venv/bin/python -B -m unittest discover -s tests
+```
+
+```text
+Ran 116 tests in 32.507s
+
+OK
+```

@@ -244,6 +244,49 @@ class FeatureCombinationTests(unittest.TestCase):
                 self.assertIn("error:", errors)
                 self.assertFalse(target.parent.exists())
 
+    def test_short_text_matches_long_form_with_width_borders_and_saving(self):
+        for index, (width, border, suffix) in enumerate(itertools.product((20, 60), (False, True), (None, ".txt", ".png"))):
+            with self.subTest(width=width, border=border, suffix=suffix):
+                outputs = []
+                saved = []
+                for option, label in (("--text", "long"), ("-t", "short")):
+                    target = self.root / f"alias-{label}-{index}{suffix}" if suffix else None
+                    args = [option, "Hi", "--width", width, *(["--border"] if border else []), *(["--output", target] if target else [])]
+                    code, output, errors = self.run_cli(args)
+                    self.assertEqual(code, 0, errors)
+                    self.assertEqual(errors, "")
+                    outputs.append(output.removesuffix(f"Saved ASCII art to {target}\n") if target else output)
+                    if target:
+                        saved.append(target.read_bytes())
+                self.assertEqual(outputs[0], outputs[1])
+                if suffix:
+                    self.assertEqual(saved[0], saved[1])
+
+    def test_short_text_rejects_invalid_values_and_other_input_modes(self):
+        for args in (
+            ["-t"], ["-t", ""], ["-t", "   "], ["-t", "é"],
+            ["-t", "Hi", self.photo], ["-t", "Hi", "--color"],
+            ["-t", "Hi", "--fit"], ["-t", "Hi", "--loop"],
+            ["-t", "Hi", "--text-slant", "Hi"],
+            ["-t", "Hi", "--text-bold", "Hi"],
+            ["-t", "Hi", "--text-font-small", "Hi"],
+        ):
+            with self.subTest(args=args):
+                code, output, errors = self.run_cli(args)
+                self.assertEqual(code, 2)
+                self.assertEqual(output, "")
+                self.assertIn("error:", errors)
+
+    def test_short_text_help_and_option_like_literal_values(self):
+        code, output, errors = self.run_cli(["--help"])
+        self.assertEqual(code, 0, errors)
+        self.assertRegex(output, r"(?m)^\s*-t(?: TEXT)?,\s*--text TEXT")
+        for text in ("--loop-4", "--text-font-small"):
+            short = self.run_cli([f"-t={text}", "--width=120"])
+            long = self.run_cli([f"--text={text}", "--width=120"])
+            self.assertEqual(short[0], 0, short[2])
+            self.assertEqual(short, long)
+
     def test_option_like_text_values_remain_literal(self):
         for argument in ("--text=--loop-4", "--text-slant=--border", "--text-bold=--fit", "--text-font-small=--loop-4"):
             with self.subTest(argument=argument):

@@ -119,6 +119,7 @@ For built-in help, run `ascart --help`.
 | Command | What it does |
 | --- | --- |
 | `ascart --text "Hello"` | Creates a standard text banner. |
+| `ascart -t "Hello"` | Short form of `--text`; creates the same standard banner. |
 | `ascart --text-slant "Hello"` | Creates a slanted banner. |
 | `ascart --text-bold "Hello"` | Creates a banner with thicker letters. |
 | `ascart --text-font-small "Hello"` | Uses the named `small` banner font. |
@@ -174,6 +175,8 @@ Keep these rules in mind:
 ## Text banners
 
 Choose exactly one text-input option or a photo/GIF/video path. Each text option takes its text directly; do not add `--text` again. Text mode accepts non-empty printable ASCII text. `--text` uses `standard`, `--text-slant` uses `slant`, and `--text-bold` uses the thicker character-based `banner3` font. `--text-font-FONTNAME` selects an installed pyfiglet font, such as `small`, `big`, or `standard`; unknown names are rejected. These designs, including bold-looking strokes, are made of ordinary characters and persist in saved text without terminal styling codes.
+
+`-t` is a short form of `--text`: `ascart -t "Hello"` produces the same standard banner. Both forms support width, borders, and TXT/PNG saving, for example `ascart -t "Hi" --border --output output/hi.png`. Use `--text-slant` or `--text-bold` directly for those styles; they are separate text-input choices.
 
 The default width is 60; `--width` sets the wrapping limit, not the size of individual letters. A width too small for a letter is rejected. Text-input options cannot be combined with each other.
 
@@ -387,6 +390,8 @@ PNG tests check fixed character cells, blank rows/spaces, RGB strokes, light/dar
 GIF export tests read back actual saved animations to check frame timing, source-loop removal, colors, borders, fitting, missing-timing fallback, merged identical frames, and independence from terminal loop counts. They also cover saving without an interactive terminal, completed-file preservation on playback interruption, wrong input/output combinations, existing-file/link protection, competing creation, truncated input, rendering failures, permission errors, and partial writes. Fixtures and outputs stay in temporary directories.
 
 The combination suite exercises 1,344 option combinations: 216 photo cases, 864 GIF cases (including expected non-interactive playback rejections), 216 real MP4 playback cases, and 48 text-banner cases. It crosses colors, borders, automatic/manual backgrounds, default/custom palettes, default/explicit/fitted sizing, supported save formats, terminal availability, and loop modes where applicable. It checks displayed grids and reopens saved files to verify dimensions, timing, and one-pass GIF metadata. Additional cases check invalid combinations, option-like text, background hints, and malformed paths. Source-media SHA-256 hashes must remain unchanged. This covers the listed scenarios; it is not a guarantee for every possible file or codec.
+
+Short-text alias tests compare `-t` with `--text` across widths, borders, and terminal/TXT/PNG output, including identical saved contents. They also check help text, literal option-like text, invalid values, and incompatible input modes.
 
 MP4 export tests add 32 saved-video rendering combinations, reopen real encoded MP4s, and check dimensions, frame count, FPS, color order, source preservation, and temporary-file cleanup. They cover AVI input, terminal-loop independence, interrupted playback, non-interactive saving, unsupported format combinations, existing files and links, competing destination creation, unavailable/failing encoders, incomplete encoding, missing FPS, permission failures, source interruption, and partial-copy errors.
 
