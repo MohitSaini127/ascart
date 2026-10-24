@@ -3013,3 +3013,23 @@ Nothing is pushed. The user's untracked comparison.png remains untouched and exc
 Full command: `.venv/bin/python -B -m unittest discover -s tests`
 Output: `Ran 265 tests in 35.837s ... OK`. `git diff --check` passed.
 Stage the seven implementation/test/documentation files and commit as `Preview animated GIF comparisons with native terminal graphics`.
+
+
+## 98. Export video side-by-side comparisons
+
+The user confirmed animated GIF terminal comparison works, then approved video comparison exports as the next step. Added `ascart video.mp4 --compare --color --output output/comparison.mp4` and the equivalent HTML output. Supported decodable video inputs, including AVI, use the same decoder as existing video conversion. This stage exports only; terminal video comparison preview is next. Video comparison requires output and rejects terminal loop flags for now.
+
+`src/ascart/video_comparison.py` yields each decoded RGB source picture with ASCII generated from that same picture and its constant frame delay. Colour, custom palettes, backgrounds, width or fit, and ASCII borders apply. MP4 streams the original-left / ASCII-right layout with the smoother comparison font into a private .ascart-* folder, closes the encoder, verifies dimensions and total frame count by decoding the complete result, then copies to an exclusively created destination. Capture/writer handles and private files close on handled errors and cancellation. Existing files, symlinks, and source aliases are protected; a final-copy failure can leave a partial newly created file without replacing user data.
+
+Reused the bounded comparison HTML writer from GIF export and made its Loop checkbox optional, preserving GIF behaviour. Video HTML has Play/Pause/Replay, starts paused, and synchronizes embedded originals with selectable ASCII. Added the existing HTML browser timer validation to this shared comparison writer. Video uses a constant source-reported FPS or the existing 30 FPS fallback, rather than preserving variable timestamps. Both formats are silent and save one pass. The combined 20-million-pixel frame limit applies; HTML retains 3,000 frames / 20 MiB. Mid-stream OpenCV read failure may be indistinguishable from ordinary EOF, as with existing video conversion.
+
+Updated CLI validation/help, README video commands, and the usage guide. Added eight video comparison tests, with a 32-combination export option matrix. Tests decode actual generated MP4s to check frame count, source FPS, and original-side BGR colours; HTML checks frame timing, original images, and exact selectable artwork. Other checks cover existing files/links/source protection, output and loop errors, encoder/readback failure cleanup, races at publication, missing frames, capture failure/interruption and FPS fallback, layout/HTML limits before destination creation, changed layouts and encoding interruption, and browser timing limits. No new dependency or tracked sample media was added.
+
+Focused command: `.venv/bin/python -B -m unittest discover -s tests -p 'test_*comparison*.py'`
+Output: `Ran 35 tests in 1.572s ... OK`.
+
+Nothing is pushed. The user's untracked comparison.png remains preserved and excluded from the feature commit. The user will manually view the exported MP4 and HTML; their player/browser appearance is not confirmed by automated readback.
+
+Full command: `.venv/bin/python -B -m unittest discover -s tests`
+Output: `Ran 273 tests in 41.063s ... OK`. `git diff --check` passed.
+Stage the seven feature/documentation files and commit as `Export side-by-side video comparisons to MP4 and HTML`.

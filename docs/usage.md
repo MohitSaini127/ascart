@@ -64,7 +64,7 @@ With `--compare` alone, unavailable or failed preview exits with a readable erro
 
 The combined layout is limited to 20 million pixels, checked before allocating comparison panels or creating the output directory. Use a smaller width if this limit is reached. Existing output files and source aliases are rejected; there is no overwrite or automatic numbering. As with ordinary exports, a write failure may leave a partial newly created file.
 
-Still-image comparison rejects animated or multipage images other than GIFs, videos, text banners, camera inputs, and loop options. Still images export PNG/HTML only. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed. The native preview does not require an external helper; the optional fallback helper is never required for export.
+Still-image comparison rejects animated/multipage images other than GIFs, text banners, camera inputs, and loop options. GIF and video comparison use the separate modes below. Still images export PNG/HTML only. Ordinary conversions without `--compare` keep their existing behaviour. No new Python dependencies are needed. The native preview does not require an external helper; the optional fallback helper is never required for export.
 
 ## GIF comparison
 
@@ -84,6 +84,21 @@ GIF saves one pass, without loop metadata, and streams pictures instead of colle
 Animated preview requires successful native detection with interactive input/output on the same terminal; the optional `icat` helper fallback is limited to still images. Compatibility remains experimental and needs a physical-terminal check. No output file is created for preview-only commands. Unsupported terminals get an error with GIF/HTML export commands.
 
 With a new `.gif` or `.html` output filename, saving finishes before preview starts. A saved file contains one pass regardless of terminal loop flags. Unavailable/failed/cancelled preview leaves successful exports intact and reports how to view them. Unsupported or redirected terminals can export without playing. Existing files and links are protected. A write error or cancellation may leave a partial newly created GIF; HTML checks frame/size limits before creating the destination. No source media is modified or uploaded.
+
+## Video comparison
+
+```bash
+ascart video.mp4 --compare --color --output output/comparison.mp4
+ascart video.avi --compare --color --border --width 30 --output output/comparison.html
+```
+
+Each decoded video frame supplies both the original panel and its ASCII version. Width or fit, custom palettes, colour, backgrounds, and borders apply; the original remains coloured and borders apply only to ASCII. Both exports are silent and contain one pass. Supported input formats depend on the installed OpenCV decoder, as for ordinary video conversion.
+
+MP4 streams the combined pictures into a private temporary file at a constant source-reported frame rate (30 FPS if unavailable). It is read back to check every encoded frame's dimensions and the total count before copying to an exclusively created destination. The source's variable frame timestamps and audio are not preserved. Picture colour can change slightly through MP4 compression; comparison uses the smoother PNG font. A mid-stream decoder failure may be indistinguishable from normal EOF, as with existing video conversion.
+
+HTML uses synchronized embedded original pictures and selectable ASCII with Play/Pause/Replay controls, starting paused. It uses the same constant frame timing and enforces 3,000 frames / 20 MiB for the complete page. Try a smaller width or shorter clip if the limit is reached. GIF comparison retains its optional Loop checkbox; video HTML follows existing video HTML with no Loop checkbox.
+
+This stage requires a new `.mp4` or `.html` output filename; terminal video comparison preview is not implemented yet and loop flags are rejected. The combined 20-million-pixel frame limit applies. Existing files, links, and source aliases are rejected. Capture/writer handles close and private files are cleaned up on handled errors or Ctrl+C; a hard kill can leave a private folder. A failure while copying the completed MP4 or writing HTML may leave a partial newly created destination, without replacing existing data. Export creates no extra public preview files and does not upload media.
 
 ## Saving a PNG picture
 

@@ -1,6 +1,7 @@
 """Export synchronized original/ASCII GIF comparisons without buffering pictures."""
 
 import json
+import math
 import re
 from contextlib import ExitStack, closing
 from pathlib import Path
@@ -57,11 +58,11 @@ def save_comparison_gif(frames, output, background="dark"):
     return count
 
 
-def save_comparison_html(frames, output, background="dark"):
+def save_comparison_html(frames, output, background="dark", *, loop_control=True):
     """Keep selectable artwork and embedded originals on the same player clock."""
     player = ANIMATION_PLAYER.replace(
         "<!-- LOOP_CONTROL -->",
-        '<label><input id="loop" type="checkbox"> Loop</label>',
+        '<label><input id="loop" type="checkbox"> Loop</label>' if loop_control else "",
     ).replace(
         "artwork.innerHTML = frames[index][0];",
         'artwork.innerHTML = frames[index][0];\n'
@@ -73,6 +74,10 @@ def save_comparison_html(frames, output, background="dark"):
     for source, art, duration in frames:
         if len(entries) >= MAX_ANIMATION_FRAMES:
             raise ValueError("HTML animation exceeds 3000 frames; use a shorter source")
+        if not math.isfinite(duration) or duration <= 0:
+            duration = 100
+        if duration > 2147483647:
+            raise ValueError("HTML frame duration exceeds the browser timer limit")
         # The still comparison renderer supplies the layout, strips metadata,
         # and composites transparency before encoding the embedded PNG.
         page = comparison_to_html(source, art, background)

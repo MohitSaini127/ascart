@@ -106,7 +106,7 @@ The image preserves the colors on GitHub. It was saved with ascart's PNG output;
 
 ## Working features
 
-- Text banners, side-by-side image/GIF exports with experimental terminal preview, and ASCII conversion for images, GIFs, and videos.
+- Text banners, side-by-side image/GIF/video exports with experimental terminal preview, and ASCII conversion for images, GIFs, and videos.
 - Experimental live camera, snapshots, and timed recording.
 - Colour, custom characters, borders, width control, and terminal fitting.
 - TXT, PNG, GIF, MP4, and HTML exports, depending on the input.
@@ -187,6 +187,10 @@ GIF comparison plays once by default; use `--loop` or `--loop-4` to repeat the t
 | `ascart video.mp4 --color --output output/ascii.mp4` | Saves one silent ASCII video, then previews it. |
 | `ascart video.mp4 --loop-4 --output output/ascii-four.mp4` | Saves one pass and previews it four times. |
 | `ascart video.avi --output output/from-avi.mp4` | Converts a supported AVI video into an ASCII MP4. |
+| `ascart video.mp4 --compare --color --output output/comparison.mp4` | Saves one silent video with the original beside its ASCII version. |
+| `ascart video.mp4 --compare --color --output output/comparison.html` | Saves a synchronized comparison webpage with playback controls. |
+
+Video comparison currently requires `--output`; terminal video comparison preview and loop flags come next.
 
 ### Camera commands (experimental)
 

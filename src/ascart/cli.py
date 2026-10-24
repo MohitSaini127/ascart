@@ -25,6 +25,7 @@ from ascart.image_art import image_to_ascii, inspect_image
 from ascart.png_art import art_to_png
 from ascart.text_art import text_to_ascii
 from ascart.terminal_preview import NATIVE_BACKEND, preview_gif_comparison, PREVIEW_UNAVAILABLE, image_preview_backend, preview_comparison
+from ascart.video_comparison import video_comparison_frames, save_comparison_video
 from ascart.video_art import inspect_video, play_video, save_ascii_video, video_ascii_frames
 
 
@@ -136,7 +137,7 @@ def main():
     )
     parser.add_argument("--output", help="Save and display artwork: .txt/.png/.html for photos, banners, or a camera snapshot; .mp4/.gif/.html with --camera-duration for camera recording; .gif/.html for GIF input, .mp4/.html for videos; existing files are never overwritten")
     parser.add_argument("--border", action="store_true", help="Frame the artwork with an ASCII border (off by default)")
-    parser.add_argument("--compare", action="store_true", help="Experimental terminal preview of a still image beside ASCII art; optionally save PNG or HTML with --output (export needs no terminal image support); GIF comparison plays in native graphics terminals and optionally exports GIF or HTML")
+    parser.add_argument("--compare", action="store_true", help="Experimental terminal preview of a still image beside ASCII art; optionally save PNG or HTML with --output (export needs no terminal image support); GIF comparison plays in native graphics terminals and optionally exports GIF or HTML; video comparison exports MP4 or HTML")
     looping = parser.add_mutually_exclusive_group()
     looping.add_argument("--loop", action="store_true", help="Repeat GIF or video playback until Ctrl+C")
     looping.add_argument(
@@ -193,9 +194,9 @@ def main():
         parser.error("Choose one input: a media path, --text, --camera [ID], --camera-mirrored [ID], or --list-cameras")
     if args.compare:
         if args.path is None:
-            parser.error("--compare supports still images or GIF files; not text, camera, or video input")
-        if args.output is not None and Path(args.output).suffix.lower() not in (".png", ".gif", ".html"):
-            parser.error("--compare output requires a new .png, .gif, or .html filename")
+            parser.error("--compare supports still images, GIFs, or videos; not text or camera input")
+        if args.output is not None and Path(args.output).suffix.lower() not in (".png", ".gif", ".mp4", ".html"):
+            parser.error("--compare output requires a new .png, .gif, .mp4, or .html filename")
     if args.camera is not None or args.list_cameras:
         if args.list_cameras and args.output is not None:
             parser.error("--list-cameras checks devices only; --output does not apply")
@@ -327,9 +328,11 @@ def main():
         is_gif = False
     except IMAGE_READ_ERRORS as error:
         report_file_error(parser, "Cannot read input", args.path, error)
-    if args.compare and is_video:
-        parser.error("--compare supports still images and GIF files; video comparison is not supported yet")
     if is_video:
+        if args.compare and (not args.output or output_suffix not in (".mp4", ".html")):
+            parser.error("Video --compare requires --output with a new .mp4 or .html filename; terminal video comparison preview is not available yet")
+        if args.compare and (args.loop or args.loop_count is not None):
+            parser.error("Video --compare does not accept loop options yet; the exported file contains one pass")
         # Confirm that unrecognized image content really contains a video frame.
         try:
             inspect_video(args.path)
@@ -338,6 +341,26 @@ def main():
         except (ValueError, cv2.error):
             parser.error(f"Cannot decode input {args.path!r}: unsupported or damaged media")
         except KeyboardInterrupt:
+            return
+        if args.compare:
+            try:
+                with closing(video_comparison_frames(
+                    args.path, width=width, palette=args.chars, background=background,
+                    max_height=max_height, color=color, border=args.border,
+                )) as frames:
+                    if output_suffix == ".html":
+                        save_comparison_html(frames, args.output, background, loop_control=False)
+                    else:
+                        save_comparison_video(frames, args.output, background)
+            except FileExistsError:
+                parser.error(f"Cannot save artwork to {args.output!r}: destination already exists; choose a new filename")
+            except (OSError, ValueError, cv2.error, Image.DecompressionBombError) as error:
+                report_file_error(parser, "Cannot save artwork to", args.output, error)
+            except KeyboardInterrupt:
+                print("Comparison export cancelled.", file=sys.stderr)
+                return
+            print("Saved ASCII video comparison to", args.output)
+            print("Open the saved comparison to view it; terminal video comparison preview is not available yet.", file=sys.stderr)
             return
         if args.output and output_suffix not in (".mp4", ".html"):
             parser.error("Video output supports only .mp4 and .html files; other video output formats are not supported yet")
