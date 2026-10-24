@@ -95,14 +95,14 @@ ascart --text-slant "ascart"
 The included [Tux sample](#photo-conversion), converted into colored ASCII characters:
 
 ```bash
-ascart examples/image1.png --width 40 --color --border --background dark
+ascart examples/image1.png --width 70 --color --border --background dark
 ```
 
 <p align="center">
   <img src="docs/previews/penguin-ascii.png" alt="Colored ASCII artwork of the Tux penguin" width="320">
 </p>
 
-The image preserves the colors on GitHub. It was saved with ascart's PNG output; terminal appearance depends on your font and theme.
+This preview was saved with an earlier bitmap renderer. Current output may look different; terminal appearance also depends on your font and theme.
 
 ## Working features
 

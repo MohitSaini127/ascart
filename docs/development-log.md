@@ -3104,3 +3104,8 @@ No new unaddressed blocking issue was found in these checks. Physical camera beh
 ## 102. Restore the dark README preview
 
 The user preferred the dark Tux preview. Regenerated docs/previews/penguin-ascii.png with width 40, the default colour palette, a border, and a dark background; changed the matching README example back to --background dark. Application code, transparency handling, and the source sample are unchanged. Verified that the saved preview exactly matches the generated pixels. This documentation-only change does not need another full test run. git diff --check passed. Commit locally as Restore dark Tux preview in README; do not push. The user-created comparison.png remains untracked and untouched.
+
+
+## 103. Use the earlier bitmap Tux style at width 70
+
+The user requested replacing the unpushed width-40 preview commit with the earlier Tux style rendered at width 70 for more detail. Generated only the README asset using the historical image converter and bitmap PNG renderer from c46d5ce. First verified that those historical functions reproduce the original width-40 preview exactly, then generated width 70 with the same #%@ palette, colour, border, and dark background. The preview remains displayed at 320 pixels wide in README. Updated the example command to width 70 and retained the note that current application output can differ from this historical renderer. Runtime code, transparency handling, source media, and comparison.png are unchanged. Verified PNG validity and pixel agreement with the generated output; git diff --check passed. Replace the previous unpushed preview commit by amending it as Use width-70 bitmap Tux preview in README; do not push. No application test rerun is needed for this documentation-only change.
